@@ -19,6 +19,7 @@ Phase 2 vertical slice is implemented:
 - Healing miracle using Faith resource
 
 See `docs/PHASE1.md` and `docs/PHASE2.md` for control map and architecture notes.
+See `docs/AAA_REVIEW.md` for a verified feature audit and full-game (AAA) scope gaps.
 
 ## Run
 1. Install Godot 4.2+.
