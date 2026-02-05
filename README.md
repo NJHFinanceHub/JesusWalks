@@ -1,5 +1,5 @@
-# Calvary Souls (Working Title)
-Dark Souls-inspired biblical action RPG prototype built in Godot 4.
+# The Nazarene
+RPG-inspired biblical action RPG prototype built in Godot 4.
 
 ## Current milestone
 Phase 2 vertical slice is implemented:
