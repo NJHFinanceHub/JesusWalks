@@ -3,3 +3,13 @@
 *.tmp
 *.log
 
+# Unreal Engine
+unreal/**/Binaries/
+unreal/**/Build/
+unreal/**/DerivedDataCache/
+unreal/**/Intermediate/
+unreal/**/Saved/
+unreal/**/.vs/
+unreal/**/*.VC.db
+unreal/**/*.sln
+

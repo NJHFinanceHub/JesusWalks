@@ -9,7 +9,13 @@ var _faith_label: Label
 var _lock_on_label: Label
 var _context_label: Label
 var _miracle_label: Label
+var _blessing_label: Label
+var _radiance_label: Label
 var _animation_label: Label
+var _region_label: Label
+var _objective_label: Label
+var _message_label: Label
+var _message_timer: float = 0.0
 var _ui_built: bool = false
 
 
@@ -17,15 +23,18 @@ func _ready() -> void:
 	_build_ui()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _player == null:
 		return
 
-	var remaining := _player.get_heal_cooldown_remaining()
-	if remaining <= 0.0:
-		_miracle_label.text = "Healing Miracle: Ready (R)"
-	else:
-		_miracle_label.text = "Healing Miracle Cooldown: %.1fs" % remaining
+	_update_miracle_label(_miracle_label, "Healing Miracle", "R", _player.get_heal_cooldown_remaining(), true)
+	_update_miracle_label(_blessing_label, "Blessing Miracle", "1", _player.get_blessing_cooldown_remaining(), _player.is_miracle_unlocked("blessing"))
+	_update_miracle_label(_radiance_label, "Radiance Miracle", "2", _player.get_radiance_cooldown_remaining(), _player.is_miracle_unlocked("radiance"))
+
+	if _message_timer > 0.0:
+		_message_timer = max(_message_timer - delta, 0.0)
+		if _message_timer <= 0.0 and _message_label != null:
+			_message_label.text = ""
 
 
 func bind_player(player: PlayerController) -> void:
@@ -63,7 +72,7 @@ func _build_ui() -> void:
 	panel.offset_left = 20.0
 	panel.offset_top = 20.0
 	panel.offset_right = 420.0
-	panel.offset_bottom = 300.0
+	panel.offset_bottom = 360.0
 	root.add_child(panel)
 
 	var style := StyleBoxFlat.new()
@@ -79,7 +88,7 @@ func _build_ui() -> void:
 	panel.add_child(layout)
 
 	var title := Label.new()
-	title.text = "Calvary Souls - Galilee Prototype"
+	title.text = "The Nazarene - Pilgrimage"
 	title.add_theme_color_override("font_color", Color(0.95, 0.89, 0.78))
 	layout.add_child(title)
 
@@ -115,6 +124,14 @@ func _build_ui() -> void:
 	_miracle_label.text = "Healing Miracle: Ready (R)"
 	layout.add_child(_miracle_label)
 
+	_blessing_label = Label.new()
+	_blessing_label.text = "Blessing Miracle: Locked"
+	layout.add_child(_blessing_label)
+
+	_radiance_label = Label.new()
+	_radiance_label.text = "Radiance Miracle: Locked"
+	layout.add_child(_radiance_label)
+
 	_animation_label = Label.new()
 	_animation_label.text = "Anim: Idle"
 	layout.add_child(_animation_label)
@@ -125,8 +142,54 @@ func _build_ui() -> void:
 	_context_label.custom_minimum_size = Vector2(360.0, 46.0)
 	layout.add_child(_context_label)
 
+	var mission_panel := PanelContainer.new()
+	mission_panel.offset_left = 1180.0
+	mission_panel.offset_top = 20.0
+	mission_panel.offset_right = 1570.0
+	mission_panel.offset_bottom = 220.0
+	root.add_child(mission_panel)
+
+	var mission_style := StyleBoxFlat.new()
+	mission_style.bg_color = Color(0.06, 0.06, 0.05, 0.78)
+	mission_style.corner_radius_top_left = 8
+	mission_style.corner_radius_top_right = 8
+	mission_style.corner_radius_bottom_left = 8
+	mission_style.corner_radius_bottom_right = 8
+	mission_panel.add_theme_stylebox_override("panel", mission_style)
+
+	var mission_layout := VBoxContainer.new()
+	mission_layout.add_theme_constant_override("separation", 6)
+	mission_layout.offset_left = 10.0
+	mission_layout.offset_right = 360.0
+	mission_layout.offset_top = 10.0
+	mission_layout.offset_bottom = 180.0
+	mission_panel.add_child(mission_layout)
+
+	_region_label = Label.new()
+	_region_label.text = "Chapter 1: Galilee Shores"
+	_region_label.add_theme_color_override("font_color", Color(0.94, 0.88, 0.76))
+	mission_layout.add_child(_region_label)
+
+	_objective_label = Label.new()
+	_objective_label.text = "Objective"
+	_objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_objective_label.add_theme_color_override("font_color", Color(0.85, 0.82, 0.7))
+	_objective_label.custom_minimum_size = Vector2(340.0, 72.0)
+	mission_layout.add_child(_objective_label)
+
+	_message_label = Label.new()
+	_message_label.text = ""
+	_message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_message_label.offset_left = 280.0
+	_message_label.offset_right = 1320.0
+	_message_label.offset_top = 14.0
+	_message_label.offset_bottom = 70.0
+	_message_label.add_theme_color_override("font_color", Color(0.96, 0.9, 0.78))
+	root.add_child(_message_label)
+
 	var controls := Label.new()
-	controls.text = "WASD Move | LMB Light | RMB Heavy | Space Dodge | Shift Block | F Parry | Q Lock | R Heal | E Pray | Save F1-F3 | Load F5-F7"
+	controls.text = "WASD Move | LMB Light | RMB Heavy | Space Dodge | Shift Block | F Parry | Q Lock | R Heal | 1 Blessing | 2 Radiance | E Pray | Tab Mouse | Esc Pause | Save F1-F3 | Load F5-F7"
 	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	controls.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7))
 	controls.offset_left = 24.0
@@ -163,3 +226,34 @@ func _on_context_hint_changed(message: String) -> void:
 
 func _on_animation_state_changed(state_name: String) -> void:
 	_animation_label.text = "Anim: %s" % state_name
+
+
+func set_region_name(region_name: String) -> void:
+	if _region_label == null:
+		return
+	_region_label.text = region_name
+
+
+func set_objective(message: String) -> void:
+	if _objective_label == null:
+		return
+	_objective_label.text = message
+
+
+func show_message(message: String, duration: float = 3.5) -> void:
+	if _message_label == null:
+		return
+	_message_label.text = message
+	_message_timer = duration
+
+
+func _update_miracle_label(label: Label, name: String, hotkey: String, remaining: float, unlocked: bool) -> void:
+	if label == null:
+		return
+	if not unlocked:
+		label.text = "%s: Locked" % name
+		return
+	if remaining <= 0.0:
+		label.text = "%s: Ready (%s)" % [name, hotkey]
+	else:
+		label.text = "%s Cooldown: %.1fs" % [name, remaining]

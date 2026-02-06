@@ -418,7 +418,10 @@ func _resolve_cast_attack() -> void:
 
 
 func _move_toward_target(delta: float, speed: float) -> void:
-	var direction := target.global_position - global_position
+	var target_node := target as Node3D
+	if target_node == null:
+		return
+	var direction: Vector3 = target_node.global_position - global_position
 	direction.y = 0.0
 	if direction.length() <= 0.01:
 		return
@@ -430,7 +433,10 @@ func _move_toward_target(delta: float, speed: float) -> void:
 
 
 func _move_away_from_target(delta: float) -> void:
-	var direction := global_position - target.global_position
+	var target_node := target as Node3D
+	if target_node == null:
+		return
+	var direction: Vector3 = global_position - target_node.global_position
 	direction.y = 0.0
 	if direction.length() <= 0.01:
 		return
@@ -444,13 +450,16 @@ func _move_away_from_target(delta: float) -> void:
 
 
 func _strafe_around_target(delta: float) -> void:
-	var forward := target.global_position - global_position
+	var target_node := target as Node3D
+	if target_node == null:
+		return
+	var forward: Vector3 = target_node.global_position - global_position
 	forward.y = 0.0
 	if forward.length() <= 0.01:
 		return
 	forward = forward.normalized()
 	var right := Vector3(-forward.z, 0.0, forward.x) * float(_strafe_direction)
-	var strafe := (right + forward * 0.18).normalized()
+	var strafe: Vector3 = (right + forward * 0.18).normalized()
 	var speed := _effective_move_speed() * 0.9
 
 	velocity.x = move_toward(velocity.x, strafe.x * speed, speed * delta * 4.8)
@@ -460,7 +469,10 @@ func _strafe_around_target(delta: float) -> void:
 
 
 func _face_target(delta: float) -> void:
-	var direction := target.global_position - global_position
+	var target_node := target as Node3D
+	if target_node == null:
+		return
+	var direction: Vector3 = target_node.global_position - global_position
 	direction.y = 0.0
 	if direction.length() <= 0.01:
 		return
@@ -468,7 +480,10 @@ func _face_target(delta: float) -> void:
 
 
 func _lunge_at_target() -> void:
-	var direction := target.global_position - global_position
+	var target_node := target as Node3D
+	if target_node == null:
+		return
+	var direction: Vector3 = target_node.global_position - global_position
 	direction.y = 0.0
 	if direction.length() <= 0.01:
 		return
@@ -487,7 +502,7 @@ func _update_phase_if_boss() -> void:
 	if enemy_type != EnemyType.BOSS:
 		return
 
-	var health_ratio := current_health / max(max_health, 1.0)
+	var health_ratio: float = current_health / maxf(max_health, 1.0)
 	var next_phase := 1
 	if health_ratio <= 0.33:
 		next_phase = 3
@@ -630,6 +645,16 @@ func receive_riposte(damage: float, source: PlayerController) -> void:
 	_set_animation_state(AnimationState.STAGGER)
 
 
+func apply_knockback(direction: Vector3, force: float) -> void:
+	if state == State.REDEEMED:
+		return
+	if direction.length() <= 0.01:
+		return
+	var push := direction.normalized() * force
+	velocity.x += push.x
+	velocity.z += push.z
+
+
 func _try_shield_block(source: PlayerController, poise_damage: float) -> bool:
 	if enemy_type != EnemyType.MELEE_SHIELD:
 		return false
@@ -640,7 +665,7 @@ func _try_shield_block(source: PlayerController, poise_damage: float) -> bool:
 	if randf() > shield_block_chance:
 		return false
 
-	var attacker_direction := source.global_position - global_position
+	var attacker_direction: Vector3 = source.global_position - global_position
 	attacker_direction.y = 0.0
 	if attacker_direction.length() <= 0.01:
 		return false
@@ -650,7 +675,7 @@ func _try_shield_block(source: PlayerController, poise_damage: float) -> bool:
 	if not frontal:
 		return false
 
-	current_poise = max(current_poise - poise_damage * 0.35, 0.0)
+	current_poise = maxf(current_poise - poise_damage * 0.35, 0.0)
 	state = State.BLOCKING
 	state_timer = 0.26
 	_set_animation_state(AnimationState.BLOCK)

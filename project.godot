@@ -9,10 +9,14 @@ config_version=5
 
 [application]
 
-config/name="Calvary Souls - Phase 1 Prototype"
-run/main_scene="res://scenes/GalileeRegion.tscn"
+config/name="The Nazarene"
+run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.2", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+GameSession="res://scripts/core/game_session.gd"
 
 [display]
 

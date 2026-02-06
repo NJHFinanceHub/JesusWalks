@@ -4,6 +4,7 @@ class_name SaveSystem
 
 const SAVE_DIRECTORY := "user://saves"
 const SAVE_VERSION := 1
+const CHECKPOINT_PATH := "%s/campaign.save" % SAVE_DIRECTORY
 
 
 static func save_slot(slot_id: int, payload: Dictionary) -> bool:
@@ -42,7 +43,7 @@ static func load_slot(slot_id: int) -> Dictionary:
 	if file == null:
 		return {}
 
-	var parsed := JSON.parse_string(file.get_as_text())
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	if parsed is Dictionary:
 		return parsed
 	return {}
@@ -59,7 +60,7 @@ static func slot_summary(slot_id: int) -> String:
 	if data.is_empty():
 		return "Slot %d: Empty" % slot_id
 
-	var meta := data.get("meta", {})
+	var meta: Variant = data.get("meta", {})
 	if not (meta is Dictionary):
 		return "Slot %d: Save data present" % slot_id
 
@@ -69,4 +70,48 @@ static func slot_summary(slot_id: int) -> String:
 
 static func _slot_path(slot_id: int) -> String:
 	return "%s/slot_%d.save" % [SAVE_DIRECTORY, slot_id]
+
+
+static func save_checkpoint(payload: Dictionary) -> bool:
+	var directory_error := DirAccess.make_dir_recursive_absolute(SAVE_DIRECTORY)
+	if directory_error != OK:
+		return false
+
+	var safe_payload := payload.duplicate(true)
+	safe_payload["meta"] = {
+		"save_version": SAVE_VERSION,
+		"checkpoint": true,
+		"timestamp": Time.get_datetime_string_from_system(true),
+	}
+
+	var file := FileAccess.open(CHECKPOINT_PATH, FileAccess.WRITE)
+	if file == null:
+		return false
+
+	file.store_string(JSON.stringify(safe_payload, "\t"))
+	file.flush()
+	return true
+
+
+static func load_checkpoint() -> Dictionary:
+	if not FileAccess.file_exists(CHECKPOINT_PATH):
+		return {}
+
+	var file := FileAccess.open(CHECKPOINT_PATH, FileAccess.READ)
+	if file == null:
+		return {}
+
+	var parsed := JSON.parse_string(file.get_as_text())
+	if parsed is Dictionary:
+		return parsed
+	return {}
+
+
+static func checkpoint_exists() -> bool:
+	return FileAccess.file_exists(CHECKPOINT_PATH)
+
+
+static func clear_checkpoint() -> void:
+	if FileAccess.file_exists(CHECKPOINT_PATH):
+		DirAccess.remove_absolute(CHECKPOINT_PATH)
 
