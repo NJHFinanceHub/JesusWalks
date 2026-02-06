@@ -6,10 +6,11 @@
 #include "NazareneCampaignGameMode.generated.h"
 
 class ANazareneEnemyCharacter;
+class ANazareneHUD;
 class ANazarenePlayerCharacter;
-class ANazarenePrayerSite;
 class ANazareneTravelGate;
 class UNazareneGameInstance;
+class UNazareneSaveSubsystem;
 
 UCLASS()
 class THENAZARENEAAA_API ANazareneCampaignGameMode : public AGameModeBase
@@ -25,59 +26,60 @@ public:
     void RequestTravel(int32 TargetRegionIndex);
 
     UFUNCTION(BlueprintCallable, Category = "Campaign")
-    int32 GetCurrentRegionIndex() const;
+    bool SaveToSlot(int32 SlotId);
 
     UFUNCTION(BlueprintCallable, Category = "Campaign")
-    FNazareneSavePayload BuildSavePayload() const;
+    bool LoadFromSlot(int32 SlotId);
 
     UFUNCTION(BlueprintCallable, Category = "Campaign")
-    bool ApplyLoadedPayload(const FNazareneSavePayload& Payload);
+    bool SaveCheckpoint();
+
+    UFUNCTION(BlueprintCallable, Category = "Campaign")
+    bool LoadCheckpoint();
 
 private:
-    void InitializeDefaultRegions();
-    void LoadRegion(int32 RegionIndex);
+    void BuildDefaultRegions();
+    void LoadRegion(int32 TargetRegionIndex);
     void ClearRegionActors();
+    void SpawnRegionEnvironment(const FNazareneRegionDefinition& Region);
     void SpawnRegionActors(const FNazareneRegionDefinition& Region);
-    void SaveCheckpoint();
-    void ApplyRegionReward(const FNazareneRegionDefinition& Region);
-    void UpdatePlayerProgressionStats();
+    void ApplySavePayload(const FNazareneSavePayload& Payload);
+    FNazareneSavePayload BuildSavePayload() const;
+    void SyncCompletionState();
+    void OnBossRedeemed();
+    bool ApplyRegionReward(const FNazareneRegionDefinition& Region);
+    void EnableTravelGate(bool bEnabled);
+    void UpdateHUDForRegion(const FNazareneRegionDefinition& Region, bool bCompleted) const;
 
     UFUNCTION()
     void HandleEnemyRedeemed(ANazareneEnemyCharacter* Enemy, float FaithReward);
 
 private:
-    UPROPERTY(EditDefaultsOnly, Category = "Classes")
-    TSubclassOf<ANazarenePlayerCharacter> PlayerCharacterClass;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Classes")
-    TSubclassOf<ANazareneEnemyCharacter> EnemyClass;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Classes")
-    TSubclassOf<ANazarenePrayerSite> PrayerSiteClass;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Classes")
-    TSubclassOf<ANazareneTravelGate> TravelGateClass;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Campaign")
+    UPROPERTY()
     TArray<FNazareneRegionDefinition> Regions;
 
     UPROPERTY()
-    TArray<TObjectPtr<AActor>> SpawnedRegionActors;
+    TObjectPtr<UNazareneGameInstance> Session;
 
     UPROPERTY()
-    TObjectPtr<ANazarenePlayerCharacter> PlayerCharacter = nullptr;
+    TObjectPtr<UNazareneSaveSubsystem> SaveSubsystem;
 
     UPROPERTY()
-    TObjectPtr<ANazareneEnemyCharacter> BossEnemy = nullptr;
+    TObjectPtr<ANazarenePlayerCharacter> PlayerCharacter;
 
     UPROPERTY()
-    TObjectPtr<ANazareneTravelGate> TravelGate = nullptr;
+    TObjectPtr<ANazareneTravelGate> TravelGate;
 
     UPROPERTY()
-    TObjectPtr<UNazareneGameInstance> NazareneGameInstance = nullptr;
+    TObjectPtr<ANazareneEnemyCharacter> BossEnemy;
 
-    int32 CurrentRegionIndex = 0;
+    UPROPERTY()
+    TMap<FName, TObjectPtr<ANazareneEnemyCharacter>> EnemyBySpawnId;
+
+    UPROPERTY()
+    TArray<TObjectPtr<AActor>> RegionActors;
+
+    int32 RegionIndex = 0;
     bool bRegionCompleted = false;
-    bool bSuppressRedeemEvents = false;
+    bool bSuppressRedeemedCallbacks = false;
 };
-

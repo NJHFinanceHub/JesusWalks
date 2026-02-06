@@ -11,7 +11,6 @@
 #include "NazareneCampaignGameMode.h"
 #include "NazareneEnemyCharacter.h"
 #include "NazarenePrayerSite.h"
-#include "NazareneSaveSubsystem.h"
 #include "NazareneTravelGate.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -316,29 +315,18 @@ bool ANazarenePlayerCharacter::SaveToSlot(int32 SlotId)
         return false;
     }
 
-    UNazareneSaveSubsystem* SaveSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UNazareneSaveSubsystem>() : nullptr;
-    if (SaveSubsystem == nullptr)
-    {
-        SetContextHint(TEXT("Save system unavailable."));
-        return false;
-    }
-
     if (!CampaignGameMode.IsValid())
     {
         CampaignGameMode = Cast<ANazareneCampaignGameMode>(GetWorld()->GetAuthGameMode());
     }
 
-    FNazareneSavePayload Payload;
-    if (CampaignGameMode.IsValid())
+    if (!CampaignGameMode.IsValid())
     {
-        Payload = CampaignGameMode->BuildSavePayload();
-    }
-    else
-    {
-        Payload.Player = BuildSnapshot();
+        SetContextHint(TEXT("Campaign manager unavailable."));
+        return false;
     }
 
-    const bool bOk = SaveSubsystem->SavePayloadToSlot(SlotId, Payload);
+    const bool bOk = CampaignGameMode->SaveToSlot(SlotId);
     SetContextHint(bOk ? FString::Printf(TEXT("Saved to slot %d."), SlotId) : FString::Printf(TEXT("Save failed for slot %d."), SlotId));
     return bOk;
 }
@@ -351,36 +339,18 @@ bool ANazarenePlayerCharacter::LoadFromSlot(int32 SlotId)
         return false;
     }
 
-    UNazareneSaveSubsystem* SaveSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UNazareneSaveSubsystem>() : nullptr;
-    if (SaveSubsystem == nullptr)
-    {
-        SetContextHint(TEXT("Load system unavailable."));
-        return false;
-    }
-
-    FNazareneSavePayload Payload;
-    if (!SaveSubsystem->LoadPayloadFromSlot(SlotId, Payload))
-    {
-        SetContextHint(FString::Printf(TEXT("Slot %d is empty."), SlotId));
-        return false;
-    }
-
     if (!CampaignGameMode.IsValid())
     {
         CampaignGameMode = Cast<ANazareneCampaignGameMode>(GetWorld()->GetAuthGameMode());
     }
 
-    bool bOk = false;
-    if (CampaignGameMode.IsValid())
+    if (!CampaignGameMode.IsValid())
     {
-        bOk = CampaignGameMode->ApplyLoadedPayload(Payload);
-    }
-    else
-    {
-        ApplySnapshot(Payload.Player);
-        bOk = true;
+        SetContextHint(TEXT("Campaign manager unavailable."));
+        return false;
     }
 
+    const bool bOk = CampaignGameMode->LoadFromSlot(SlotId);
     SetContextHint(bOk ? FString::Printf(TEXT("Loaded slot %d."), SlotId) : FString::Printf(TEXT("Load failed for slot %d."), SlotId));
     return bOk;
 }
