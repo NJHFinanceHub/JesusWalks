@@ -1,5 +1,5 @@
 # The Nazarene
-RPG-inspired biblical action RPG built in Godot 4.
+RPG-inspired biblical action RPG built in Unreal Engine 5
 
 ## Current milestone
 Phase 3 campaign build is implemented:
