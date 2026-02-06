@@ -1,5 +1,7 @@
 # Phase 2 Build Notes (Enemy Variety, Boss, Save Slots)
 
+**Migration note (February 6, 2026):** This is a legacy Godot milestone record. Active development is now in Unreal Engine 5 (`unreal/TheNazareneAAA`). Use `TODO.md` and `docs/UNREAL_MIGRATION.md` for current execution.
+
 ## New gameplay systems
 - Enemy variety added through archetype-driven AI:
   - `MELEE_SHIELD`: frontal shield block chance and poise-heavy melee

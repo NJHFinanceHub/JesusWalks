@@ -1,43 +1,53 @@
 # Unreal Migration Notes
 
-## Scope delivered in this repo
-The Unreal C++ project is under `unreal/TheNazareneAAA` and mirrors the currently implemented Godot systems:
+## Status (February 6, 2026)
+- Unreal Engine 5 C++ is the active development target.
+- Godot implementation is retained for feature parity reference and migration validation.
+- Delivery scope should now be planned from Unreal assets, systems, and tooling.
 
-- `PlayerController.gd` -> `ANazarenePlayerCharacter`:
-  - lock-on, stamina combat windows, dodge/parry/block, miracles (heal/blessing/radiance)
-  - prayer interaction, slot save/load input, defeat -> prayer-site respawn
-- `enemy_ai.gd` -> `ANazareneEnemyCharacter`:
-  - archetypes (shield/spear/ranged/demon/boss), state machine, parry/riposte, phase scaling
-- `prayer_site.gd` -> `ANazarenePrayerSite`:
-  - overlap-driven prompt binding and rest target
-- `travel_gate.gd` -> `ANazareneTravelGate`:
-  - boss-gated region transitions
+## Source-of-truth locations
+- Unreal project: `unreal/TheNazareneAAA`
+- Active task list: `TODO.md`
+- Legacy Godot reference: `project.godot`, `scenes/`, `scripts/`
+
+## Godot -> Unreal system mapping
+- `PlayerController.gd` -> `ANazarenePlayerCharacter`
+  - Lock-on, stamina combat windows, dodge/parry/block, miracles, prayer interactions, save/load inputs.
+- `enemy_ai.gd` -> `ANazareneEnemyCharacter`
+  - Archetypes (shield/spear/ranged/demon/boss), state transitions, parry/riposte, boss phase escalation.
+- `prayer_site.gd` -> `ANazarenePrayerSite`
+  - Overlap prompts, rest interaction, respawn anchor behavior.
+- `travel_gate.gd` -> `ANazareneTravelGate`
+  - Boss-gated region transition flow.
 - `campaign_manager.gd` + `game_session.gd` + `save_system.gd` ->
   - `ANazareneCampaignGameMode`
   - `UNazareneGameInstance`
   - `UNazareneSaveSubsystem`
   - `UNazareneSaveGame`
-- `hud.gd` -> `ANazareneHUD` (runtime canvas HUD)
+- `hud.gd` -> `ANazareneHUD`
+  - Runtime vitals/objective/context presentation.
 
 ## Unreal project structure
 - `unreal/TheNazareneAAA/TheNazareneAAA.uproject`
 - `unreal/TheNazareneAAA/Config/*.ini`
 - `unreal/TheNazareneAAA/Source/TheNazareneAAA`
 
-## What still needs editor-side authoring
-This commit provides gameplay code and config, but no `.umap` or `.uasset` content authored in the Unreal editor yet.
+## Current gap summary
+- C++ gameplay parity baseline exists.
+- Authoring-heavy production content is still pending:
+  - Maps (`.umap`) and editor-authored `.uasset` content.
+  - Animation blueprints, finalized skeletal assets, and combat animation polish.
+  - UMG/CommonUI menus and front-end save/load UX.
+  - Niagara, materials, SoundCue/MetaSound integration.
+  - Performance tuning and packaging pipeline hardening.
 
-Minimum editor steps:
-1. Right-click `TheNazareneAAA.uproject` and generate project files.
-2. Build the C++ target in Visual Studio.
-3. Open the project in Unreal Editor 5.4+.
-4. Create a map (or use an existing map) and set `NazareneCampaignGameMode` if not already defaulted.
-5. Iterate on animation blueprints, skeletal meshes, Niagara, audio assets, and UI widget assets for production polish.
+## Immediate next execution steps
+1. Stand up a playable Unreal campaign map and validate the full loop in PIE.
+2. Move input to Enhanced Input assets.
+3. Replace code-only HUD/menu flow with UMG/CommonUI.
+4. Shift enemy logic into Behavior Trees + AI Perception where appropriate.
+5. Run parity validation against Godot reference behavior and document gaps.
 
-## AAA production next milestones
-- Replace primitive meshes with production character/enemy/environment assets.
-- Move input to Enhanced Input assets and action mapping contexts.
-- Convert HUD to UMG/CommonUI widget stack and platform navigation.
-- Replace direct tick-based AI with Behavior Trees + EQS + AI Perception.
-- Integrate GAS (Gameplay Ability System) for abilities, cooldowns, and status effects.
-- Add netcode architecture decisions early (single-player only vs co-op).
+## Legacy documentation policy
+- `docs/PHASE1.md`, `docs/PHASE2.md`, `docs/PHASE3.md`, `docs/AAA_REVIEW.md`, and `docs/CODE_REVIEW_REPORT.md` are historical records of Godot work.
+- Keep those documents for traceability, but plan and execute new work from Unreal docs and tasks.

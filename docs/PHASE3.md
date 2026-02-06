@@ -1,5 +1,7 @@
 # Phase 3 Build Notes (Polish & Juice Systems)
 
+**Migration note (February 6, 2026):** This is a legacy Godot milestone record. Active development is now in Unreal Engine 5 (`unreal/TheNazareneAAA`). Use `TODO.md` and `docs/UNREAL_MIGRATION.md` for current execution.
+
 ## New systems added
 - **Audio System** (`scripts/core/audio_manager.gd`)
   - Centralized audio management with SFX pooling

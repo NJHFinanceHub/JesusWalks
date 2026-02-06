@@ -1,6 +1,7 @@
 # The Nazarene AAA (Unreal Engine)
 
-This is the Unreal Engine 5 C++ migration of the existing Godot prototype.
+This is the primary runtime codebase for The Nazarene.
+The Godot project remains in the repository as legacy reference material for migration parity checks.
 
 ## Build
 1. Install Unreal Engine 5.4+ and Visual Studio with C++ toolchain.

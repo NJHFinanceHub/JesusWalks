@@ -1,5 +1,7 @@
 # Plot: The Nazarene
 
+**Migration note (February 6, 2026):** This narrative spec is engine-agnostic. Production implementation should assume Unreal Engine 5 as the active runtime target.
+
 This document provides the full narrative arc for *The Nazarene* while focusing on 21 widely beloved chapters of Scripture as set-piece anchors. The story is structured as an action RPG campaign with hubs, regions, encounters, and miracle-driven progression. The plot is faithful to the biblical timeline, spanning creation to the new creation, while centering the playable journey around the life, death, and resurrection of Jesus.
 
 ## Core narrative goals

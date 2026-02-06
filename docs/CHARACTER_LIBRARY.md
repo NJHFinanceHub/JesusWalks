@@ -1,5 +1,7 @@
 # Character Library
 
+**Migration note (February 6, 2026):** This roster is engine-agnostic. Gameplay and content integration should now be planned against the Unreal Engine 5 project.
+
 This library defines NPC-ready character entries for **The Nazarene**. Each entry includes a suggested image asset, background summary, biblical references, NPC behavior, and a reusable library of voice lines.
 
 ## Asset conventions

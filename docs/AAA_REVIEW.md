@@ -1,5 +1,7 @@
 # Full Game Readiness Review (AAA Feature Audit)
 
+**Migration note (February 6, 2026):** This audit is based on Godot prototype evidence and is kept as historical reference. Active implementation planning should follow Unreal docs (`docs/UNREAL_MIGRATION.md`) and `TODO.md`.
+
 This document audits the current vertical slice against features already claimed as complete, and enumerates the additional systems needed for a full, AAA-grade experience. Items listed as **Verified** are confirmed in code; anything else is recorded as **Not Implemented / Needs Work** to avoid marking unfinished work as done.
 
 ## Verified implementations (confirmed in code)

@@ -1,4 +1,6 @@
 # Code Review Report - The Nazarene
+**Migration note (February 6, 2026):** This review covers the Godot prototype codebase and is retained for historical traceability. Active engine work now targets Unreal Engine 5 (`unreal/TheNazareneAAA`).
+
 **Date:** 2026-02-05
 **Reviewer:** Claude (AI Assistant)
 **Scope:** Full codebase review and debugging

@@ -1,5 +1,7 @@
 # Phase 1 Build Notes (Galilee Vertical Slice)
 
+**Migration note (February 6, 2026):** This is a legacy Godot milestone record. Active development is now in Unreal Engine 5 (`unreal/TheNazareneAAA`). Use `TODO.md` and `docs/UNREAL_MIGRATION.md` for current execution.
+
 ## Included systems
 - Third-person player controller with camera orbit and lock-on targeting.
 - Stamina-based combat loop:
