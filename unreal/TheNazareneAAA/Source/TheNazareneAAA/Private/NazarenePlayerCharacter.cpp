@@ -3,16 +3,53 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "Engine/LocalPlayer.h"
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "InputAction.h"
+#include "InputActionValue.h"
+#include "InputCoreTypes.h"
+#include "InputMappingContext.h"
+#include "InputModifiers.h"
 #include "Kismet/GameplayStatics.h"
 #include "NazareneCampaignGameMode.h"
 #include "NazareneEnemyCharacter.h"
 #include "NazarenePrayerSite.h"
 #include "NazareneTravelGate.h"
 #include "UObject/ConstructorHelpers.h"
+
+namespace
+{
+    static void AddScaledMapping(UInputMappingContext* MappingContext, UInputAction* Action, const FKey Key, float Scale)
+    {
+        if (MappingContext == nullptr || Action == nullptr)
+        {
+            return;
+        }
+
+        FEnhancedActionKeyMapping& Mapping = MappingContext->MapKey(Action, Key);
+        if (!FMath::IsNearlyEqual(Scale, 1.0f))
+        {
+            UInputModifierScalar* Scalar = NewObject<UInputModifierScalar>(MappingContext);
+            Scalar->Scalar = FVector(Scale, Scale, Scale);
+            Mapping.Modifiers.Add(Scalar);
+        }
+    }
+
+    static UInputAction* MakeInputAction(UObject* Owner, const TCHAR* Name, EInputActionValueType ValueType)
+    {
+        UInputAction* Action = NewObject<UInputAction>(Owner, Name);
+        if (Action != nullptr)
+        {
+            Action->ValueType = ValueType;
+        }
+        return Action;
+    }
+}
 
 ANazarenePlayerCharacter::ANazarenePlayerCharacter()
 {
@@ -54,6 +91,7 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
     GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
     UnlockedMiracles.Add(FName(TEXT("heal")));
+    InitializeEnhancedInputDefaults();
 }
 
 void ANazarenePlayerCharacter::BeginPlay()
@@ -71,6 +109,8 @@ void ANazarenePlayerCharacter::BeginPlay()
         PC->SetInputMode(FInputModeGameOnly());
         PC->bShowMouseCursor = false;
     }
+
+    RegisterEnhancedInputMappingContext();
 }
 
 void ANazarenePlayerCharacter::Tick(float DeltaSeconds)
@@ -113,33 +153,169 @@ void ANazarenePlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-    PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &ANazarenePlayerCharacter::MoveForward);
-    PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &ANazarenePlayerCharacter::MoveRight);
-    PlayerInputComponent->BindAxis(TEXT("Turn"), this, &ANazarenePlayerCharacter::Turn);
-    PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &ANazarenePlayerCharacter::LookUp);
+    UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+    if (EnhancedInputComponent == nullptr)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("NazarenePlayerCharacter expected UEnhancedInputComponent but received %s"), *GetNameSafe(PlayerInputComponent));
+        return;
+    }
+    BindEnhancedInput(EnhancedInputComponent);
+}
 
-    PlayerInputComponent->BindAction(TEXT("Interact"), IE_Pressed, this, &ANazarenePlayerCharacter::Interact);
-    PlayerInputComponent->BindAction(TEXT("LockOn"), IE_Pressed, this, &ANazarenePlayerCharacter::ToggleLockOn);
-    PlayerInputComponent->BindAction(TEXT("Pause"), IE_Pressed, this, &ANazarenePlayerCharacter::TogglePause);
-    PlayerInputComponent->BindAction(TEXT("ToggleMouseCapture"), IE_Pressed, this, &ANazarenePlayerCharacter::ToggleMouseCapture);
+void ANazarenePlayerCharacter::InitializeEnhancedInputDefaults()
+{
+    RuntimeInputMappingContext = NewObject<UInputMappingContext>(this, TEXT("NazareneRuntimeInputMapping"));
 
-    PlayerInputComponent->BindAction(TEXT("Block"), IE_Pressed, this, &ANazarenePlayerCharacter::StartBlock);
-    PlayerInputComponent->BindAction(TEXT("Block"), IE_Released, this, &ANazarenePlayerCharacter::StopBlock);
+    MoveForwardInputAction = MakeInputAction(this, TEXT("NazareneMoveForward"), EInputActionValueType::Axis1D);
+    MoveRightInputAction = MakeInputAction(this, TEXT("NazareneMoveRight"), EInputActionValueType::Axis1D);
+    TurnInputAction = MakeInputAction(this, TEXT("NazareneTurn"), EInputActionValueType::Axis1D);
+    LookUpInputAction = MakeInputAction(this, TEXT("NazareneLookUp"), EInputActionValueType::Axis1D);
 
-    PlayerInputComponent->BindAction(TEXT("LightAttack"), IE_Pressed, this, &ANazarenePlayerCharacter::TryLightAttack);
-    PlayerInputComponent->BindAction(TEXT("HeavyAttack"), IE_Pressed, this, &ANazarenePlayerCharacter::TryHeavyAttack);
-    PlayerInputComponent->BindAction(TEXT("Dodge"), IE_Pressed, this, &ANazarenePlayerCharacter::TryDodge);
-    PlayerInputComponent->BindAction(TEXT("Parry"), IE_Pressed, this, &ANazarenePlayerCharacter::TryParry);
-    PlayerInputComponent->BindAction(TEXT("MiracleHeal"), IE_Pressed, this, &ANazarenePlayerCharacter::TryHealingMiracle);
-    PlayerInputComponent->BindAction(TEXT("MiracleBlessing"), IE_Pressed, this, &ANazarenePlayerCharacter::TryBlessingMiracle);
-    PlayerInputComponent->BindAction(TEXT("MiracleRadiance"), IE_Pressed, this, &ANazarenePlayerCharacter::TryRadianceMiracle);
+    InteractInputAction = MakeInputAction(this, TEXT("NazareneInteract"), EInputActionValueType::Boolean);
+    LockOnInputAction = MakeInputAction(this, TEXT("NazareneLockOn"), EInputActionValueType::Boolean);
+    PauseInputAction = MakeInputAction(this, TEXT("NazarenePause"), EInputActionValueType::Boolean);
+    ToggleMouseCaptureInputAction = MakeInputAction(this, TEXT("NazareneToggleMouseCapture"), EInputActionValueType::Boolean);
+    BlockInputAction = MakeInputAction(this, TEXT("NazareneBlock"), EInputActionValueType::Boolean);
 
-    PlayerInputComponent->BindAction(TEXT("SaveSlot1"), IE_Pressed, this, &ANazarenePlayerCharacter::TrySaveSlot1);
-    PlayerInputComponent->BindAction(TEXT("SaveSlot2"), IE_Pressed, this, &ANazarenePlayerCharacter::TrySaveSlot2);
-    PlayerInputComponent->BindAction(TEXT("SaveSlot3"), IE_Pressed, this, &ANazarenePlayerCharacter::TrySaveSlot3);
-    PlayerInputComponent->BindAction(TEXT("LoadSlot1"), IE_Pressed, this, &ANazarenePlayerCharacter::TryLoadSlot1);
-    PlayerInputComponent->BindAction(TEXT("LoadSlot2"), IE_Pressed, this, &ANazarenePlayerCharacter::TryLoadSlot2);
-    PlayerInputComponent->BindAction(TEXT("LoadSlot3"), IE_Pressed, this, &ANazarenePlayerCharacter::TryLoadSlot3);
+    LightAttackInputAction = MakeInputAction(this, TEXT("NazareneLightAttack"), EInputActionValueType::Boolean);
+    HeavyAttackInputAction = MakeInputAction(this, TEXT("NazareneHeavyAttack"), EInputActionValueType::Boolean);
+    DodgeInputAction = MakeInputAction(this, TEXT("NazareneDodge"), EInputActionValueType::Boolean);
+    ParryInputAction = MakeInputAction(this, TEXT("NazareneParry"), EInputActionValueType::Boolean);
+    MiracleHealInputAction = MakeInputAction(this, TEXT("NazareneMiracleHeal"), EInputActionValueType::Boolean);
+    MiracleBlessingInputAction = MakeInputAction(this, TEXT("NazareneMiracleBlessing"), EInputActionValueType::Boolean);
+    MiracleRadianceInputAction = MakeInputAction(this, TEXT("NazareneMiracleRadiance"), EInputActionValueType::Boolean);
+
+    SaveSlot1InputAction = MakeInputAction(this, TEXT("NazareneSaveSlot1"), EInputActionValueType::Boolean);
+    SaveSlot2InputAction = MakeInputAction(this, TEXT("NazareneSaveSlot2"), EInputActionValueType::Boolean);
+    SaveSlot3InputAction = MakeInputAction(this, TEXT("NazareneSaveSlot3"), EInputActionValueType::Boolean);
+    LoadSlot1InputAction = MakeInputAction(this, TEXT("NazareneLoadSlot1"), EInputActionValueType::Boolean);
+    LoadSlot2InputAction = MakeInputAction(this, TEXT("NazareneLoadSlot2"), EInputActionValueType::Boolean);
+    LoadSlot3InputAction = MakeInputAction(this, TEXT("NazareneLoadSlot3"), EInputActionValueType::Boolean);
+
+    if (RuntimeInputMappingContext == nullptr)
+    {
+        return;
+    }
+
+    AddScaledMapping(RuntimeInputMappingContext, MoveForwardInputAction, EKeys::W, 1.0f);
+    AddScaledMapping(RuntimeInputMappingContext, MoveForwardInputAction, EKeys::S, -1.0f);
+    AddScaledMapping(RuntimeInputMappingContext, MoveForwardInputAction, EKeys::Up, 1.0f);
+    AddScaledMapping(RuntimeInputMappingContext, MoveForwardInputAction, EKeys::Down, -1.0f);
+
+    AddScaledMapping(RuntimeInputMappingContext, MoveRightInputAction, EKeys::D, 1.0f);
+    AddScaledMapping(RuntimeInputMappingContext, MoveRightInputAction, EKeys::A, -1.0f);
+    AddScaledMapping(RuntimeInputMappingContext, MoveRightInputAction, EKeys::Right, 1.0f);
+    AddScaledMapping(RuntimeInputMappingContext, MoveRightInputAction, EKeys::Left, -1.0f);
+
+    AddScaledMapping(RuntimeInputMappingContext, TurnInputAction, EKeys::MouseX, 1.0f);
+    AddScaledMapping(RuntimeInputMappingContext, LookUpInputAction, EKeys::MouseY, -1.0f);
+
+    RuntimeInputMappingContext->MapKey(InteractInputAction, EKeys::E);
+    RuntimeInputMappingContext->MapKey(LockOnInputAction, EKeys::Q);
+    RuntimeInputMappingContext->MapKey(PauseInputAction, EKeys::Escape);
+    RuntimeInputMappingContext->MapKey(ToggleMouseCaptureInputAction, EKeys::Tab);
+    RuntimeInputMappingContext->MapKey(BlockInputAction, EKeys::LeftShift);
+    RuntimeInputMappingContext->MapKey(LightAttackInputAction, EKeys::LeftMouseButton);
+    RuntimeInputMappingContext->MapKey(HeavyAttackInputAction, EKeys::RightMouseButton);
+    RuntimeInputMappingContext->MapKey(DodgeInputAction, EKeys::SpaceBar);
+    RuntimeInputMappingContext->MapKey(ParryInputAction, EKeys::F);
+    RuntimeInputMappingContext->MapKey(MiracleHealInputAction, EKeys::R);
+    RuntimeInputMappingContext->MapKey(MiracleBlessingInputAction, EKeys::One);
+    RuntimeInputMappingContext->MapKey(MiracleRadianceInputAction, EKeys::Two);
+
+    RuntimeInputMappingContext->MapKey(SaveSlot1InputAction, EKeys::F1);
+    RuntimeInputMappingContext->MapKey(SaveSlot2InputAction, EKeys::F2);
+    RuntimeInputMappingContext->MapKey(SaveSlot3InputAction, EKeys::F3);
+    RuntimeInputMappingContext->MapKey(LoadSlot1InputAction, EKeys::F5);
+    RuntimeInputMappingContext->MapKey(LoadSlot2InputAction, EKeys::F6);
+    RuntimeInputMappingContext->MapKey(LoadSlot3InputAction, EKeys::F7);
+}
+
+void ANazarenePlayerCharacter::RegisterEnhancedInputMappingContext() const
+{
+    const APlayerController* PC = Cast<APlayerController>(GetController());
+    if (PC == nullptr || RuntimeInputMappingContext == nullptr)
+    {
+        return;
+    }
+
+    ULocalPlayer* LocalPlayer = PC->GetLocalPlayer();
+    if (LocalPlayer == nullptr)
+    {
+        return;
+    }
+
+    UEnhancedInputLocalPlayerSubsystem* InputSubsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+    if (InputSubsystem == nullptr)
+    {
+        return;
+    }
+
+    InputSubsystem->ClearAllMappings();
+    InputSubsystem->AddMappingContext(RuntimeInputMappingContext, 0);
+}
+
+void ANazarenePlayerCharacter::BindEnhancedInput(UEnhancedInputComponent* EnhancedInputComponent)
+{
+    if (EnhancedInputComponent == nullptr)
+    {
+        return;
+    }
+
+    EnhancedInputComponent->BindAction(MoveForwardInputAction, ETriggerEvent::Triggered, this, &ANazarenePlayerCharacter::OnMoveForwardInput);
+    EnhancedInputComponent->BindAction(MoveForwardInputAction, ETriggerEvent::Completed, this, &ANazarenePlayerCharacter::OnMoveForwardInput);
+
+    EnhancedInputComponent->BindAction(MoveRightInputAction, ETriggerEvent::Triggered, this, &ANazarenePlayerCharacter::OnMoveRightInput);
+    EnhancedInputComponent->BindAction(MoveRightInputAction, ETriggerEvent::Completed, this, &ANazarenePlayerCharacter::OnMoveRightInput);
+
+    EnhancedInputComponent->BindAction(TurnInputAction, ETriggerEvent::Triggered, this, &ANazarenePlayerCharacter::OnTurnInput);
+    EnhancedInputComponent->BindAction(TurnInputAction, ETriggerEvent::Completed, this, &ANazarenePlayerCharacter::OnTurnInput);
+
+    EnhancedInputComponent->BindAction(LookUpInputAction, ETriggerEvent::Triggered, this, &ANazarenePlayerCharacter::OnLookUpInput);
+    EnhancedInputComponent->BindAction(LookUpInputAction, ETriggerEvent::Completed, this, &ANazarenePlayerCharacter::OnLookUpInput);
+
+    EnhancedInputComponent->BindAction(InteractInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::Interact);
+    EnhancedInputComponent->BindAction(LockOnInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::ToggleLockOn);
+    EnhancedInputComponent->BindAction(PauseInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TogglePause);
+    EnhancedInputComponent->BindAction(ToggleMouseCaptureInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::ToggleMouseCapture);
+
+    EnhancedInputComponent->BindAction(BlockInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::StartBlock);
+    EnhancedInputComponent->BindAction(BlockInputAction, ETriggerEvent::Completed, this, &ANazarenePlayerCharacter::StopBlock);
+
+    EnhancedInputComponent->BindAction(LightAttackInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryLightAttack);
+    EnhancedInputComponent->BindAction(HeavyAttackInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryHeavyAttack);
+    EnhancedInputComponent->BindAction(DodgeInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryDodge);
+    EnhancedInputComponent->BindAction(ParryInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryParry);
+    EnhancedInputComponent->BindAction(MiracleHealInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryHealingMiracle);
+    EnhancedInputComponent->BindAction(MiracleBlessingInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryBlessingMiracle);
+    EnhancedInputComponent->BindAction(MiracleRadianceInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryRadianceMiracle);
+
+    EnhancedInputComponent->BindAction(SaveSlot1InputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TrySaveSlot1);
+    EnhancedInputComponent->BindAction(SaveSlot2InputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TrySaveSlot2);
+    EnhancedInputComponent->BindAction(SaveSlot3InputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TrySaveSlot3);
+    EnhancedInputComponent->BindAction(LoadSlot1InputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryLoadSlot1);
+    EnhancedInputComponent->BindAction(LoadSlot2InputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryLoadSlot2);
+    EnhancedInputComponent->BindAction(LoadSlot3InputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryLoadSlot3);
+}
+
+void ANazarenePlayerCharacter::OnMoveForwardInput(const FInputActionValue& Value)
+{
+    MoveForward(Value.Get<float>());
+}
+
+void ANazarenePlayerCharacter::OnMoveRightInput(const FInputActionValue& Value)
+{
+    MoveRight(Value.Get<float>());
+}
+
+void ANazarenePlayerCharacter::OnTurnInput(const FInputActionValue& Value)
+{
+    Turn(Value.Get<float>());
+}
+
+void ANazarenePlayerCharacter::OnLookUpInput(const FInputActionValue& Value)
+{
+    LookUp(Value.Get<float>());
 }
 
 void ANazarenePlayerCharacter::ReceiveEnemyAttack(ANazareneEnemyCharacter* Attacker, float Damage, float PostureDamage)

@@ -9,9 +9,13 @@ class ANazareneCampaignGameMode;
 class ANazareneEnemyCharacter;
 class ANazarenePrayerSite;
 class ANazareneTravelGate;
+class UInputAction;
+class UInputMappingContext;
 class USpringArmComponent;
 class UCameraComponent;
 class UStaticMeshComponent;
+class UEnhancedInputComponent;
+struct FInputActionValue;
 
 UENUM()
 enum class ENazarenePlayerAttackType : uint8
@@ -193,6 +197,15 @@ public:
     void ClearActiveTravelGate(ANazareneTravelGate* Gate);
 
 private:
+    void InitializeEnhancedInputDefaults();
+    void RegisterEnhancedInputMappingContext() const;
+    void BindEnhancedInput(UEnhancedInputComponent* EnhancedInputComponent);
+
+    void OnMoveForwardInput(const FInputActionValue& Value);
+    void OnMoveRightInput(const FInputActionValue& Value);
+    void OnTurnInput(const FInputActionValue& Value);
+    void OnLookUpInput(const FInputActionValue& Value);
+
     void MoveForward(float Value);
     void MoveRight(float Value);
     void Turn(float Value);
@@ -234,6 +247,75 @@ private:
     void HandleDefeat();
 
 private:
+    UPROPERTY()
+    TObjectPtr<UInputMappingContext> RuntimeInputMappingContext;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> MoveForwardInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> MoveRightInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> TurnInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> LookUpInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> InteractInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> LockOnInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> PauseInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> ToggleMouseCaptureInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> BlockInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> LightAttackInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> HeavyAttackInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> DodgeInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> ParryInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> MiracleHealInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> MiracleBlessingInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> MiracleRadianceInputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> SaveSlot1InputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> SaveSlot2InputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> SaveSlot3InputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> LoadSlot1InputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> LoadSlot2InputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> LoadSlot3InputAction;
+
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<USpringArmComponent> CameraBoom;
 
