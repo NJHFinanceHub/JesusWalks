@@ -4,12 +4,15 @@
 #include "GameFramework/HUD.h"
 #include "NazareneHUD.generated.h"
 
+class UNazareneHUDWidget;
+
 UCLASS()
 class THENAZARENEAAA_API ANazareneHUD : public AHUD
 {
     GENERATED_BODY()
 
 public:
+    virtual void BeginPlay() override;
     virtual void DrawHUD() override;
 
     UFUNCTION(BlueprintCallable, Category = "HUD")
@@ -21,10 +24,20 @@ public:
     UFUNCTION(BlueprintCallable, Category = "HUD")
     void ShowMessage(const FString& InMessage, float Duration = 3.5f);
 
+    UFUNCTION(BlueprintCallable, Category = "HUD")
+    bool TogglePauseMenu();
+
+    UFUNCTION(BlueprintCallable, Category = "HUD")
+    void SetPauseMenuVisible(bool bVisible);
+
+    UFUNCTION(BlueprintCallable, Category = "HUD")
+    bool IsPauseMenuVisible() const;
+
 private:
+    UPROPERTY()
+    TObjectPtr<UNazareneHUDWidget> RuntimeWidget;
+
     FString RegionName = TEXT("Chapter 1: Galilee Shores");
     FString Objective = TEXT("Redeem the guardian.");
-    FString TransientMessage;
-    float MessageTimer = 0.0f;
 };
 

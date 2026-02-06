@@ -1,0 +1,540 @@
+#include "NazareneHUDWidget.h"
+
+#include "Blueprint/WidgetTree.h"
+#include "Components/Border.h"
+#include "Components/Button.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
+#include "GameFramework/PlayerController.h"
+#include "Kismet/GameplayStatics.h"
+#include "NazareneGameInstance.h"
+#include "NazareneHUD.h"
+#include "NazarenePlayerCharacter.h"
+#include "NazareneSaveSubsystem.h"
+
+namespace
+{
+    static void ConfigureText(UTextBlock* Text, const FString& Value, const FLinearColor& Color, int32 Size)
+    {
+        if (Text == nullptr)
+        {
+            return;
+        }
+
+        Text->SetText(FText::FromString(Value));
+        Text->SetColorAndOpacity(FSlateColor(Color));
+
+        FSlateFontInfo FontInfo = Text->GetFont();
+        FontInfo.Size = Size;
+        Text->SetFont(FontInfo);
+    }
+
+    static void AddVerticalChild(UVerticalBox* Parent, UWidget* Child, const FMargin& Padding)
+    {
+        if (Parent == nullptr || Child == nullptr)
+        {
+            return;
+        }
+
+        UVerticalBoxSlot* Slot = Parent->AddChildToVerticalBox(Child);
+        if (Slot != nullptr)
+        {
+            Slot->SetPadding(Padding);
+        }
+    }
+
+    static UButton* CreateMenuButton(
+        UWidgetTree* WidgetTree,
+        UVerticalBox* Parent,
+        const TCHAR* Name,
+        const FString& Label,
+        UTextBlock*& OutLabel
+    )
+    {
+        if (WidgetTree == nullptr || Parent == nullptr)
+        {
+            return nullptr;
+        }
+
+        UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), Name);
+        if (Button == nullptr)
+        {
+            return nullptr;
+        }
+
+        const FName LabelName(*FString::Printf(TEXT("%sLabel"), Name));
+        OutLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), LabelName);
+        ConfigureText(OutLabel, Label, FLinearColor(0.95f, 0.90f, 0.82f), 16);
+        OutLabel->SetJustification(ETextJustify::Center);
+        Button->AddChild(OutLabel);
+
+        AddVerticalChild(Parent, Button, FMargin(0.0f, 4.0f));
+        return Button;
+    }
+}
+
+void UNazareneHUDWidget::NativeOnInitialized()
+{
+    Super::NativeOnInitialized();
+
+    if (WidgetTree == nullptr)
+    {
+        return;
+    }
+
+    UCanvasPanel* RootPanel = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootPanel"));
+    if (RootPanel == nullptr)
+    {
+        return;
+    }
+    WidgetTree->RootWidget = RootPanel;
+
+    UBorder* PlayerPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PlayerPanel"));
+    PlayerPanel->SetBrushColor(FLinearColor(0.07f, 0.07f, 0.06f, 0.74f));
+    UCanvasPanelSlot* PlayerPanelSlot = RootPanel->AddChildToCanvas(PlayerPanel);
+    if (PlayerPanelSlot != nullptr)
+    {
+        PlayerPanelSlot->SetSize(FVector2D(470.0f, 260.0f));
+        PlayerPanelSlot->SetPosition(FVector2D(24.0f, 18.0f));
+    }
+
+    UVerticalBox* PlayerPanelContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("PlayerPanelContent"));
+    PlayerPanel->SetContent(PlayerPanelContent);
+
+    UTextBlock* TitleText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("TitleText"));
+    ConfigureText(TitleText, TEXT("The Nazarene - Unreal Campaign"), FLinearColor(0.95f, 0.90f, 0.78f), 17);
+    AddVerticalChild(PlayerPanelContent, TitleText, FMargin(14.0f, 12.0f, 12.0f, 4.0f));
+
+    HealthText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("HealthText"));
+    ConfigureText(HealthText, TEXT("Health 0 / 0"), FLinearColor::White, 15);
+    AddVerticalChild(PlayerPanelContent, HealthText, FMargin(14.0f, 4.0f, 12.0f, 0.0f));
+
+    HealthBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("HealthBar"));
+    HealthBar->SetPercent(1.0f);
+    HealthBar->SetFillColorAndOpacity(FLinearColor(0.83f, 0.24f, 0.20f, 1.0f));
+    AddVerticalChild(PlayerPanelContent, HealthBar, FMargin(14.0f, 2.0f, 14.0f, 6.0f));
+
+    StaminaText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("StaminaText"));
+    ConfigureText(StaminaText, TEXT("Stamina 0 / 0"), FLinearColor::White, 15);
+    AddVerticalChild(PlayerPanelContent, StaminaText, FMargin(14.0f, 4.0f, 12.0f, 0.0f));
+
+    StaminaBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("StaminaBar"));
+    StaminaBar->SetPercent(1.0f);
+    StaminaBar->SetFillColorAndOpacity(FLinearColor(0.30f, 0.78f, 0.34f, 1.0f));
+    AddVerticalChild(PlayerPanelContent, StaminaBar, FMargin(14.0f, 2.0f, 14.0f, 6.0f));
+
+    FaithText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FaithText"));
+    ConfigureText(FaithText, TEXT("Faith 0"), FLinearColor(0.93f, 0.86f, 0.54f), 15);
+    AddVerticalChild(PlayerPanelContent, FaithText, FMargin(14.0f, 3.0f, 12.0f, 0.0f));
+
+    LockTargetText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LockTargetText"));
+    ConfigureText(LockTargetText, TEXT("Lock-On None"), FLinearColor(0.88f, 0.88f, 0.88f), 15);
+    AddVerticalChild(PlayerPanelContent, LockTargetText, FMargin(14.0f, 3.0f, 12.0f, 0.0f));
+
+    ContextHintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ContextHintText"));
+    ConfigureText(ContextHintText, TEXT(""), FLinearColor(0.92f, 0.82f, 0.66f), 14);
+    AddVerticalChild(PlayerPanelContent, ContextHintText, FMargin(14.0f, 6.0f, 12.0f, 10.0f));
+
+    UBorder* ObjectivePanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("ObjectivePanel"));
+    ObjectivePanel->SetBrushColor(FLinearColor(0.07f, 0.07f, 0.06f, 0.74f));
+    UCanvasPanelSlot* ObjectivePanelSlot = RootPanel->AddChildToCanvas(ObjectivePanel);
+    if (ObjectivePanelSlot != nullptr)
+    {
+        ObjectivePanelSlot->SetSize(FVector2D(470.0f, 150.0f));
+        ObjectivePanelSlot->SetAnchors(FAnchors(1.0f, 0.0f, 1.0f, 0.0f));
+        ObjectivePanelSlot->SetAlignment(FVector2D(1.0f, 0.0f));
+        ObjectivePanelSlot->SetPosition(FVector2D(-24.0f, 18.0f));
+    }
+
+    UVerticalBox* ObjectiveContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ObjectiveContent"));
+    ObjectivePanel->SetContent(ObjectiveContent);
+
+    RegionNameText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("RegionNameText"));
+    ConfigureText(RegionNameText, CachedRegionName, FLinearColor(0.95f, 0.90f, 0.78f), 17);
+    AddVerticalChild(ObjectiveContent, RegionNameText, FMargin(14.0f, 12.0f, 12.0f, 4.0f));
+
+    ObjectiveText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ObjectiveText"));
+    ConfigureText(ObjectiveText, CachedObjective, FLinearColor(0.87f, 0.83f, 0.72f), 15);
+    ObjectiveText->SetAutoWrapText(true);
+    AddVerticalChild(ObjectiveContent, ObjectiveText, FMargin(14.0f, 3.0f, 12.0f, 8.0f));
+
+    MessageText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("MessageText"));
+    ConfigureText(MessageText, TEXT(""), FLinearColor(0.95f, 0.90f, 0.78f), 18);
+    MessageText->SetJustification(ETextJustify::Center);
+    MessageText->SetVisibility(ESlateVisibility::Collapsed);
+    UCanvasPanelSlot* MessageSlot = RootPanel->AddChildToCanvas(MessageText);
+    if (MessageSlot != nullptr)
+    {
+        MessageSlot->SetSize(FVector2D(760.0f, 36.0f));
+        MessageSlot->SetAnchors(FAnchors(0.5f, 0.0f, 0.5f, 0.0f));
+        MessageSlot->SetAlignment(FVector2D(0.5f, 0.0f));
+        MessageSlot->SetPosition(FVector2D(0.0f, 18.0f));
+    }
+
+    UTextBlock* ControlsText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ControlsText"));
+    ConfigureText(
+        ControlsText,
+        TEXT("WASD Move | LMB Light | RMB Heavy | Space Dodge | Shift Block | F Parry | Q Lock | R Heal | 1 Blessing | 2 Radiance | E Pray | Esc Menu"),
+        FLinearColor(0.90f, 0.85f, 0.70f),
+        14
+    );
+    ControlsText->SetAutoWrapText(true);
+    UCanvasPanelSlot* ControlsSlot = RootPanel->AddChildToCanvas(ControlsText);
+    if (ControlsSlot != nullptr)
+    {
+        ControlsSlot->SetSize(FVector2D(1300.0f, 40.0f));
+        ControlsSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+        ControlsSlot->SetAlignment(FVector2D(0.0f, 1.0f));
+        ControlsSlot->SetPosition(FVector2D(24.0f, -18.0f));
+    }
+
+    PauseOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PauseOverlay"));
+    PauseOverlay->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.74f));
+    PauseOverlay->SetVisibility(ESlateVisibility::Collapsed);
+    UCanvasPanelSlot* PauseOverlaySlot = RootPanel->AddChildToCanvas(PauseOverlay);
+    if (PauseOverlaySlot != nullptr)
+    {
+        PauseOverlaySlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+        PauseOverlaySlot->SetOffsets(FMargin(0.0f));
+    }
+
+    UCanvasPanel* PauseCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("PauseCanvas"));
+    PauseOverlay->SetContent(PauseCanvas);
+
+    UBorder* PauseMenuPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PauseMenuPanel"));
+    PauseMenuPanel->SetBrushColor(FLinearColor(0.09f, 0.09f, 0.07f, 0.96f));
+    UCanvasPanelSlot* PauseMenuSlot = PauseCanvas->AddChildToCanvas(PauseMenuPanel);
+    if (PauseMenuSlot != nullptr)
+    {
+        PauseMenuSlot->SetSize(FVector2D(560.0f, 640.0f));
+        PauseMenuSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+        PauseMenuSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+        PauseMenuSlot->SetPosition(FVector2D::ZeroVector);
+    }
+
+    UVerticalBox* PauseMenuContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("PauseMenuContent"));
+    PauseMenuPanel->SetContent(PauseMenuContent);
+
+    UTextBlock* PauseTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("PauseTitle"));
+    ConfigureText(PauseTitle, TEXT("Pilgrimage Menu"), FLinearColor(0.95f, 0.90f, 0.78f), 22);
+    PauseTitle->SetJustification(ETextJustify::Center);
+    AddVerticalChild(PauseMenuContent, PauseTitle, FMargin(12.0f, 16.0f, 12.0f, 8.0f));
+
+    UTextBlock* ButtonLabel = nullptr;
+    if (UButton* ResumeButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("ResumeButton"), TEXT("Resume"), ButtonLabel))
+    {
+        ResumeButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleResumePressed);
+    }
+
+    UTextBlock* SaveHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SaveHeader"));
+    ConfigureText(SaveHeader, TEXT("Save Slots"), FLinearColor(0.94f, 0.88f, 0.74f), 18);
+    AddVerticalChild(PauseMenuContent, SaveHeader, FMargin(12.0f, 16.0f, 12.0f, 6.0f));
+
+    if (UButton* SaveSlot1Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot1Button"), TEXT("Save Slot 1"), ButtonLabel))
+    {
+        SaveSlot1Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot1Pressed);
+    }
+    if (UButton* SaveSlot2Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot2Button"), TEXT("Save Slot 2"), ButtonLabel))
+    {
+        SaveSlot2Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot2Pressed);
+    }
+    if (UButton* SaveSlot3Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot3Button"), TEXT("Save Slot 3"), ButtonLabel))
+    {
+        SaveSlot3Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot3Pressed);
+    }
+
+    UTextBlock* LoadHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LoadHeader"));
+    ConfigureText(LoadHeader, TEXT("Load Slots"), FLinearColor(0.94f, 0.88f, 0.74f), 18);
+    AddVerticalChild(PauseMenuContent, LoadHeader, FMargin(12.0f, 14.0f, 12.0f, 6.0f));
+
+    if (UButton* LoadSlot1Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot1Button"), TEXT("Load Slot 1"), ButtonLabel))
+    {
+        LoadSlot1Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot1Pressed);
+    }
+    if (UButton* LoadSlot2Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot2Button"), TEXT("Load Slot 2"), ButtonLabel))
+    {
+        LoadSlot2Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot2Pressed);
+    }
+    if (UButton* LoadSlot3Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot3Button"), TEXT("Load Slot 3"), ButtonLabel))
+    {
+        LoadSlot3Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot3Pressed);
+    }
+
+    SlotSummary1Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SlotSummary1Text"));
+    ConfigureText(SlotSummary1Text, TEXT("Slot 1: Empty"), FLinearColor(0.82f, 0.82f, 0.78f), 14);
+    AddVerticalChild(PauseMenuContent, SlotSummary1Text, FMargin(14.0f, 8.0f, 12.0f, 0.0f));
+
+    SlotSummary2Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SlotSummary2Text"));
+    ConfigureText(SlotSummary2Text, TEXT("Slot 2: Empty"), FLinearColor(0.82f, 0.82f, 0.78f), 14);
+    AddVerticalChild(PauseMenuContent, SlotSummary2Text, FMargin(14.0f, 2.0f, 12.0f, 0.0f));
+
+    SlotSummary3Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SlotSummary3Text"));
+    ConfigureText(SlotSummary3Text, TEXT("Slot 3: Empty"), FLinearColor(0.82f, 0.82f, 0.78f), 14);
+    AddVerticalChild(PauseMenuContent, SlotSummary3Text, FMargin(14.0f, 2.0f, 12.0f, 0.0f));
+
+    if (UButton* NewPilgrimageButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("NewPilgrimageButton"), TEXT("New Pilgrimage"), ButtonLabel))
+    {
+        NewPilgrimageButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleNewPilgrimagePressed);
+    }
+
+    RefreshSlotSummaries();
+}
+
+void UNazareneHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+    Super::NativeTick(MyGeometry, InDeltaTime);
+
+    const ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
+    RefreshVitals(Player);
+
+    if (MessageTimer > 0.0f)
+    {
+        MessageTimer = FMath::Max(0.0f, MessageTimer - InDeltaTime);
+        if (MessageText != nullptr)
+        {
+            MessageText->SetVisibility(ESlateVisibility::Visible);
+        }
+    }
+    else if (MessageText != nullptr)
+    {
+        MessageText->SetVisibility(ESlateVisibility::Collapsed);
+    }
+}
+
+void UNazareneHUDWidget::SetRegionName(const FString& InRegionName)
+{
+    CachedRegionName = InRegionName;
+    if (RegionNameText != nullptr)
+    {
+        RegionNameText->SetText(FText::FromString(CachedRegionName));
+    }
+}
+
+void UNazareneHUDWidget::SetObjective(const FString& InObjective)
+{
+    CachedObjective = InObjective;
+    if (ObjectiveText != nullptr)
+    {
+        ObjectiveText->SetText(FText::FromString(CachedObjective));
+    }
+}
+
+void UNazareneHUDWidget::ShowMessage(const FString& InMessage, float Duration)
+{
+    if (MessageText != nullptr)
+    {
+        MessageText->SetText(FText::FromString(InMessage));
+        MessageText->SetVisibility(ESlateVisibility::Visible);
+    }
+    MessageTimer = FMath::Max(0.0f, Duration);
+}
+
+void UNazareneHUDWidget::SetPauseMenuVisible(bool bVisible)
+{
+    if (PauseOverlay != nullptr)
+    {
+        PauseOverlay->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+    }
+
+    if (bVisible)
+    {
+        RefreshSlotSummaries();
+    }
+}
+
+bool UNazareneHUDWidget::IsPauseMenuVisible() const
+{
+    return PauseOverlay != nullptr && PauseOverlay->GetVisibility() == ESlateVisibility::Visible;
+}
+
+void UNazareneHUDWidget::RefreshSlotSummaries()
+{
+    UNazareneSaveSubsystem* SaveSubsystem = nullptr;
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        SaveSubsystem = GameInstance->GetSubsystem<UNazareneSaveSubsystem>();
+    }
+
+    if (SaveSubsystem == nullptr)
+    {
+        if (SlotSummary1Text != nullptr)
+        {
+            SlotSummary1Text->SetText(FText::FromString(TEXT("Slot 1: Save subsystem unavailable")));
+        }
+        if (SlotSummary2Text != nullptr)
+        {
+            SlotSummary2Text->SetText(FText::FromString(TEXT("Slot 2: Save subsystem unavailable")));
+        }
+        if (SlotSummary3Text != nullptr)
+        {
+            SlotSummary3Text->SetText(FText::FromString(TEXT("Slot 3: Save subsystem unavailable")));
+        }
+        return;
+    }
+
+    if (SlotSummary1Text != nullptr)
+    {
+        SlotSummary1Text->SetText(FText::FromString(SaveSubsystem->GetSlotSummary(1)));
+    }
+    if (SlotSummary2Text != nullptr)
+    {
+        SlotSummary2Text->SetText(FText::FromString(SaveSubsystem->GetSlotSummary(2)));
+    }
+    if (SlotSummary3Text != nullptr)
+    {
+        SlotSummary3Text->SetText(FText::FromString(SaveSubsystem->GetSlotSummary(3)));
+    }
+}
+
+void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
+{
+    if (Player == nullptr)
+    {
+        return;
+    }
+
+    const float MaxHealth = Player->GetMaxHealth();
+    const float MaxStamina = Player->GetMaxStamina();
+    const float Health = Player->GetHealth();
+    const float Stamina = Player->GetStamina();
+
+    const float HealthRatio = MaxHealth > 0.0f ? Health / MaxHealth : 0.0f;
+    const float StaminaRatio = MaxStamina > 0.0f ? Stamina / MaxStamina : 0.0f;
+
+    if (HealthText != nullptr)
+    {
+        HealthText->SetText(FText::FromString(FString::Printf(TEXT("Health %.0f / %.0f"), Health, MaxHealth)));
+    }
+    if (StaminaText != nullptr)
+    {
+        StaminaText->SetText(FText::FromString(FString::Printf(TEXT("Stamina %.0f / %.0f"), Stamina, MaxStamina)));
+    }
+    if (FaithText != nullptr)
+    {
+        FaithText->SetText(FText::FromString(FString::Printf(TEXT("Faith %.0f"), Player->GetFaith())));
+    }
+    if (HealthBar != nullptr)
+    {
+        HealthBar->SetPercent(FMath::Clamp(HealthRatio, 0.0f, 1.0f));
+    }
+    if (StaminaBar != nullptr)
+    {
+        StaminaBar->SetPercent(FMath::Clamp(StaminaRatio, 0.0f, 1.0f));
+    }
+    if (LockTargetText != nullptr)
+    {
+        const FString TargetName = Player->GetLockTargetName();
+        LockTargetText->SetText(FText::FromString(FString::Printf(TEXT("Lock-On %s"), TargetName.IsEmpty() ? TEXT("None") : *TargetName)));
+    }
+    if (ContextHintText != nullptr)
+    {
+        ContextHintText->SetText(FText::FromString(Player->GetContextHint()));
+    }
+}
+
+void UNazareneHUDWidget::HandleResumePressed()
+{
+    if (APlayerController* PlayerController = GetOwningPlayer())
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PlayerController->GetHUD()))
+        {
+            HUD->SetPauseMenuVisible(false);
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleSaveSlot1Pressed()
+{
+    ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
+    const bool bSaved = Player != nullptr && Player->SaveToSlot(1);
+    const FString Hint = (Player != nullptr) ? Player->GetContextHint() : TEXT("Player unavailable.");
+    ShowMessage(bSaved ? TEXT("Saved to slot 1.") : (Hint.IsEmpty() ? TEXT("Save failed for slot 1.") : Hint), 3.5f);
+    RefreshSlotSummaries();
+}
+
+void UNazareneHUDWidget::HandleSaveSlot2Pressed()
+{
+    ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
+    const bool bSaved = Player != nullptr && Player->SaveToSlot(2);
+    const FString Hint = (Player != nullptr) ? Player->GetContextHint() : TEXT("Player unavailable.");
+    ShowMessage(bSaved ? TEXT("Saved to slot 2.") : (Hint.IsEmpty() ? TEXT("Save failed for slot 2.") : Hint), 3.5f);
+    RefreshSlotSummaries();
+}
+
+void UNazareneHUDWidget::HandleSaveSlot3Pressed()
+{
+    ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
+    const bool bSaved = Player != nullptr && Player->SaveToSlot(3);
+    const FString Hint = (Player != nullptr) ? Player->GetContextHint() : TEXT("Player unavailable.");
+    ShowMessage(bSaved ? TEXT("Saved to slot 3.") : (Hint.IsEmpty() ? TEXT("Save failed for slot 3.") : Hint), 3.5f);
+    RefreshSlotSummaries();
+}
+
+void UNazareneHUDWidget::HandleLoadSlot1Pressed()
+{
+    ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
+    const bool bLoaded = Player != nullptr && Player->LoadFromSlot(1);
+    const FString Hint = (Player != nullptr) ? Player->GetContextHint() : TEXT("Player unavailable.");
+    ShowMessage(bLoaded ? TEXT("Loaded slot 1.") : (Hint.IsEmpty() ? TEXT("Load failed for slot 1.") : Hint), 3.5f);
+    RefreshSlotSummaries();
+
+    if (bLoaded)
+    {
+        HandleResumePressed();
+    }
+}
+
+void UNazareneHUDWidget::HandleLoadSlot2Pressed()
+{
+    ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
+    const bool bLoaded = Player != nullptr && Player->LoadFromSlot(2);
+    const FString Hint = (Player != nullptr) ? Player->GetContextHint() : TEXT("Player unavailable.");
+    ShowMessage(bLoaded ? TEXT("Loaded slot 2.") : (Hint.IsEmpty() ? TEXT("Load failed for slot 2.") : Hint), 3.5f);
+    RefreshSlotSummaries();
+
+    if (bLoaded)
+    {
+        HandleResumePressed();
+    }
+}
+
+void UNazareneHUDWidget::HandleLoadSlot3Pressed()
+{
+    ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
+    const bool bLoaded = Player != nullptr && Player->LoadFromSlot(3);
+    const FString Hint = (Player != nullptr) ? Player->GetContextHint() : TEXT("Player unavailable.");
+    ShowMessage(bLoaded ? TEXT("Loaded slot 3.") : (Hint.IsEmpty() ? TEXT("Load failed for slot 3.") : Hint), 3.5f);
+    RefreshSlotSummaries();
+
+    if (bLoaded)
+    {
+        HandleResumePressed();
+    }
+}
+
+void UNazareneHUDWidget::HandleNewPilgrimagePressed()
+{
+    if (UWorld* World = GetWorld())
+    {
+        if (UNazareneGameInstance* Session = World->GetGameInstance<UNazareneGameInstance>())
+        {
+            Session->StartNewGame();
+        }
+
+        if (APlayerController* PlayerController = GetOwningPlayer())
+        {
+            if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PlayerController->GetHUD()))
+            {
+                HUD->SetPauseMenuVisible(false);
+            }
+        }
+
+        const FString LevelName = UGameplayStatics::GetCurrentLevelName(this, true);
+        UGameplayStatics::OpenLevel(this, FName(*LevelName));
+    }
+}
+

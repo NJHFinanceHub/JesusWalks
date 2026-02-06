@@ -6,6 +6,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "NazareneEnemyCharacter.h"
 #include "NazareneGameInstance.h"
 #include "NazareneHUD.h"
@@ -241,35 +242,168 @@ void ANazareneCampaignGameMode::ClearRegionActors()
 
 void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefinition& Region)
 {
+    const FName GalileeId(TEXT("galilee"));
+    const FName DecapolisId(TEXT("decapolis"));
+    const FName WildernessId(TEXT("wilderness"));
+    const FName JerusalemId(TEXT("jerusalem"));
+
+    FLinearColor SunColor = FLinearColor(1.0f, 0.95f, 0.82f);
+    float SunIntensity = 10.0f;
+    FLinearColor GroundTint = FLinearColor(0.35f, 0.28f, 0.19f);
+    FLinearColor AccentTint = FLinearColor(0.72f, 0.63f, 0.47f);
+    float HeightJitter = 80.0f;
+
+    if (Region.RegionId == GalileeId)
+    {
+        SunColor = FLinearColor(1.0f, 0.97f, 0.88f);
+        SunIntensity = 10.5f;
+        GroundTint = FLinearColor(0.32f, 0.35f, 0.22f);
+        AccentTint = FLinearColor(0.42f, 0.54f, 0.66f);
+        HeightJitter = 120.0f;
+    }
+    else if (Region.RegionId == DecapolisId)
+    {
+        SunColor = FLinearColor(0.96f, 0.90f, 0.80f);
+        SunIntensity = 9.8f;
+        GroundTint = FLinearColor(0.34f, 0.31f, 0.30f);
+        AccentTint = FLinearColor(0.68f, 0.66f, 0.61f);
+        HeightJitter = 160.0f;
+    }
+    else if (Region.RegionId == WildernessId)
+    {
+        SunColor = FLinearColor(0.98f, 0.78f, 0.58f);
+        SunIntensity = 11.2f;
+        GroundTint = FLinearColor(0.42f, 0.29f, 0.16f);
+        AccentTint = FLinearColor(0.79f, 0.58f, 0.32f);
+        HeightJitter = 210.0f;
+    }
+    else if (Region.RegionId == JerusalemId)
+    {
+        SunColor = FLinearColor(1.0f, 0.92f, 0.76f);
+        SunIntensity = 10.1f;
+        GroundTint = FLinearColor(0.39f, 0.35f, 0.27f);
+        AccentTint = FLinearColor(0.74f, 0.69f, 0.56f);
+        HeightJitter = 140.0f;
+    }
+
+    auto SpawnMeshActor = [this](const TCHAR* MeshPath, const FVector& Location, const FRotator& Rotation, const FVector& Scale, const FLinearColor& Tint) -> AStaticMeshActor*
+    {
+        AStaticMeshActor* Actor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Location, Rotation);
+        if (Actor == nullptr)
+        {
+            return nullptr;
+        }
+
+        UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, MeshPath);
+        if (Mesh != nullptr)
+        {
+            Actor->GetStaticMeshComponent()->SetStaticMesh(Mesh);
+        }
+
+        Actor->GetStaticMeshComponent()->SetWorldScale3D(Scale);
+        if (UMaterialInterface* ShapeMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial")))
+        {
+            UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(ShapeMaterial, Actor);
+            if (DynamicMaterial != nullptr)
+            {
+                DynamicMaterial->SetVectorParameterValue(TEXT("Color"), Tint);
+                Actor->GetStaticMeshComponent()->SetMaterial(0, DynamicMaterial);
+                Actor->GetStaticMeshComponent()->SetVectorParameterValueOnMaterials(TEXT("Color"), Tint);
+            }
+            else
+            {
+                Actor->GetStaticMeshComponent()->SetMaterial(0, ShapeMaterial);
+                Actor->GetStaticMeshComponent()->SetVectorParameterValueOnMaterials(TEXT("Color"), Tint);
+            }
+        }
+
+        RegionActors.Add(Actor);
+        return Actor;
+    };
+
     ADirectionalLight* Sun = GetWorld()->SpawnActor<ADirectionalLight>(ADirectionalLight::StaticClass(), FVector(0.0f, 0.0f, 600.0f), FRotator(-38.0f, -32.0f, 0.0f));
     if (Sun != nullptr)
     {
-        Sun->GetLightComponent()->SetIntensity(10.0f);
+        Sun->GetLightComponent()->SetIntensity(SunIntensity);
+        Sun->GetLightComponent()->SetTemperature(6000.0f);
+        Sun->GetLightComponent()->SetLightColor(SunColor);
         RegionActors.Add(Sun);
     }
 
-    AStaticMeshActor* Ground = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), FVector(0.0f, 0.0f, -50.0f), FRotator::ZeroRotator);
-    if (Ground != nullptr)
+    SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 0.0f, -50.0f), FRotator::ZeroRotator, FVector(120.0f, 120.0f, 1.0f), GroundTint);
+    SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, -1000.0f, -45.0f), FRotator::ZeroRotator, FVector(14.0f, 60.0f, 0.45f), GroundTint * 1.12f);
+
+    FVector BossArenaLocation(0.0f, -2200.0f, -45.0f);
+    for (const FNazareneEnemySpawnDefinition& Spec : Region.Enemies)
     {
-        UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
-        if (CubeMesh != nullptr)
+        if (Spec.SpawnId == Region.BossSpawnId)
         {
-            Ground->GetStaticMeshComponent()->SetStaticMesh(CubeMesh);
-            Ground->GetStaticMeshComponent()->SetWorldScale3D(FVector(120.0f, 120.0f, 1.0f));
+            BossArenaLocation = FVector(Spec.Location.X, Spec.Location.Y, -45.0f);
+            break;
         }
-        RegionActors.Add(Ground);
     }
 
-    AStaticMeshActor* Arena = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), FVector(0.0f, -2200.0f, -45.0f), FRotator::ZeroRotator);
-    if (Arena != nullptr)
+    SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), BossArenaLocation, FRotator::ZeroRotator, FVector(10.0f, 10.0f, 0.2f), AccentTint);
+
+    const float RingRadius = 2100.0f;
+    for (int32 Index = 0; Index < 10; ++Index)
     {
-        UStaticMesh* CylinderMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
-        if (CylinderMesh != nullptr)
+        const float Angle = FMath::DegreesToRadians(float(Index) * 36.0f);
+        const FVector RingLocation(
+            FMath::Cos(Angle) * RingRadius,
+            FMath::Sin(Angle) * RingRadius - 250.0f,
+            55.0f + FMath::Sin(Angle * 3.0f) * HeightJitter
+        );
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), RingLocation, FRotator::ZeroRotator, FVector(0.75f, 0.75f, 2.8f), AccentTint * 0.85f);
+    }
+
+    for (int32 Index = 0; Index < 14; ++Index)
+    {
+        const float X = -2100.0f + float(Index) * 320.0f;
+        const float Y = -2800.0f + float((Index % 4) * 180);
+        const float Z = -10.0f + float((Index % 3) * 40);
+        const FVector Scale = FVector(1.6f + float(Index % 2) * 0.4f, 1.1f + float(Index % 3) * 0.2f, 1.0f + float(Index % 4) * 0.5f);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(X, Y, Z), FRotator(0.0f, float(Index) * 9.0f, 0.0f), Scale, GroundTint * 0.92f);
+    }
+
+    if (Region.RegionId == GalileeId)
+    {
+        for (int32 Index = 0; Index < 7; ++Index)
         {
-            Arena->GetStaticMeshComponent()->SetStaticMesh(CylinderMesh);
-            Arena->GetStaticMeshComponent()->SetWorldScale3D(FVector(10.0f, 10.0f, 0.2f));
+            const float X = -1800.0f + float(Index) * 620.0f;
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Sphere.Sphere"), FVector(X, 1950.0f, -15.0f), FRotator::ZeroRotator, FVector(1.4f, 1.4f, 0.28f), FLinearColor(0.23f, 0.35f, 0.48f));
         }
-        RegionActors.Add(Arena);
+    }
+    else if (Region.RegionId == DecapolisId)
+    {
+        for (int32 Index = 0; Index < 12; ++Index)
+        {
+            const float X = -1650.0f + float(Index) * 300.0f;
+            const float Y = 1300.0f + float((Index % 2) * 260.0f);
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(X, Y, 120.0f), FRotator(0.0f, 0.0f, 0.0f), FVector(0.45f, 0.45f, 3.2f), AccentTint);
+        }
+    }
+    else if (Region.RegionId == WildernessId)
+    {
+        for (int32 Index = 0; Index < 16; ++Index)
+        {
+            const float X = -2300.0f + float(Index) * 300.0f;
+            const float Y = -500.0f + float((Index % 5) * 280.0f);
+            const float Z = 80.0f + float((Index % 4) * 95.0f);
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cone.Cone"), FVector(X, Y, Z), FRotator(0.0f, float(Index) * 14.0f, 0.0f), FVector(0.9f, 0.9f, 2.0f), AccentTint * 0.88f);
+        }
+    }
+    else if (Region.RegionId == JerusalemId)
+    {
+        for (int32 Row = 0; Row < 2; ++Row)
+        {
+            for (int32 Column = 0; Column < 6; ++Column)
+            {
+                const float X = -950.0f + float(Column) * 380.0f;
+                const float Y = 980.0f + float(Row) * 450.0f;
+                SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(X, Y, 220.0f), FRotator::ZeroRotator, FVector(0.45f, 0.45f, 4.6f), AccentTint * 1.04f);
+            }
+        }
     }
 }
 
@@ -608,4 +742,3 @@ void ANazareneCampaignGameMode::UpdateHUDForRegion(const FNazareneRegionDefiniti
         HUD->SetObjective(FString::Printf(TEXT("Journey marker open: travel to %s."), *Regions[RegionIndex + 1].RegionName));
     }
 }
-

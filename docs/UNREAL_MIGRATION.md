@@ -4,11 +4,18 @@
 - Unreal Engine 5 C++ is the active development target.
 - Godot implementation is retained for feature parity reference and migration validation.
 - Delivery scope should now be planned from Unreal assets, systems, and tooling.
+- UMG HUD/menu stack, AI perception/controller scaffolding, animation runtime classes, and production pipeline docs are now in place.
 
 ## Source-of-truth locations
 - Unreal project: `unreal/TheNazareneAAA`
 - Active task list: `TODO.md`
 - Legacy Godot reference: `project.godot`, `scenes/`, `scripts/`
+- Execution docs:
+  - `docs/UNREAL_LEVEL_BOOTSTRAP.md`
+  - `docs/UNREAL_GAMEPLAY_VALIDATION.md`
+  - `docs/PACKAGING_PROFILE_PIPELINE.md`
+  - `docs/GAS_ADOPTION_EVALUATION.md`
+  - `docs/NETWORKING_SCOPE.md`
 
 ## Godot -> Unreal system mapping
 - `PlayerController.gd` -> `ANazarenePlayerCharacter`
@@ -33,20 +40,23 @@
 - `unreal/TheNazareneAAA/Source/TheNazareneAAA`
 
 ## Current gap summary
-- C++ gameplay parity baseline exists.
-- Authoring-heavy production content is still pending:
-  - Maps (`.umap`) and editor-authored `.uasset` content.
-  - Animation blueprints, finalized skeletal assets, and combat animation polish.
-  - UMG/CommonUI menus and front-end save/load UX.
-  - Niagara, materials, SoundCue/MetaSound integration.
-  - Performance tuning and packaging pipeline hardening.
+- C++ parity baseline exists and now includes:
+  - UMG pause/save/load front-end with slot summaries.
+  - AI controller + perception + behavior-tree hookup points.
+  - Animation runtime data classes for player/enemy animation blueprints.
+  - Audio/VFX integration hooks (Niagara/SoundBase references on combat events).
+  - Region-specific environment generation pass for all four campaign regions.
+- Remaining gap is primarily content authoring polish:
+  - Final map dressing and production-quality art assets.
+  - Final animation content and retargeted sets authored in editor.
+  - Final audio content (SoundCue/MetaSound) and Niagara asset tuning.
+  - Runtime performance capture on target hardware with Unreal Insights.
 
 ## Immediate next execution steps
-1. Stand up a playable Unreal campaign map and validate the full loop in PIE.
-2. Move input to Enhanced Input assets.
-3. Replace code-only HUD/menu flow with UMG/CommonUI.
-4. Shift enemy logic into Behavior Trees + AI Perception where appropriate.
-5. Run parity validation against Godot reference behavior and document gaps.
+1. Run `Tools/create_campaign_level.py` in Unreal editor to generate/open `/Game/Maps/NazareneCampaign`.
+2. Author final `.uasset` content (input assets, behavior tree assets, animation blueprints, Niagara/audio assets) against the new runtime hooks.
+3. Execute PIE parity validation and profiling steps in `docs/UNREAL_GAMEPLAY_VALIDATION.md` and `docs/PACKAGING_PROFILE_PIPELINE.md`.
+4. Close out remaining content polish and art replacement tasks per region.
 
 ## Legacy documentation policy
 - `docs/PHASE1.md`, `docs/PHASE2.md`, `docs/PHASE3.md`, `docs/AAA_REVIEW.md`, and `docs/CODE_REVIEW_REPORT.md` are historical records of Godot work.

@@ -6,6 +6,10 @@
 #include "NazareneEnemyCharacter.generated.h"
 
 class ANazarenePlayerCharacter;
+class UBehaviorTree;
+class UNiagaraSystem;
+class USkeletalMesh;
+class USoundBase;
 class UStaticMeshComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FNazareneEnemyRedeemedSignature, ANazareneEnemyCharacter*, Enemy, float, FaithReward);
@@ -91,6 +95,30 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
     float ShieldBlockChance = 0.45f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+    TObjectPtr<UBehaviorTree> BehaviorTreeAsset;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Animation")
+    TSoftObjectPtr<USkeletalMesh> RetargetedSkeletalMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Audio")
+    TObjectPtr<USoundBase> AttackSound;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Audio")
+    TObjectPtr<USoundBase> HitReactSound;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Audio")
+    TObjectPtr<USoundBase> RedeemedSound;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|VFX")
+    TObjectPtr<UNiagaraSystem> AttackVFX;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|VFX")
+    TObjectPtr<UNiagaraSystem> HitReactVFX;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|VFX")
+    TObjectPtr<UNiagaraSystem> RedeemedVFX;
+
     UPROPERTY(BlueprintReadOnly, Category = "Runtime")
     float CurrentHealth = 0.0f;
 
@@ -122,6 +150,12 @@ public:
     bool IsRedeemed() const;
 
     UFUNCTION(BlueprintCallable, Category = "Enemy")
+    ENazareneEnemyState GetState() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Enemy")
+    float GetStateTimerRemaining() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Enemy")
     void OnParried(ANazarenePlayerCharacter* ByPlayer);
 
     UFUNCTION(BlueprintCallable, Category = "Enemy")
@@ -143,6 +177,8 @@ public:
     void ApplySnapshot(const FNazareneEnemySnapshot& Snapshot);
 
 private:
+    void SyncTargetFromAIController();
+    void TriggerPresentation(USoundBase* Sound, UNiagaraSystem* Effect, const FVector& Location, float VolumeMultiplier = 1.0f) const;
     void UpdateBossPhase();
     void ProcessChaseBehavior(float DistanceToPlayer, float DeltaSeconds);
     void BeginMeleeAttack();

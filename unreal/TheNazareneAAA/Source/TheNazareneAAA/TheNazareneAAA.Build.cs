@@ -14,7 +14,10 @@ public class TheNazareneAAA : ModuleRules
                 "Engine",
                 "InputCore",
                 "EnhancedInput",
-                "UMG"
+                "UMG",
+                "AIModule",
+                "GameplayTasks",
+                "Niagara"
             }
         );
 

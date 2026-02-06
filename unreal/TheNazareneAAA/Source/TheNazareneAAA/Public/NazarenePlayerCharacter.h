@@ -14,6 +14,9 @@ class UInputMappingContext;
 class USpringArmComponent;
 class UCameraComponent;
 class UStaticMeshComponent;
+class USkeletalMesh;
+class USoundBase;
+class UNiagaraSystem;
 class UEnhancedInputComponent;
 struct FInputActionValue;
 
@@ -54,6 +57,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float DodgeSpeed = 1120.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Animation")
+    TSoftObjectPtr<USkeletalMesh> RetargetedSkeletalMesh;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
     float LightAttackDamage = 26.0f;
@@ -164,6 +170,24 @@ public:
     float GetFaith() const;
 
     UFUNCTION(BlueprintCallable, Category = "Player")
+    bool IsBlocking() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    bool IsDodging() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    bool IsAttacking() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    bool HasLockTarget() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    bool IsDefeated() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    float GetHurtTimeRemaining() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
     float GetHealCooldownRemaining() const;
 
     UFUNCTION(BlueprintCallable, Category = "Player")
@@ -197,6 +221,8 @@ public:
     void ClearActiveTravelGate(ANazareneTravelGate* Gate);
 
 private:
+    void TriggerPresentation(USoundBase* Sound, UNiagaraSystem* Effect, const FVector& Location, float VolumeMultiplier = 1.0f) const;
+
     void InitializeEnhancedInputDefaults();
     void RegisterEnhancedInputMappingContext() const;
     void BindEnhancedInput(UEnhancedInputComponent* EnhancedInputComponent);
@@ -249,6 +275,9 @@ private:
 private:
     UPROPERTY()
     TObjectPtr<UInputMappingContext> RuntimeInputMappingContext;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Input|Assets")
+    TObjectPtr<UInputMappingContext> InputMappingContextAsset;
 
     UPROPERTY()
     TObjectPtr<UInputAction> MoveForwardInputAction;
@@ -324,6 +353,36 @@ private:
 
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<UStaticMeshComponent> BodyMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Audio", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<USoundBase> LightAttackSound;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Audio", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<USoundBase> HeavyAttackSound;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Audio", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<USoundBase> DodgeSound;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Audio", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<USoundBase> MiracleSound;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Audio", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<USoundBase> HurtSound;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|VFX", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UNiagaraSystem> LightAttackVFX;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|VFX", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UNiagaraSystem> HeavyAttackVFX;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|VFX", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UNiagaraSystem> DodgeVFX;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|VFX", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UNiagaraSystem> MiracleVFX;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|VFX", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<UNiagaraSystem> HurtVFX;
 
     UPROPERTY()
     TWeakObjectPtr<ANazareneEnemyCharacter> LockTarget;

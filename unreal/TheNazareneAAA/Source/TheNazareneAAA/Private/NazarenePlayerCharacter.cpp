@@ -2,10 +2,12 @@
 
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
+#include "Engine/SkeletalMesh.h"
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -16,10 +18,15 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "NazareneCampaignGameMode.h"
 #include "NazareneEnemyCharacter.h"
+#include "NazareneHUD.h"
+#include "NazarenePlayerAnimInstance.h"
 #include "NazarenePrayerSite.h"
 #include "NazareneTravelGate.h"
+#include "Sound/SoundBase.h"
 #include "UObject/ConstructorHelpers.h"
 
 namespace
@@ -83,6 +90,12 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
     FollowCamera->bUsePawnControlRotation = false;
     FollowCamera->FieldOfView = 68.0f;
 
+    GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -92.0f));
+    GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+    GetMesh()->SetAnimInstanceClass(UNazarenePlayerAnimInstance::StaticClass());
+
     bUseControllerRotationYaw = false;
     bUseControllerRotationPitch = false;
     bUseControllerRotationRoll = false;
@@ -97,6 +110,15 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
 void ANazarenePlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (RetargetedSkeletalMesh.ToSoftObjectPath().IsValid())
+    {
+        if (USkeletalMesh* MeshAsset = RetargetedSkeletalMesh.LoadSynchronous())
+        {
+            GetMesh()->SetSkeletalMesh(MeshAsset);
+            BodyMesh->SetHiddenInGame(true);
+        }
+    }
 
     CurrentHealth = MaxHealth;
     CurrentStamina = MaxStamina;
@@ -164,6 +186,84 @@ void ANazarenePlayerCharacter::SetupPlayerInputComponent(UInputComponent* Player
 
 void ANazarenePlayerCharacter::InitializeEnhancedInputDefaults()
 {
+    if (InputMappingContextAsset != nullptr)
+    {
+        RuntimeInputMappingContext = InputMappingContextAsset;
+
+        auto FindMappedAction = [this](const TCHAR* Token) -> UInputAction*
+        {
+            if (RuntimeInputMappingContext == nullptr)
+            {
+                return nullptr;
+            }
+
+            for (const FEnhancedActionKeyMapping& Mapping : RuntimeInputMappingContext->GetMappings())
+            {
+                UInputAction* Action = Mapping.Action;
+                if (Action != nullptr && Action->GetName().Contains(Token))
+                {
+                    return Action;
+                }
+            }
+            return nullptr;
+        };
+
+        MoveForwardInputAction = FindMappedAction(TEXT("MoveForward"));
+        MoveRightInputAction = FindMappedAction(TEXT("MoveRight"));
+        TurnInputAction = FindMappedAction(TEXT("Turn"));
+        LookUpInputAction = FindMappedAction(TEXT("LookUp"));
+        InteractInputAction = FindMappedAction(TEXT("Interact"));
+        LockOnInputAction = FindMappedAction(TEXT("LockOn"));
+        PauseInputAction = FindMappedAction(TEXT("Pause"));
+        ToggleMouseCaptureInputAction = FindMappedAction(TEXT("ToggleMouseCapture"));
+        BlockInputAction = FindMappedAction(TEXT("Block"));
+        LightAttackInputAction = FindMappedAction(TEXT("LightAttack"));
+        HeavyAttackInputAction = FindMappedAction(TEXT("HeavyAttack"));
+        DodgeInputAction = FindMappedAction(TEXT("Dodge"));
+        ParryInputAction = FindMappedAction(TEXT("Parry"));
+        MiracleHealInputAction = FindMappedAction(TEXT("MiracleHeal"));
+        MiracleBlessingInputAction = FindMappedAction(TEXT("MiracleBlessing"));
+        MiracleRadianceInputAction = FindMappedAction(TEXT("MiracleRadiance"));
+        SaveSlot1InputAction = FindMappedAction(TEXT("SaveSlot1"));
+        SaveSlot2InputAction = FindMappedAction(TEXT("SaveSlot2"));
+        SaveSlot3InputAction = FindMappedAction(TEXT("SaveSlot3"));
+        LoadSlot1InputAction = FindMappedAction(TEXT("LoadSlot1"));
+        LoadSlot2InputAction = FindMappedAction(TEXT("LoadSlot2"));
+        LoadSlot3InputAction = FindMappedAction(TEXT("LoadSlot3"));
+
+        const bool bHasAllAssetActions =
+            MoveForwardInputAction != nullptr &&
+            MoveRightInputAction != nullptr &&
+            TurnInputAction != nullptr &&
+            LookUpInputAction != nullptr &&
+            InteractInputAction != nullptr &&
+            LockOnInputAction != nullptr &&
+            PauseInputAction != nullptr &&
+            ToggleMouseCaptureInputAction != nullptr &&
+            BlockInputAction != nullptr &&
+            LightAttackInputAction != nullptr &&
+            HeavyAttackInputAction != nullptr &&
+            DodgeInputAction != nullptr &&
+            ParryInputAction != nullptr &&
+            MiracleHealInputAction != nullptr &&
+            MiracleBlessingInputAction != nullptr &&
+            MiracleRadianceInputAction != nullptr &&
+            SaveSlot1InputAction != nullptr &&
+            SaveSlot2InputAction != nullptr &&
+            SaveSlot3InputAction != nullptr &&
+            LoadSlot1InputAction != nullptr &&
+            LoadSlot2InputAction != nullptr &&
+            LoadSlot3InputAction != nullptr;
+
+        if (bHasAllAssetActions)
+        {
+            return;
+        }
+
+        UE_LOG(LogTemp, Warning, TEXT("NazarenePlayerCharacter asset mapping context is missing required actions. Falling back to runtime defaults."));
+        RuntimeInputMappingContext = nullptr;
+    }
+
     RuntimeInputMappingContext = NewObject<UInputMappingContext>(this, TEXT("NazareneRuntimeInputMapping"));
 
     MoveForwardInputAction = MakeInputAction(this, TEXT("NazareneMoveForward"), EInputActionValueType::Axis1D);
@@ -426,6 +526,36 @@ float ANazarenePlayerCharacter::GetFaith() const
     return CurrentFaith;
 }
 
+bool ANazarenePlayerCharacter::IsBlocking() const
+{
+    return bIsBlocking;
+}
+
+bool ANazarenePlayerCharacter::IsDodging() const
+{
+    return DodgeTimer > 0.0f;
+}
+
+bool ANazarenePlayerCharacter::IsAttacking() const
+{
+    return PendingAttack != ENazarenePlayerAttackType::None || AttackCooldown > 0.0f;
+}
+
+bool ANazarenePlayerCharacter::HasLockTarget() const
+{
+    return LockTarget.IsValid();
+}
+
+bool ANazarenePlayerCharacter::IsDefeated() const
+{
+    return CurrentHealth <= 0.01f;
+}
+
+float ANazarenePlayerCharacter::GetHurtTimeRemaining() const
+{
+    return HurtTimer;
+}
+
 float ANazarenePlayerCharacter::GetHealCooldownRemaining() const
 {
     return HealCooldownTimer;
@@ -666,21 +796,31 @@ void ANazarenePlayerCharacter::ToggleLockOn()
 
 void ANazarenePlayerCharacter::TogglePause()
 {
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (PC == nullptr)
+    {
+        return;
+    }
+
+    ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD());
+    if (HUD != nullptr)
+    {
+        HUD->TogglePauseMenu();
+        return;
+    }
+
     const bool bPaused = UGameplayStatics::IsGamePaused(this);
     UGameplayStatics::SetGamePaused(this, !bPaused);
 
-    if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    if (!bPaused)
     {
-        if (!bPaused)
-        {
-            PC->bShowMouseCursor = true;
-            PC->SetInputMode(FInputModeGameAndUI());
-        }
-        else
-        {
-            PC->bShowMouseCursor = false;
-            PC->SetInputMode(FInputModeGameOnly());
-        }
+        PC->bShowMouseCursor = true;
+        PC->SetInputMode(FInputModeGameAndUI());
+    }
+    else
+    {
+        PC->bShowMouseCursor = false;
+        PC->SetInputMode(FInputModeGameOnly());
     }
 }
 
@@ -727,6 +867,7 @@ void ANazarenePlayerCharacter::TryLightAttack()
     AttackActiveTimer = 0.2f;
     bAttackResolved = false;
     AttackCooldown = 0.5f;
+    TriggerPresentation(LightAttackSound, LightAttackVFX, GetActorLocation() + GetActorForwardVector() * 110.0f, 0.85f);
 }
 
 void ANazarenePlayerCharacter::TryHeavyAttack()
@@ -744,6 +885,7 @@ void ANazarenePlayerCharacter::TryHeavyAttack()
     AttackActiveTimer = 0.23f;
     bAttackResolved = false;
     AttackCooldown = 0.84f;
+    TriggerPresentation(HeavyAttackSound, HeavyAttackVFX, GetActorLocation() + GetActorForwardVector() * 125.0f, 0.95f);
 }
 
 void ANazarenePlayerCharacter::TryDodge()
@@ -776,6 +918,7 @@ void ANazarenePlayerCharacter::TryDodge()
     AttackCooldown = 0.28f;
     DodgeTimer = 0.28f;
     InvulnerabilityTimer = 0.22f;
+    TriggerPresentation(DodgeSound, DodgeVFX, GetActorLocation(), 0.8f);
 }
 
 void ANazarenePlayerCharacter::TryParry()
@@ -791,6 +934,7 @@ void ANazarenePlayerCharacter::TryParry()
     AttackCooldown = 0.42f;
     ParryStartupTimer = 0.08f;
     ParryWindowTimer = 0.0f;
+    TriggerPresentation(HeavyAttackSound, nullptr, GetActorLocation(), 0.45f);
 }
 
 void ANazarenePlayerCharacter::TryHealingMiracle()
@@ -804,6 +948,7 @@ void ANazarenePlayerCharacter::TryHealingMiracle()
     CurrentHealth = FMath::Min(MaxHealth, CurrentHealth + HealAmount);
     HealCooldownTimer = HealCooldown;
     AttackCooldown = FMath::Max(AttackCooldown, 0.35f);
+    TriggerPresentation(MiracleSound, MiracleVFX, GetActorLocation());
 }
 
 void ANazarenePlayerCharacter::TryBlessingMiracle()
@@ -821,6 +966,7 @@ void ANazarenePlayerCharacter::TryBlessingMiracle()
     BlessingTimer = BlessingDuration;
     BlessingCooldownTimer = BlessingCooldown;
     AttackCooldown = FMath::Max(AttackCooldown, 0.35f);
+    TriggerPresentation(MiracleSound, MiracleVFX, GetActorLocation());
 }
 
 void ANazarenePlayerCharacter::TryRadianceMiracle()
@@ -838,6 +984,7 @@ void ANazarenePlayerCharacter::TryRadianceMiracle()
     CurrentFaith -= RadianceFaithCost;
     RadianceCooldownTimer = RadianceCooldown;
     AttackCooldown = FMath::Max(AttackCooldown, 0.45f);
+    TriggerPresentation(MiracleSound, MiracleVFX, GetActorLocation());
 
     for (TActorIterator<ANazareneEnemyCharacter> It(GetWorld()); It; ++It)
     {
@@ -1064,6 +1211,7 @@ void ANazarenePlayerCharacter::ApplyHealthDamage(float Amount)
 {
     CurrentHealth = FMath::Max(0.0f, CurrentHealth - Amount);
     HurtTimer = 0.22f;
+    TriggerPresentation(HurtSound, HurtVFX, GetActorLocation());
     if (CurrentHealth <= 0.01f)
     {
         HandleDefeat();
@@ -1147,5 +1295,18 @@ void ANazarenePlayerCharacter::UpdateMovementState(float DeltaSeconds)
             const FRotator NewRot = FMath::RInterpTo(GetActorRotation(), Desired, DeltaSeconds, 14.0f);
             SetActorRotation(FRotator(0.0f, NewRot.Yaw, 0.0f));
         }
+    }
+}
+
+void ANazarenePlayerCharacter::TriggerPresentation(USoundBase* Sound, UNiagaraSystem* Effect, const FVector& Location, float VolumeMultiplier) const
+{
+    if (Sound != nullptr)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, Sound, GetActorLocation(), FRotator::ZeroRotator, VolumeMultiplier);
+    }
+
+    if (Effect != nullptr && GetWorld() != nullptr)
+    {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, Location, GetActorRotation());
     }
 }

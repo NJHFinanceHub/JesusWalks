@@ -15,10 +15,12 @@ Biblical action RPG in active migration to Unreal Engine 5.
 ## Current Unreal implementation baseline
 - Campaign game mode with region progression and boss-gated travel.
 - Third-person player character with lock-on, stamina combat timing, miracles, and save/load bindings.
-- Enemy archetype AI with state transitions, parry/riposte interactions, and boss phases.
+- Enemy archetype AI with state transitions plus AI perception/controller behavior-tree hooks.
 - Prayer Site and Travel Gate interaction actors.
 - Save payload model with checkpoint and slot persistence subsystem.
-- Runtime HUD overlay for vitals, objective, and context prompts.
+- UMG HUD + pause menu stack with in-UI save/load slot flow and summaries.
+- Animation runtime classes for player/enemy animation blueprint state machines.
+- Audio/VFX integration points (SoundBase + Niagara hooks) and region-specific environment spawning.
 
 ## Legacy Godot notes
 - Historical milestone docs: `docs/PHASE1.md`, `docs/PHASE2.md`, `docs/PHASE3.md`.
@@ -29,5 +31,10 @@ Biblical action RPG in active migration to Unreal Engine 5.
 - Migration plan: `docs/UNREAL_MIGRATION.md`
 - Active work queue: `TODO.md`
 - Unreal project setup: `unreal/TheNazareneAAA/README.md`
+- Campaign level bootstrap: `docs/UNREAL_LEVEL_BOOTSTRAP.md`
+- Gameplay validation: `docs/UNREAL_GAMEPLAY_VALIDATION.md`
+- Packaging/profile pipeline: `docs/PACKAGING_PROFILE_PIPELINE.md`
+- GAS evaluation: `docs/GAS_ADOPTION_EVALUATION.md`
+- Networking scope: `docs/NETWORKING_SCOPE.md`
 - Narrative scope: `docs/PLOT.md`
 - Character roster: `docs/CHARACTER_LIBRARY.md`

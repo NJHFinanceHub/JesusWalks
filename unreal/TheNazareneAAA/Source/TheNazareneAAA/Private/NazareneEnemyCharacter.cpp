@@ -1,10 +1,17 @@
 #include "NazareneEnemyCharacter.h"
 
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "NazareneEnemyAIController.h"
+#include "NazareneEnemyAnimInstance.h"
 #include "NazarenePlayerCharacter.h"
+#include "Sound/SoundBase.h"
 #include "UObject/ConstructorHelpers.h"
 
 ANazareneEnemyCharacter::ANazareneEnemyCharacter()
@@ -27,11 +34,28 @@ ANazareneEnemyCharacter::ANazareneEnemyCharacter()
     GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
     bUseControllerRotationYaw = false;
     GetCharacterMovement()->bOrientRotationToMovement = false;
+    AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+    AIControllerClass = ANazareneEnemyAIController::StaticClass();
+
+    GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -92.0f));
+    GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+    GetMesh()->SetAnimInstanceClass(UNazareneEnemyAnimInstance::StaticClass());
 }
 
 void ANazareneEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (RetargetedSkeletalMesh.ToSoftObjectPath().IsValid())
+    {
+        if (USkeletalMesh* MeshAsset = RetargetedSkeletalMesh.LoadSynchronous())
+        {
+            GetMesh()->SetSkeletalMesh(MeshAsset);
+            BodyMesh->SetHiddenInGame(true);
+        }
+    }
 
     if (SpawnId.IsNone())
     {
@@ -46,6 +70,14 @@ void ANazareneEnemyCharacter::BeginPlay()
     CurrentHealth = MaxHealth;
     CurrentPoise = MaxPoise;
     CurrentState = ENazareneEnemyState::Idle;
+
+    SyncTargetFromAIController();
+
+    if (ANazareneEnemyAIController* AIController = Cast<ANazareneEnemyAIController>(GetController()))
+    {
+        AIController->SetBehaviorTreeAsset(BehaviorTreeAsset);
+        AIController->SetFallbackTarget(TargetPlayer.Get());
+    }
 }
 
 void ANazareneEnemyCharacter::Tick(float DeltaSeconds)
@@ -57,11 +89,7 @@ void ANazareneEnemyCharacter::Tick(float DeltaSeconds)
         return;
     }
 
-    if (!TargetPlayer.IsValid())
-    {
-        APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
-        TargetPlayer = Cast<ANazarenePlayerCharacter>(Pawn);
-    }
+    SyncTargetFromAIController();
 
     if (!TargetPlayer.IsValid())
     {
@@ -146,6 +174,36 @@ void ANazareneEnemyCharacter::Tick(float DeltaSeconds)
 
     default:
         break;
+    }
+}
+
+void ANazareneEnemyCharacter::SyncTargetFromAIController()
+{
+    if (ANazareneEnemyAIController* AIController = Cast<ANazareneEnemyAIController>(GetController()))
+    {
+        if (AActor* AITrackedTarget = AIController->GetCurrentTargetActor())
+        {
+            if (ANazarenePlayerCharacter* PlayerTarget = Cast<ANazarenePlayerCharacter>(AITrackedTarget))
+            {
+                TargetPlayer = PlayerTarget;
+                return;
+            }
+        }
+
+        if (!TargetPlayer.IsValid())
+        {
+            APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+            TargetPlayer = Cast<ANazarenePlayerCharacter>(Pawn);
+        }
+
+        AIController->SetFallbackTarget(TargetPlayer.Get());
+        return;
+    }
+
+    if (!TargetPlayer.IsValid())
+    {
+        APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0);
+        TargetPlayer = Cast<ANazarenePlayerCharacter>(Pawn);
     }
 }
 
@@ -274,6 +332,16 @@ bool ANazareneEnemyCharacter::IsRedeemed() const
     return CurrentState == ENazareneEnemyState::Redeemed;
 }
 
+ENazareneEnemyState ANazareneEnemyCharacter::GetState() const
+{
+    return CurrentState;
+}
+
+float ANazareneEnemyCharacter::GetStateTimerRemaining() const
+{
+    return StateTimer;
+}
+
 void ANazareneEnemyCharacter::OnParried(ANazarenePlayerCharacter* ByPlayer)
 {
     if (CurrentState == ENazareneEnemyState::Redeemed)
@@ -309,6 +377,7 @@ void ANazareneEnemyCharacter::ReceiveHit(float Damage, float PoiseDamage, ANazar
 
     CurrentHealth -= Damage;
     CurrentPoise -= PoiseDamage;
+    TriggerPresentation(HitReactSound, HitReactVFX, GetActorLocation(), 0.8f);
 
     if (CurrentPoise <= 0.0f)
     {
@@ -521,6 +590,7 @@ void ANazareneEnemyCharacter::BeginMeleeAttack()
     WindupElapsed = 0.0f;
     bAttackResolved = false;
     StateTimer = WindupDuration;
+    TriggerPresentation(AttackSound, AttackVFX, GetActorLocation() + GetActorForwardVector() * 100.0f, 0.75f);
 }
 
 void ANazareneEnemyCharacter::BeginCastAttack()
@@ -535,6 +605,7 @@ void ANazareneEnemyCharacter::BeginCastAttack()
     WindupElapsed = 0.0f;
     bAttackResolved = false;
     StateTimer = WindupDuration;
+    TriggerPresentation(AttackSound, AttackVFX, GetActorLocation() + GetActorForwardVector() * 130.0f, 0.72f);
 }
 
 void ANazareneEnemyCharacter::ProcessWindup(float DeltaSeconds, bool bCasting)
@@ -735,6 +806,7 @@ void ANazareneEnemyCharacter::BecomeRedeemed(ANazarenePlayerCharacter* Source, b
     GetCharacterMovement()->DisableMovement();
     SetActorEnableCollision(false);
     SetActorHiddenInGame(true);
+    TriggerPresentation(RedeemedSound, RedeemedVFX, GetActorLocation(), 0.95f);
 
     if (bGrantReward)
     {
@@ -827,4 +899,17 @@ float ANazareneEnemyCharacter::PhaseSpeedScale() const
         return 1.0f;
     }
     return 1.0f + float(BossPhase - 1) * 0.12f;
+}
+
+void ANazareneEnemyCharacter::TriggerPresentation(USoundBase* Sound, UNiagaraSystem* Effect, const FVector& Location, float VolumeMultiplier) const
+{
+    if (Sound != nullptr)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, Sound, Location, FRotator::ZeroRotator, VolumeMultiplier);
+    }
+
+    if (Effect != nullptr && GetWorld() != nullptr)
+    {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, Location, GetActorRotation());
+    }
 }
