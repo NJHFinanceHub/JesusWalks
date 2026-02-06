@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NazareneEnemyCharacter.h"
 #include "NazareneGameInstance.h"
+#include "NazareneHUD.h"
 #include "NazarenePlayerCharacter.h"
 #include "NazarenePrayerSite.h"
 #include "NazareneSaveSubsystem.h"
@@ -16,6 +17,7 @@ ANazareneCampaignGameMode::ANazareneCampaignGameMode()
     EnemyClass = ANazareneEnemyCharacter::StaticClass();
     PrayerSiteClass = ANazarenePrayerSite::StaticClass();
     TravelGateClass = ANazareneTravelGate::StaticClass();
+    HUDClass = ANazareneHUD::StaticClass();
     DefaultPawnClass = nullptr;
 }
 
@@ -460,3 +462,4 @@ void ANazareneCampaignGameMode::HandleEnemyRedeemed(ANazareneEnemyCharacter* Ene
 
     SaveCheckpoint();
 }
+
