@@ -41,7 +41,7 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 - [ ] Replace placeholder player/enemy meshes with production-ready models and animation blueprints. (@codex)
 - [x] Implement quest/story objective system for chapter progression and failure/retry states. (@codex)
 - [x] Add narrative intro sequence (camera, dialogue/text, mission kickoff). (@codex)
-- [ ] Establish asset integration pipeline (naming, folders, LODs, collision, materials) for art/audio imports. (@codex)
+- [x] Establish asset integration pipeline (naming, folders, LODs, collision, materials) for art/audio imports. (@codex)
 - [x] Implement options/settings menu (video, audio, controls) with persistent save. (@codex)
 - [ ] Add storefront-quality HUD/UX pass for readability and controller-first navigation. (@codex)
 
@@ -59,3 +59,4 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 - [x] Implemented persistent player settings subsystem (controls/video/audio baseline) and connected runtime options menu controls with save/apply behavior. (@codex)
 - [x] Added chapter objective progression hooks (prayer-site consecration milestone + intro story beat sequence) to campaign flow. (@codex)
 - [x] Added explicit chapter stage state machine and per-region retry tracking persisted in campaign save payload. (@codex)
+- [x] Added asset integration pipeline standards doc + Unreal Python validator for naming, LOD, and collision checks. (@codex)

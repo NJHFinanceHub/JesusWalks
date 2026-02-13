@@ -15,3 +15,16 @@ exec(open("Tools/create_campaign_level.py").read())
 UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/create_campaign_level.py -unattended -nop4
 ```
 
+## validate_asset_pipeline.py
+Runs naming and baseline quality checks for imported assets across `/Game`.
+
+Current checks:
+- Class-to-prefix naming enforcement (`SM_`, `SK_`, `M_`, `MI_`, etc.).
+- Static mesh LOD count recommendations.
+- Static mesh simple collision presence checks.
+
+### Run headless
+```bat
+UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/validate_asset_pipeline.py -unattended -nop4
+```
+
