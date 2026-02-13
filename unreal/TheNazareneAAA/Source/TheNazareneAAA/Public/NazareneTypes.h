@@ -98,6 +98,9 @@ struct FNazareneCampaignState
     float MaxStaminaBonus = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<int32> RegionRetryCounts;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FName> Flags;
 };
 

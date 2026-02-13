@@ -1246,6 +1246,11 @@ void ANazarenePlayerCharacter::ApplyHealthDamage(float Amount)
 
 void ANazarenePlayerCharacter::HandleDefeat()
 {
+    if (CampaignGameMode.IsValid())
+    {
+        CampaignGameMode->NotifyPlayerDefeated();
+    }
+
     ANazarenePrayerSite* ClosestSite = nullptr;
     float ClosestDistanceSq = TNumericLimits<float>::Max();
 

@@ -36,13 +36,13 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 - [x] Replace placeholder geometry with production environments for all four regions. (@claude)
 
 ## Production backlog (full game)
-- [ ] Build production main menu/start menu flow (new game, continue, options, quit) with clean boot routing. (@codex)
+- [x] Build production main menu/start menu flow (new game, continue, options, quit) with clean boot routing. (@codex)
 - [ ] Author Opening Chapter map as first vertical slice level with encounter pacing and traversal landmarks. (@codex)
 - [ ] Replace placeholder player/enemy meshes with production-ready models and animation blueprints. (@codex)
-- [ ] Implement quest/story objective system for chapter progression and failure/retry states. (@codex)
-- [ ] Add narrative intro sequence (camera, dialogue/text, mission kickoff). (@codex)
+- [x] Implement quest/story objective system for chapter progression and failure/retry states. (@codex)
+- [x] Add narrative intro sequence (camera, dialogue/text, mission kickoff). (@codex)
 - [ ] Establish asset integration pipeline (naming, folders, LODs, collision, materials) for art/audio imports. (@codex)
-- [ ] Implement options/settings menu (video, audio, controls) with persistent save. (@codex)
+- [x] Implement options/settings menu (video, audio, controls) with persistent save. (@codex)
 - [ ] Add storefront-quality HUD/UX pass for readability and controller-first navigation. (@codex)
 
 ## Updates (2026-02-06)
@@ -58,3 +58,4 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 - [x] Added startup menu overlay flow (`New Game`, `Continue`, `Options`, `Quit`) and wired menu-driven pause/input control in HUD runtime code. (@codex)
 - [x] Implemented persistent player settings subsystem (controls/video/audio baseline) and connected runtime options menu controls with save/apply behavior. (@codex)
 - [x] Added chapter objective progression hooks (prayer-site consecration milestone + intro story beat sequence) to campaign flow. (@codex)
+- [x] Added explicit chapter stage state machine and per-region retry tracking persisted in campaign save payload. (@codex)

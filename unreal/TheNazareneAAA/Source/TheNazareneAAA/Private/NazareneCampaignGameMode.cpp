@@ -236,6 +236,8 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
         bPrayerSiteConsecrated = Session->IsFlagSet(ConsecratedFlag);
     }
     SyncCompletionState();
+    EnsureRetryCounterForCurrentRegion();
+    UpdateChapterStageFromState();
     UpdateHUDForRegion(Region, bRegionCompleted);
 }
 
@@ -474,6 +476,7 @@ void ANazareneCampaignGameMode::RequestTravel(int32 TargetRegionIndex)
 
     if (TargetRegionIndex >= Regions.Num())
     {
+        ChapterStage = ENazareneChapterStage::Completed;
         if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
         {
             if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
@@ -583,7 +586,34 @@ void ANazareneCampaignGameMode::NotifyPrayerSiteRest(FName SiteId)
         }
     }
 
+    UpdateChapterStageFromState();
     UpdateHUDForRegion(Region, bRegionCompleted);
+    SaveCheckpoint();
+}
+
+void ANazareneCampaignGameMode::NotifyPlayerDefeated()
+{
+    if (!Regions.IsValidIndex(RegionIndex))
+    {
+        return;
+    }
+
+    EnsureRetryCounterForCurrentRegion();
+    const int32 NextRetryCount = GetCurrentRegionRetryCount() + 1;
+    SetCurrentRegionRetryCount(NextRetryCount);
+
+    if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            HUD->ShowMessage(FString::Printf(TEXT("You were struck down. Attempt %d begins anew."), NextRetryCount + 1), 4.2f);
+        }
+    }
+
+    if (Regions.IsValidIndex(RegionIndex))
+    {
+        UpdateHUDForRegion(Regions[RegionIndex], bRegionCompleted);
+    }
     SaveCheckpoint();
 }
 
@@ -665,6 +695,8 @@ void ANazareneCampaignGameMode::ApplySavePayload(const FNazareneSavePayload& Pay
         const FName ConsecratedFlag(*FString::Printf(TEXT("site_%s_consecrated"), *Regions[RegionIndex].PrayerSiteId.ToString()));
         bPrayerSiteConsecrated = Session->IsFlagSet(ConsecratedFlag);
     }
+    EnsureRetryCounterForCurrentRegion();
+    UpdateChapterStageFromState();
     if (Regions.IsValidIndex(RegionIndex))
     {
         UpdateHUDForRegion(Regions[RegionIndex], bRegionCompleted);
@@ -675,6 +707,7 @@ void ANazareneCampaignGameMode::SyncCompletionState()
 {
     bRegionCompleted = (BossEnemy != nullptr && BossEnemy->IsRedeemed());
     EnableTravelGate(bRegionCompleted);
+    UpdateChapterStageFromState();
 }
 
 void ANazareneCampaignGameMode::HandleEnemyRedeemed(ANazareneEnemyCharacter* Enemy, float FaithReward)
@@ -701,6 +734,7 @@ void ANazareneCampaignGameMode::OnBossRedeemed()
     const FNazareneRegionDefinition& Region = Regions[RegionIndex];
     const bool bRewardApplied = ApplyRegionReward(Region);
     EnableTravelGate(true);
+    UpdateChapterStageFromState();
     UpdateHUDForRegion(Region, true);
 
     if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
@@ -808,22 +842,32 @@ void ANazareneCampaignGameMode::AdvanceStoryLine()
 
 FString ANazareneCampaignGameMode::BuildObjectiveText(const FNazareneRegionDefinition& Region, bool bCompleted) const
 {
-    if (!bCompleted)
+    const int32 RetryCount = GetCurrentRegionRetryCount();
+    const FString RetrySuffix = RetryCount > 0 ? FString::Printf(TEXT(" (Retries: %d)"), RetryCount) : FString();
+
+    switch (ChapterStage)
     {
-        if (!bPrayerSiteConsecrated)
+    case ENazareneChapterStage::ConsecratePrayerSite:
+        return FString::Printf(TEXT("Consecrate %s to reveal the guardian.%s"), *Region.PrayerSiteName, *RetrySuffix);
+
+    case ENazareneChapterStage::DefeatGuardian:
+        return FString::Printf(TEXT("%s%s"), *Region.Objective, *RetrySuffix);
+
+    case ENazareneChapterStage::ReachTravelGate:
+        if (RegionIndex >= Regions.Num() - 1)
         {
-            return FString::Printf(TEXT("Consecrate %s to reveal the guardian."), *Region.PrayerSiteName);
+            return FString::Printf(TEXT("Step into the light to conclude the pilgrimage.%s"), *RetrySuffix);
         }
+        return FString::Printf(TEXT("Journey marker open: travel to %s.%s"), *Regions[RegionIndex + 1].RegionName, *RetrySuffix);
 
-        return Region.Objective;
+    case ENazareneChapterStage::Completed:
+        return FString::Printf(TEXT("Pilgrimage complete.%s"), *RetrySuffix);
+
+    default:
+        break;
     }
 
-    if (RegionIndex >= Regions.Num() - 1)
-    {
-        return TEXT("Step into the light to conclude the pilgrimage.");
-    }
-
-    return FString::Printf(TEXT("Journey marker open: travel to %s."), *Regions[RegionIndex + 1].RegionName);
+    return bCompleted ? TEXT("Pilgrimage complete.") : Region.Objective;
 }
 
 void ANazareneCampaignGameMode::EnableTravelGate(bool bEnabled)
@@ -850,4 +894,58 @@ void ANazareneCampaignGameMode::UpdateHUDForRegion(const FNazareneRegionDefiniti
 
     HUD->SetRegionName(FString::Printf(TEXT("Chapter %d: %s"), Region.Chapter, *Region.RegionName));
     HUD->SetObjective(BuildObjectiveText(Region, bCompleted));
+}
+
+void ANazareneCampaignGameMode::UpdateChapterStageFromState()
+{
+    if (bRegionCompleted)
+    {
+        if (RegionIndex >= Regions.Num() - 1)
+        {
+            ChapterStage = ENazareneChapterStage::Completed;
+        }
+        else
+        {
+            ChapterStage = ENazareneChapterStage::ReachTravelGate;
+        }
+        return;
+    }
+
+    ChapterStage = bPrayerSiteConsecrated ? ENazareneChapterStage::DefeatGuardian : ENazareneChapterStage::ConsecratePrayerSite;
+}
+
+void ANazareneCampaignGameMode::EnsureRetryCounterForCurrentRegion()
+{
+    if (Session == nullptr)
+    {
+        return;
+    }
+
+    FNazareneCampaignState& CampaignState = Session->GetMutableCampaignState();
+    while (CampaignState.RegionRetryCounts.Num() <= RegionIndex)
+    {
+        CampaignState.RegionRetryCounts.Add(0);
+    }
+}
+
+int32 ANazareneCampaignGameMode::GetCurrentRegionRetryCount() const
+{
+    if (Session == nullptr)
+    {
+        return 0;
+    }
+
+    const FNazareneCampaignState& CampaignState = Session->GetCampaignState();
+    return CampaignState.RegionRetryCounts.IsValidIndex(RegionIndex) ? CampaignState.RegionRetryCounts[RegionIndex] : 0;
+}
+
+void ANazareneCampaignGameMode::SetCurrentRegionRetryCount(int32 RetryCount)
+{
+    if (Session == nullptr)
+    {
+        return;
+    }
+
+    EnsureRetryCounterForCurrentRegion();
+    Session->GetMutableCampaignState().RegionRetryCounts[RegionIndex] = FMath::Max(0, RetryCount);
 }
