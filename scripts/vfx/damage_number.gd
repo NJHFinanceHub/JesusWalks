@@ -132,13 +132,12 @@ func _update_screen_position(delta: float) -> void:
 		visible = false
 		return
 
-	# Move world position up
-	_world_position.y += (_velocity.y * delta) * 0.01
+	# Move world position upward over time
+	_world_position.y += abs(_velocity.y) * delta * 0.01
 
 	# Check if position is behind camera (basic frustum culling)
 	var cam_to_pos := _world_position - _camera.global_position
-	if cam_to_pos.dot(_camera.global_transform.basis.z) > 0:
-		# Position is behind camera, hide but don't remove
+	if cam_to_pos.dot(-_camera.global_transform.basis.z) < 0:
 		visible = false
 		return
 
@@ -147,11 +146,5 @@ func _update_screen_position(delta: float) -> void:
 	# Project to screen space
 	var screen_pos := _camera.unproject_position(_world_position)
 
-	# Apply 2D velocity
-	screen_pos += _velocity * delta
-
 	# Update position
 	position = screen_pos - size / 2.0
-
-	# Slow down horizontal movement
-	_velocity.x *= 0.95

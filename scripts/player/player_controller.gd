@@ -152,7 +152,7 @@ func _ready() -> void:
 	emit_signal("lock_target_changed", "")
 	emit_signal("context_hint_changed", "")
 	_set_animation_state(AnimationState.IDLE)
-	emit_signal("class_changed", get_class_name())
+	emit_signal("class_changed", get_class_label())
 
 
 func _input(event: InputEvent) -> void:
@@ -914,7 +914,7 @@ func apply_save_payload(payload: Dictionary) -> bool:
 	player_level = maxi(int(player_dict.get("player_level", player_level)), 1)
 	unspent_skill_points = maxi(int(player_dict.get("skill_points", unspent_skill_points)), 0)
 	set_skill_tree_state(player_dict.get("unlocked_skills", []))
-	emit_signal("class_changed", get_class_name())
+	emit_signal("class_changed", get_class_label())
 	_heal_cooldown_timer = 0.0
 	_blessing_timer = 0.0
 	_blessing_cooldown_timer = 0.0
@@ -977,7 +977,7 @@ func _xp_for_level(level_value: int) -> int:
 	return int(45 + (safe_level - 1) * (safe_level - 1) * 28)
 
 
-func get_class_name() -> String:
+func get_class_label() -> String:
 	match character_class:
 		CharacterClass.ZEALOT:
 			return "Zealot"
@@ -1005,7 +1005,7 @@ func apply_character_class(class_id: int) -> void:
 			parry_stamina_cost *= 0.85
 	current_health = max_health
 	current_stamina = max_stamina
-	emit_signal("class_changed", get_class_name())
+	emit_signal("class_changed", get_class_label())
 	_emit_all_stats()
 
 
@@ -1036,21 +1036,33 @@ func attempt_unlock_first_available_skill() -> void:
 
 
 func _apply_skill_modifiers() -> void:
+	# Reset to base values before applying modifiers to prevent stacking
+	light_attack_damage = 26.0
+	heavy_attack_damage = 42.0
+	heavy_attack_poise_damage = 54.0
+	heavy_attack_range = 3.4
+	walk_speed = 5.8
+	dodge_stamina_cost = 26.0
+	heal_amount = 45.0
+	radiance_damage = 32.0
+	radiance_radius = 6.0
+	stamina_regeneration = 22.0
+
 	if unlocked_skills.has("combat_smite"):
-		light_attack_damage = max(light_attack_damage, 26.0) * 1.1
-		heavy_attack_damage = max(heavy_attack_damage, 42.0) * 1.1
+		light_attack_damage *= 1.1
+		heavy_attack_damage *= 1.1
 	if unlocked_skills.has("combat_crusader"):
-		heavy_attack_poise_damage = max(heavy_attack_poise_damage, 54.0) * 1.12
-		heavy_attack_range = max(heavy_attack_range, 3.4) + 0.4
+		heavy_attack_poise_damage *= 1.12
+		heavy_attack_range += 0.4
 	if unlocked_skills.has("movement_pilgrim_stride"):
-		walk_speed = max(walk_speed, 5.8) * 1.12
+		walk_speed *= 1.12
 	if unlocked_skills.has("movement_swift_vow"):
-		dodge_stamina_cost = max(dodge_stamina_cost, 26.0) * 0.82
+		dodge_stamina_cost *= 0.82
 	if unlocked_skills.has("miracles_abundance"):
-		heal_amount = max(heal_amount, 45.0) * 1.18
+		heal_amount *= 1.18
 	if unlocked_skills.has("miracles_radiance_lance"):
-		radiance_damage = max(radiance_damage, 32.0) * 1.2
-		radiance_radius = max(radiance_radius, 6.0) + 1.2
+		radiance_damage *= 1.2
+		radiance_radius += 1.2
 	if unlocked_skills.has("defense_shepherd_guard"):
 		max_health += 14.0
 	if unlocked_skills.has("defense_steadfast"):

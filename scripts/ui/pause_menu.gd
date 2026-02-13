@@ -17,7 +17,7 @@ var _slot_labels: Array[Label] = []
 func _ready() -> void:
 	_build_ui()
 	visible = false
-	pause_mode = Node.PAUSE_MODE_PROCESS
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
 func _unhandled_input(event: InputEvent) -> void:

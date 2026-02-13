@@ -265,7 +265,7 @@ var _suppress_redeem_events: bool = false
 
 
 func _ready() -> void:
-	pause_mode = Node.PAUSE_MODE_PROCESS
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("campaign")
 	_ensure_input_map()
 	_session = _get_session()
@@ -397,7 +397,6 @@ func _build_environment(region: Dictionary) -> void:
 		sea_mesh.size = sea_data.get("size", Vector2(100.0, 28.0))
 		sea.mesh = sea_mesh
 		sea.position = sea_data.get("pos", Vector3(0.0, 0.1, -42.0))
-		sea.rotation_degrees.x = -90.0
 		sea.material_override = _make_material(sea_data.get("color", Color(0.24, 0.39, 0.48)))
 		_region_root.add_child(sea)
 
@@ -536,7 +535,7 @@ func _on_hazard_body_entered(body: Node) -> void:
 		return
 	_player.receive_enemy_attack(null, 8.0, 6.0)
 	if _hud != null:
-		_hud.show_popup("Hazard", "You stepped into dangerous terrain.")
+		_hud.show_message("Hazard: You stepped into dangerous terrain.")
 
 func _spawn_hud(region: Dictionary) -> void:
 	if _hud == null:
@@ -630,7 +629,7 @@ func _on_enemy_redeemed(enemy_name: String, faith_reward: float, enemy: EnemyAI)
 	if _player != null:
 		_player.gain_experience(int(round(faith_reward * 4.0)))
 	if _hud != null:
-		_hud.show_popup("Enemy Redeemed", "%s (+%d XP)" % [enemy_name, int(round(faith_reward * 4.0))])
+		_hud.show_message("%s redeemed (+%d XP)" % [enemy_name, int(round(faith_reward * 4.0))])
 	if enemy != _boss_instance:
 		return
 	_on_boss_redeemed()
