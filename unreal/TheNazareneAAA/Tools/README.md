@@ -28,3 +28,17 @@ Current checks:
 UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/validate_asset_pipeline.py -unattended -nop4
 ```
 
+
+
+## validate_vertical_slice_content.py
+Validates Opening Chapter vertical-slice readiness for map presence, character-model naming coverage, and biblical music cue/wave conventions.
+
+Current checks:
+- Required campaign map exists (`/Game/Maps/NazareneCampaign`).
+- Skeletal-mesh prefix coverage for player/enemy production assets.
+- Recommended dynamic music cue and SoundWave naming coverage.
+
+### Run headless
+```bat
+UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/validate_vertical_slice_content.py -unattended -nop4
+```

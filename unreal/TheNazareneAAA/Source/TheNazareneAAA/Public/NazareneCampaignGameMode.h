@@ -21,6 +21,17 @@ enum class ENazareneChapterStage : uint8
     Completed = 3
 };
 
+
+UENUM(BlueprintType)
+enum class ENazareneMusicState : uint8
+{
+    Peace = 0,
+    Tension = 1,
+    Combat = 2,
+    Boss = 3,
+    Victory = 4
+};
+
 UCLASS()
 class THENAZARENEAAA_API ANazareneCampaignGameMode : public AGameModeBase
 {
@@ -52,6 +63,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Campaign")
     void NotifyPlayerDefeated();
 
+    UFUNCTION(BlueprintPure, Category = "Audio")
+    ENazareneMusicState GetMusicState() const { return MusicState; }
+
 private:
     void BuildDefaultRegions();
     void LoadRegion(int32 TargetRegionIndex);
@@ -72,6 +86,7 @@ private:
     FString BuildObjectiveText(const FNazareneRegionDefinition& Region, bool bCompleted) const;
     void EnableTravelGate(bool bEnabled);
     void UpdateHUDForRegion(const FNazareneRegionDefinition& Region, bool bCompleted) const;
+    void SetMusicState(ENazareneMusicState NewState, bool bAnnounceOnHUD = false);
 
     UFUNCTION()
     void HandleEnemyRedeemed(ANazareneEnemyCharacter* Enemy, float FaithReward);
@@ -107,6 +122,7 @@ private:
     bool bSuppressRedeemedCallbacks = false;
     ENazareneChapterStage ChapterStage = ENazareneChapterStage::ConsecratePrayerSite;
     int32 StoryLineIndex = 0;
+    ENazareneMusicState MusicState = ENazareneMusicState::Peace;
 
     UPROPERTY()
     TArray<FString> ActiveStoryLines;
