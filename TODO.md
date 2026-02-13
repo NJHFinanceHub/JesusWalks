@@ -62,6 +62,3 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 - [x] Added asset integration pipeline standards doc + Unreal Python validator for naming, LOD, and collision checks. (@codex)
 - [x] Polished runtime HUD readability with clearer control legend, combat-state telemetry, and critical low-resource alerts. (@codex)
 - [x] Added opening chapter layout automation for repeatable encounter pacing and traversal landmarks in `NazareneCampaign`. (@codex)
-
-## Updates (2026-02-13)
-- [x] Replaced legacy placeholder geometry with richer procedural world/character assemblies and wired real music track loading fallback in Godot + Unreal prayer altar mesh refresh. (@codex)
