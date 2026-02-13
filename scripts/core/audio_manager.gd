@@ -58,6 +58,7 @@ var _ambient_player: AudioStreamPlayer
 var _sfx_volume_db: float
 var _music_volume_db: float
 var _sound_library: Dictionary = {}
+var _music_library: Dictionary = {}
 
 
 func _ready() -> void:
@@ -93,11 +94,10 @@ func _initialize_audio_players() -> void:
 
 
 func _load_sound_library() -> void:
-	## This would normally load actual audio files
-	## For now, we're setting up the structure for when audio assets are added
-	_sound_library = {
-		# Placeholder - actual audio files would be loaded here
-		# SFXType.PLAYER_LIGHT_ATTACK: preload("res://audio/sfx/player_light_attack.ogg"),
+	_sound_library = {}
+	_music_library = {
+		"epic_biblical_theme": preload("res://assets/music/epic_biblical_theme.wav"),
+		"main_theme": preload("res://assets/music/epic_biblical_theme.wav"),
 	}
 
 
@@ -108,11 +108,8 @@ func play_sfx(sfx_type: SFXType, pitch_variation: float = 0.0, volume_offset_db:
 		push_warning("AudioManager: No available SFX players in pool")
 		return
 
-	# Get the sound from library (would load actual audio when available)
 	var stream := _sound_library.get(sfx_type, null)
 	if stream == null:
-		# For now, just return since we don't have actual audio files
-		# In production, this would play the loaded sound
 		return
 
 	player.stream = stream
@@ -128,9 +125,16 @@ func play_sfx(sfx_type: SFXType, pitch_variation: float = 0.0, volume_offset_db:
 
 func play_music(track_name: String, fade_in_duration: float = 0.0) -> void:
 	## Play a music track with optional fade-in
-	## For now, this is a placeholder for when music assets are added
+	var stream := _music_library.get(track_name, null)
+	if stream == null:
+		push_warning("AudioManager: Unknown track '%s'" % track_name)
+		return
+
+	_music_player.stream = stream
 	if fade_in_duration > 0.0:
 		_fade_in_music(fade_in_duration)
+	else:
+		_music_player.play()
 	music_changed.emit(track_name)
 
 
