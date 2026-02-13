@@ -28,18 +28,17 @@ Current checks:
 UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/validate_asset_pipeline.py -unattended -nop4
 ```
 
-## create_opening_chapter_layout.py
-Builds a repeatable blockout layer for opening chapter pacing in `/Game/Maps/NazareneCampaign`.
 
-The script:
-- Clears prior `OpeningChapterBlockout` actors.
-- Places traversal lane, encounter landmarks, and boss arena ring.
-- Ensures `PlayerStart` and `NavMeshBoundsVolume` are present.
+
+## validate_vertical_slice_content.py
+Validates Opening Chapter vertical-slice readiness for map presence, character-model naming coverage, and biblical music cue/wave conventions.
+
+Current checks:
+- Required campaign map exists (`/Game/Maps/NazareneCampaign`).
+- Skeletal-mesh prefix coverage for player/enemy production assets.
+- Recommended dynamic music cue and SoundWave naming coverage.
 
 ### Run headless
 ```bat
-UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/create_opening_chapter_layout.py -unattended -nop4
+UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/validate_vertical_slice_content.py -unattended -nop4
 ```
-
-If invoking from outside the project directory, pass an absolute `-script=` path.
-

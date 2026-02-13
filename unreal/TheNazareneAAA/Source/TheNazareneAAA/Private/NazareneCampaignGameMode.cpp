@@ -239,6 +239,7 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
     EnsureRetryCounterForCurrentRegion();
     UpdateChapterStageFromState();
     UpdateHUDForRegion(Region, bRegionCompleted);
+    SetMusicState(ENazareneMusicState::Peace, false);
 }
 
 void ANazareneCampaignGameMode::ClearRegionActors()
@@ -588,6 +589,7 @@ void ANazareneCampaignGameMode::NotifyPrayerSiteRest(FName SiteId)
 
     UpdateChapterStageFromState();
     UpdateHUDForRegion(Region, bRegionCompleted);
+    SetMusicState(ENazareneMusicState::Tension, true);
     SaveCheckpoint();
 }
 
@@ -614,6 +616,7 @@ void ANazareneCampaignGameMode::NotifyPlayerDefeated()
     {
         UpdateHUDForRegion(Regions[RegionIndex], bRegionCompleted);
     }
+    SetMusicState(ENazareneMusicState::Tension, true);
     SaveCheckpoint();
 }
 
@@ -736,6 +739,7 @@ void ANazareneCampaignGameMode::OnBossRedeemed()
     EnableTravelGate(true);
     UpdateChapterStageFromState();
     UpdateHUDForRegion(Region, true);
+    SetMusicState(ENazareneMusicState::Victory, true);
 
     if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
     {
@@ -816,6 +820,7 @@ void ANazareneCampaignGameMode::QueueIntroStoryIfNeeded()
     };
     StoryLineIndex = 0;
     Session->MarkFlag(IntroFlag);
+    SetMusicState(ENazareneMusicState::Peace, false);
 
     AdvanceStoryLine();
     GetWorldTimerManager().SetTimer(StoryLineTimerHandle, this, &ANazareneCampaignGameMode::AdvanceStoryLine, 5.2f, true, 5.2f);
@@ -894,6 +899,54 @@ void ANazareneCampaignGameMode::UpdateHUDForRegion(const FNazareneRegionDefiniti
 
     HUD->SetRegionName(FString::Printf(TEXT("Chapter %d: %s"), Region.Chapter, *Region.RegionName));
     HUD->SetObjective(BuildObjectiveText(Region, bCompleted));
+}
+
+
+void ANazareneCampaignGameMode::SetMusicState(ENazareneMusicState NewState, bool bAnnounceOnHUD)
+{
+    if (MusicState == NewState)
+    {
+        return;
+    }
+
+    MusicState = NewState;
+
+    const TCHAR* StateLabel = TEXT("Peace");
+    switch (MusicState)
+    {
+    case ENazareneMusicState::Peace:
+        StateLabel = TEXT("Peace");
+        break;
+    case ENazareneMusicState::Tension:
+        StateLabel = TEXT("Tension");
+        break;
+    case ENazareneMusicState::Combat:
+        StateLabel = TEXT("Combat");
+        break;
+    case ENazareneMusicState::Boss:
+        StateLabel = TEXT("Boss");
+        break;
+    case ENazareneMusicState::Victory:
+        StateLabel = TEXT("Victory");
+        break;
+    default:
+        break;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Music state updated: %s"), StateLabel);
+
+    if (!bAnnounceOnHUD)
+    {
+        return;
+    }
+
+    if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            HUD->ShowMessage(FString::Printf(TEXT("Music: %s"), StateLabel), 2.4f);
+        }
+    }
 }
 
 void ANazareneCampaignGameMode::UpdateChapterStageFromState()

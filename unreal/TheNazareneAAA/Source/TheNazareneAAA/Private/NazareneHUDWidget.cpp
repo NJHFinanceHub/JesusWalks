@@ -703,31 +703,6 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
             CriticalStateText->SetVisibility(ESlateVisibility::Visible);
         }
     }
-
-    if (CombatStateText != nullptr)
-    {
-        const auto BuildCooldownLabel = [](const TCHAR* Name, float Remaining) -> FString
-        {
-            if (Remaining <= 0.05f)
-            {
-                return FString::Printf(TEXT("%s Ready"), Name);
-            }
-            return FString::Printf(TEXT("%s %.1fs"), Name, Remaining);
-        };
-
-        const FString HealStatus = BuildCooldownLabel(TEXT("Heal"), Player->GetHealCooldownRemaining());
-        const FString BlessingStatus = Player->IsMiracleUnlocked(FName(TEXT("blessing")))
-            ? BuildCooldownLabel(TEXT("Blessing"), Player->GetBlessingCooldownRemaining())
-            : TEXT("Blessing Locked");
-        const FString RadianceStatus = Player->IsMiracleUnlocked(FName(TEXT("radiance")))
-            ? BuildCooldownLabel(TEXT("Radiance"), Player->GetRadianceCooldownRemaining())
-            : TEXT("Radiance Locked");
-        const FString GuardState = Player->IsBlocking() ? TEXT("Guarding") : (Player->IsDodging() ? TEXT("Dodging") : TEXT("Neutral"));
-
-        CombatStateText->SetText(FText::FromString(
-            FString::Printf(TEXT("%s | %s | %s | Stance: %s"), *HealStatus, *BlessingStatus, *RadianceStatus, *GuardState)
-        ));
-    }
 }
 
 void UNazareneHUDWidget::HandleResumePressed()

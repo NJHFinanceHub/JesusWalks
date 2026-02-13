@@ -127,9 +127,6 @@ private:
     TObjectPtr<UTextBlock> CriticalStateText;
 
     UPROPERTY()
-    TObjectPtr<UTextBlock> CombatStateText;
-
-    UPROPERTY()
     TObjectPtr<UProgressBar> HealthBar;
 
     UPROPERTY()
