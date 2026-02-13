@@ -258,6 +258,7 @@ var _region_root: Node3D
 var _boss_instance: EnemyAI
 var _region_index: int = 0
 var _region_completed: bool = false
+var _difficulty_scale: float = 1.0
 var _pending_payload: Dictionary = {}
 var _session: GameSession
 var _suppress_redeem_events: bool = false
@@ -321,6 +322,7 @@ func _load_region(index: int) -> void:
 		_session.region_index = _region_index
 
 	var region := REGIONS[_region_index]
+	_difficulty_scale = 1.0 + float(_region_index) * 0.18
 	_region_root = Node3D.new()
 	_region_root.name = "RegionRoot"
 	add_child(_region_root)
@@ -329,6 +331,8 @@ func _load_region(index: int) -> void:
 	_spawn_player(region)
 	_spawn_prayer_site(region)
 	_spawn_enemies(region)
+	_spawn_hazards(region)
+	_spawn_npcs(region)
 	_spawn_travel_gate(region)
 	_spawn_hud(region)
 	_spawn_pause_menu()
@@ -446,6 +450,11 @@ func _spawn_player(region: Dictionary) -> void:
 		_player.current_health = _player.max_health
 		_player.current_stamina = _player.max_stamina
 		_player.set_unlocked_miracles(_session.unlocked_miracles)
+		_player.total_xp = _session.total_xp
+		_player.player_level = _session.player_level
+		_player.unspent_skill_points = _session.skill_points
+		_player.apply_character_class(int(_session.selected_class))
+		_player.set_skill_tree_state(_session.unlocked_skills)
 
 
 func _spawn_prayer_site(region: Dictionary) -> void:
@@ -469,6 +478,9 @@ func _spawn_enemies(region: Dictionary) -> void:
 		enemy.enemy_name = str(spec.get("name", "Enemy"))
 		enemy.enemy_type = int(spec.get("type", EnemyAI.EnemyType.MELEE_SHIELD))
 		enemy.global_position = spec.get("pos", Vector3.ZERO)
+		enemy.max_health *= _difficulty_scale
+		enemy.attack_damage *= (1.0 + float(_region_index) * 0.1)
+		enemy.posture_damage *= (1.0 + float(_region_index) * 0.08)
 		_region_root.add_child(enemy)
 		enemy.redeemed.connect(_on_enemy_redeemed.bind(enemy))
 		if enemy.spawn_id == str(region.get("boss_id", "")):
@@ -488,6 +500,43 @@ func _spawn_travel_gate(region: Dictionary) -> void:
 	_travel_gate.travel_requested.connect(_on_travel_requested)
 	_region_root.add_child(_travel_gate)
 
+
+
+
+func _spawn_hazards(region: Dictionary) -> void:
+	for i in range(4):
+		var hazard := Area3D.new()
+		hazard.name = "Hazard_%d" % i
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(2.5, 1.0, 2.5)
+		shape.shape = box
+		hazard.add_child(shape)
+		hazard.position = Vector3(-12.0 + i * 8.0, 0.5, -10.0 - i * 4.0)
+		hazard.body_entered.connect(_on_hazard_body_entered)
+		_region_root.add_child(hazard)
+
+
+func _spawn_npcs(region: Dictionary) -> void:
+	var npc := Node3D.new()
+	npc.name = "PilgrimNPC"
+	npc.position = Vector3(6.0, 0.0, 5.0)
+	var label := Label3D.new()
+	label.text = "Pilgrim: Hold to your faith in %s." % region.get("name", "this land")
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position = Vector3(0.0, 2.2, 0.0)
+	npc.add_child(label)
+	_region_root.add_child(npc)
+
+
+func _on_hazard_body_entered(body: Node) -> void:
+	if _player == null:
+		return
+	if body != _player:
+		return
+	_player.receive_enemy_attack(null, 8.0, 6.0)
+	if _hud != null:
+		_hud.show_popup("Hazard", "You stepped into dangerous terrain.")
 
 func _spawn_hud(region: Dictionary) -> void:
 	if _hud == null:
@@ -575,9 +624,13 @@ func _sync_completion_state() -> void:
 		_region_completed = false
 
 
-func _on_enemy_redeemed(_enemy_name: String, _faith_reward: float, enemy: EnemyAI) -> void:
+func _on_enemy_redeemed(enemy_name: String, faith_reward: float, enemy: EnemyAI) -> void:
 	if _suppress_redeem_events:
 		return
+	if _player != null:
+		_player.gain_experience(int(round(faith_reward * 4.0)))
+	if _hud != null:
+		_hud.show_popup("Enemy Redeemed", "%s (+%d XP)" % [enemy_name, int(round(faith_reward * 4.0))])
 	if enemy != _boss_instance:
 		return
 	_on_boss_redeemed()
@@ -684,6 +737,12 @@ func _on_travel_requested(target_region_index: int) -> void:
 func _save_checkpoint() -> void:
 	if _player == null:
 		return
+	if _session != null:
+		_session.total_xp = _player.total_xp
+		_session.player_level = _player.player_level
+		_session.skill_points = _player.unspent_skill_points
+		_session.unlocked_skills = _player.unlocked_skills.duplicate()
+		_session.selected_class = _player.character_class
 	var payload := _player.build_save_payload()
 	payload["campaign"] = _build_campaign_payload()
 	SaveSystemScript.save_checkpoint(payload)

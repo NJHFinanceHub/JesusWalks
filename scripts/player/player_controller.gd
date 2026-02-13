@@ -3,6 +3,7 @@ class_name PlayerController
 
 
 const SaveSystemScript := preload("res://scripts/persistence/save_system.gd")
+const SkillTreeScript := preload("res://scripts/player/skill_tree.gd")
 
 const MIRACLE_HEAL := "heal"
 const MIRACLE_BLESSING := "blessing"
@@ -15,6 +16,10 @@ signal faith_changed(current: float)
 signal lock_target_changed(target_name: String)
 signal context_hint_changed(message: String)
 signal animation_state_changed(state_name: String)
+signal experience_changed(current_xp: int, xp_to_next: int, level: int, skill_points: int)
+signal class_changed(class_name: String)
+signal level_up(level: int)
+signal skill_unlocked(skill_id: String)
 
 
 enum AttackType {
@@ -35,6 +40,13 @@ enum AnimationState {
 	CAST,
 	HURT,
 	DEAD,
+}
+
+
+enum CharacterClass {
+	SHEPHERD,
+	ZEALOT,
+	PROPHET,
 }
 
 
@@ -81,6 +93,11 @@ enum AnimationState {
 var current_health: float
 var current_stamina: float
 var current_faith: float
+var character_class: CharacterClass = CharacterClass.SHEPHERD
+var total_xp: int = 0
+var player_level: int = 1
+var unspent_skill_points: int = 0
+var unlocked_skills: Array[String] = []
 
 var _attack_cooldown: float = 0.0
 var _dodge_timer: float = 0.0
@@ -135,6 +152,7 @@ func _ready() -> void:
 	emit_signal("lock_target_changed", "")
 	emit_signal("context_hint_changed", "")
 	_set_animation_state(AnimationState.IDLE)
+	emit_signal("class_changed", get_class_name())
 
 
 func _input(event: InputEvent) -> void:
@@ -156,6 +174,7 @@ func _physics_process(delta: float) -> void:
 	_validate_lock_target()
 	_handle_combat_input()
 	_handle_prayer_site_slot_input()
+	_handle_skill_tree_shortcuts()
 	_update_attack_timing(delta)
 	_handle_movement(delta)
 	_update_camera(delta)
@@ -780,6 +799,11 @@ func clear_active_prayer_site(site) -> void:
 	_active_prayer_site = null
 	set_context_hint("")
 
+
+func _handle_skill_tree_shortcuts() -> void:
+	if Input.is_action_just_pressed("ui_page_down"):
+		attempt_unlock_first_available_skill()
+
 func set_campaign_manager(manager: CampaignManager) -> void:
 	_campaign_manager = manager
 
@@ -861,6 +885,11 @@ func _build_save_payload() -> Dictionary:
 			"stamina": current_stamina,
 			"faith": current_faith,
 			"last_rest_site": _last_rest_site_id,
+			"class_id": int(character_class),
+			"total_xp": total_xp,
+			"player_level": player_level,
+			"skill_points": unspent_skill_points,
+			"unlocked_skills": unlocked_skills.duplicate(),
 		},
 		"world": {
 			"enemies": enemy_states,
@@ -877,6 +906,12 @@ func apply_save_payload(payload: Dictionary) -> bool:
 	current_stamina = clamp(float(player_dict.get("stamina", max_stamina)), 0.0, max_stamina)
 	current_faith = max(float(player_dict.get("faith", current_faith)), 0.0)
 	_last_rest_site_id = str(player_dict.get("last_rest_site", _last_rest_site_id))
+	character_class = clampi(int(player_dict.get("class_id", character_class)), 0, CharacterClass.size() - 1)
+	total_xp = maxi(int(player_dict.get("total_xp", total_xp)), 0)
+	player_level = maxi(int(player_dict.get("player_level", player_level)), 1)
+	unspent_skill_points = maxi(int(player_dict.get("skill_points", unspent_skill_points)), 0)
+	set_skill_tree_state(player_dict.get("unlocked_skills", []))
+	emit_signal("class_changed", get_class_name())
 	_heal_cooldown_timer = 0.0
 	_blessing_timer = 0.0
 	_blessing_cooldown_timer = 0.0
@@ -914,6 +949,113 @@ func _array_to_vector3(value: Variant, fallback: Vector3) -> Vector3:
 func add_faith(amount: float) -> void:
 	current_faith += amount
 	emit_signal("faith_changed", current_faith)
+
+
+func gain_experience(amount: int) -> void:
+	if amount <= 0:
+		return
+	total_xp += amount
+	var leveled := false
+	while total_xp >= _xp_for_level(player_level + 1):
+		player_level += 1
+		unspent_skill_points += 1
+		leveled = true
+	if leveled:
+		emit_signal("level_up", player_level)
+	emit_signal("experience_changed", total_xp, xp_to_next_level(), player_level, unspent_skill_points)
+
+
+func xp_to_next_level() -> int:
+	return max(_xp_for_level(player_level + 1) - total_xp, 0)
+
+
+func _xp_for_level(level_value: int) -> int:
+	var safe_level := max(level_value, 1)
+	return int(45 + (safe_level - 1) * (safe_level - 1) * 28)
+
+
+func get_class_name() -> String:
+	match character_class:
+		CharacterClass.ZEALOT:
+			return "Zealot"
+		CharacterClass.PROPHET:
+			return "Prophet"
+		_:
+			return "Shepherd"
+
+
+func apply_character_class(class_id: int) -> void:
+	character_class = clampi(class_id, 0, CharacterClass.size() - 1)
+	match character_class:
+		CharacterClass.ZEALOT:
+			max_health += 16.0
+			light_attack_damage *= 1.08
+			heavy_attack_damage *= 1.12
+		CharacterClass.PROPHET:
+			starting_faith += 24.0
+			current_faith += 24.0
+			heal_amount *= 1.14
+			radiance_damage *= 1.1
+		_:
+			max_stamina += 12.0
+			stamina_regeneration *= 1.08
+			parry_stamina_cost *= 0.85
+	current_health = max_health
+	current_stamina = max_stamina
+	emit_signal("class_changed", get_class_name())
+	_emit_all_stats()
+
+
+func set_skill_tree_state(skills: Array) -> void:
+	unlocked_skills.clear()
+	for skill in skills:
+		unlocked_skills.append(str(skill))
+	_apply_skill_modifiers()
+
+
+func attempt_unlock_skill(skill_id: String) -> bool:
+	if not SkillTreeScript.can_unlock(skill_id, unlocked_skills, total_xp, unspent_skill_points):
+		return false
+	var definition := SkillTreeScript.get_skill(skill_id)
+	unspent_skill_points -= int(definition.get("cost", 1))
+	unlocked_skills.append(skill_id)
+	_apply_skill_modifiers()
+	emit_signal("skill_unlocked", skill_id)
+	emit_signal("experience_changed", total_xp, xp_to_next_level(), player_level, unspent_skill_points)
+	return true
+
+
+func attempt_unlock_first_available_skill() -> void:
+	for skill_id in SkillTreeScript.get_definitions().keys():
+		if attempt_unlock_skill(str(skill_id)):
+			set_context_hint("Unlocked skill: %s" % skill_id)
+			return
+
+
+func _apply_skill_modifiers() -> void:
+	if unlocked_skills.has("combat_smite"):
+		light_attack_damage = max(light_attack_damage, 26.0) * 1.1
+		heavy_attack_damage = max(heavy_attack_damage, 42.0) * 1.1
+	if unlocked_skills.has("combat_crusader"):
+		heavy_attack_poise_damage = max(heavy_attack_poise_damage, 54.0) * 1.12
+		heavy_attack_range = max(heavy_attack_range, 3.4) + 0.4
+	if unlocked_skills.has("movement_pilgrim_stride"):
+		walk_speed = max(walk_speed, 5.8) * 1.12
+	if unlocked_skills.has("movement_swift_vow"):
+		dodge_stamina_cost = max(dodge_stamina_cost, 26.0) * 0.82
+	if unlocked_skills.has("miracles_abundance"):
+		heal_amount = max(heal_amount, 45.0) * 1.18
+	if unlocked_skills.has("miracles_radiance_lance"):
+		radiance_damage = max(radiance_damage, 32.0) * 1.2
+		radiance_radius = max(radiance_radius, 6.0) + 1.2
+	if unlocked_skills.has("defense_shepherd_guard"):
+		max_health += 14.0
+	if unlocked_skills.has("defense_steadfast"):
+		max_stamina += 18.0
+		stamina_regeneration *= 1.15
+	current_health = min(current_health, max_health)
+	current_stamina = min(current_stamina, max_stamina)
+	_emit_all_stats()
 
 
 func _find_attack_target(max_distance: float, arc_degrees: float):
@@ -1008,6 +1150,7 @@ func _emit_all_stats() -> void:
 	emit_signal("health_changed", current_health, max_health)
 	emit_signal("stamina_changed", current_stamina, max_stamina)
 	emit_signal("faith_changed", current_faith)
+	emit_signal("experience_changed", total_xp, xp_to_next_level(), player_level, unspent_skill_points)
 
 
 func _set_animation_state(next_state: AnimationState) -> void:
@@ -1070,4 +1213,3 @@ func _update_visual_animation(delta: float) -> void:
 			mesh.scale = Vector3(0.9, 1.06, 0.9)
 		AnimationState.DEAD:
 			mesh.scale = mesh.scale.lerp(Vector3(1.15, 0.25, 1.15), 0.08)
-
