@@ -18,6 +18,7 @@
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInterface.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "NazareneCampaignGameMode.h"
@@ -68,15 +69,65 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
 
     BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
     BodyMesh->SetupAttachment(GetCapsuleComponent());
-    BodyMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -88.0f));
-    BodyMesh->SetRelativeScale3D(FVector(0.8f, 0.8f, 1.8f));
+    BodyMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -56.0f));
+    BodyMesh->SetRelativeScale3D(FVector(0.44f, 0.44f, 1.18f));
     BodyMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+    HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
+    HeadMesh->SetupAttachment(GetCapsuleComponent());
+    HeadMesh->SetRelativeLocation(FVector(0.0f, 0.0f, 24.0f));
+    HeadMesh->SetRelativeScale3D(FVector(0.33f, 0.33f, 0.36f));
+    HeadMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    MantleMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MantleMesh"));
+    MantleMesh->SetupAttachment(GetCapsuleComponent());
+    MantleMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -24.0f));
+    MantleMesh->SetRelativeScale3D(FVector(0.7f, 0.44f, 0.18f));
+    MantleMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    RobeMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("RobeMesh"));
+    RobeMesh->SetupAttachment(GetCapsuleComponent());
+    RobeMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -88.0f));
+    RobeMesh->SetRelativeScale3D(FVector(0.7f, 0.7f, 1.58f));
+    RobeMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    SashMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SashMesh"));
+    SashMesh->SetupAttachment(GetCapsuleComponent());
+    SashMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -38.0f));
+    SashMesh->SetRelativeScale3D(FVector(0.46f, 0.46f, 0.08f));
+    SashMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    StaffMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaffMesh"));
+    StaffMesh->SetupAttachment(GetCapsuleComponent());
+    StaffMesh->SetRelativeLocation(FVector(22.0f, 24.0f, -48.0f));
+    StaffMesh->SetRelativeRotation(FRotator(0.0f, 10.0f, -4.0f));
+    StaffMesh->SetRelativeScale3D(FVector(0.06f, 0.06f, 2.05f));
+    StaffMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
     static ConstructorHelpers::FObjectFinder<UStaticMesh> CapsuleMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> ConeMesh(TEXT("/Engine/BasicShapes/Cone.Cone"));
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
     if (CapsuleMesh.Succeeded())
     {
         BodyMesh->SetStaticMesh(CapsuleMesh.Object);
+        SashMesh->SetStaticMesh(CapsuleMesh.Object);
+        StaffMesh->SetStaticMesh(CapsuleMesh.Object);
     }
+    if (SphereMesh.Succeeded())
+    {
+        HeadMesh->SetStaticMesh(SphereMesh.Object);
+    }
+    if (ConeMesh.Succeeded())
+    {
+        RobeMesh->SetStaticMesh(ConeMesh.Object);
+    }
+    if (CubeMesh.Succeeded())
+    {
+        MantleMesh->SetStaticMesh(CubeMesh.Object);
+    }
+
+    ConfigureProxyVisuals();
 
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
     CameraBoom->SetupAttachment(GetCapsuleComponent());
@@ -96,6 +147,15 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
     GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
     GetMesh()->SetAnimInstanceClass(UNazarenePlayerAnimInstance::StaticClass());
+
+    if (!ProductionSkeletalMesh.ToSoftObjectPath().IsValid())
+    {
+        ProductionSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Art/Characters/Player/SK_BiblicalHero.SK_BiblicalHero")));
+    }
+    if (!ProductionAnimBlueprint.ToSoftObjectPath().IsValid())
+    {
+        ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(TEXT("/Game/Art/Animation/ABP_BiblicalHero.ABP_BiblicalHero_C")));
+    }
 
     bUseControllerRotationYaw = false;
     bUseControllerRotationPitch = false;
@@ -139,7 +199,15 @@ void ANazarenePlayerCharacter::BeginPlay()
         }
     }
 
-    BodyMesh->SetHiddenInGame(bAppliedCharacterMesh);
+    if (bAppliedCharacterMesh)
+    {
+        if (UMaterialInterface* RobeMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Character_JesusRobe.MI_Character_JesusRobe")))
+        {
+            GetMesh()->SetMaterial(0, RobeMaterial);
+        }
+    }
+
+    SetProxyVisualsHidden(bAppliedCharacterMesh);
 
     CurrentHealth = MaxHealth;
     CurrentStamina = MaxStamina;
@@ -162,6 +230,66 @@ void ANazarenePlayerCharacter::BeginPlay()
             const FNazarenePlayerSettings& Data = Settings->GetSettings();
             ApplyUserLookAndCameraSettings(Data.MouseSensitivity, Data.bInvertLookY, Data.FieldOfView);
         }
+    }
+}
+
+void ANazarenePlayerCharacter::ConfigureProxyVisuals()
+{
+    UMaterialInterface* ShapeMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+    if (ShapeMaterial == nullptr)
+    {
+        return;
+    }
+
+    const auto ApplyTint = [ShapeMaterial](UStaticMeshComponent* Component, const FLinearColor& Tint)
+    {
+        if (Component == nullptr)
+        {
+            return;
+        }
+        Component->SetMaterial(0, ShapeMaterial);
+        Component->SetVectorParameterValueOnMaterials(TEXT("Color"), FVector(Tint.R, Tint.G, Tint.B));
+    };
+
+    ApplyTint(BodyMesh, FLinearColor(0.73f, 0.70f, 0.62f));
+    ApplyTint(HeadMesh, FLinearColor(0.70f, 0.56f, 0.42f));
+    ApplyTint(MantleMesh, FLinearColor(0.80f, 0.72f, 0.56f));
+    ApplyTint(RobeMesh, FLinearColor(0.59f, 0.49f, 0.35f));
+    ApplyTint(SashMesh, FLinearColor(0.90f, 0.86f, 0.74f));
+    ApplyTint(StaffMesh, FLinearColor(0.38f, 0.27f, 0.18f));
+}
+
+void ANazarenePlayerCharacter::SetProxyVisualsHidden(bool bHideProxy)
+{
+    if (BodyMesh != nullptr)
+    {
+        BodyMesh->SetHiddenInGame(bHideProxy);
+        BodyMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    }
+    if (HeadMesh != nullptr)
+    {
+        HeadMesh->SetHiddenInGame(bHideProxy);
+        HeadMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    }
+    if (MantleMesh != nullptr)
+    {
+        MantleMesh->SetHiddenInGame(bHideProxy);
+        MantleMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    }
+    if (RobeMesh != nullptr)
+    {
+        RobeMesh->SetHiddenInGame(bHideProxy);
+        RobeMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    }
+    if (SashMesh != nullptr)
+    {
+        SashMesh->SetHiddenInGame(bHideProxy);
+        SashMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    }
+    if (StaffMesh != nullptr)
+    {
+        StaffMesh->SetHiddenInGame(bHideProxy);
+        StaffMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     }
 }
 

@@ -232,6 +232,8 @@ public:
 
 private:
     void TriggerPresentation(USoundBase* Sound, UNiagaraSystem* Effect, const FVector& Location, float VolumeMultiplier = 1.0f) const;
+    void ConfigureProxyVisuals();
+    void SetProxyVisualsHidden(bool bHideProxy);
 
     void InitializeEnhancedInputDefaults();
     void RegisterEnhancedInputMappingContext() const;
@@ -363,6 +365,21 @@ private:
 
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<UStaticMeshComponent> BodyMesh;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> HeadMesh;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> MantleMesh;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> RobeMesh;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> SashMesh;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> StaffMesh;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Audio", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<USoundBase> LightAttackSound;

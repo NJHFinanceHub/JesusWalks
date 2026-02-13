@@ -6,6 +6,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInterface.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "NazareneEnemyAIController.h"
@@ -20,15 +21,73 @@ ANazareneEnemyCharacter::ANazareneEnemyCharacter()
 
     BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
     BodyMesh->SetupAttachment(GetCapsuleComponent());
-    BodyMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -88.0f));
-    BodyMesh->SetRelativeScale3D(FVector(0.8f, 0.8f, 1.8f));
+    BodyMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -54.0f));
+    BodyMesh->SetRelativeScale3D(FVector(0.48f, 0.48f, 1.18f));
     BodyMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+    HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
+    HeadMesh->SetupAttachment(GetCapsuleComponent());
+    HeadMesh->SetRelativeLocation(FVector(0.0f, 0.0f, 22.0f));
+    HeadMesh->SetRelativeScale3D(FVector(0.33f, 0.33f, 0.35f));
+    HeadMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    MantleMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MantleMesh"));
+    MantleMesh->SetupAttachment(GetCapsuleComponent());
+    MantleMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -22.0f));
+    MantleMesh->SetRelativeScale3D(FVector(0.75f, 0.46f, 0.2f));
+    MantleMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    RobeMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("RobeMesh"));
+    RobeMesh->SetupAttachment(GetCapsuleComponent());
+    RobeMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -90.0f));
+    RobeMesh->SetRelativeScale3D(FVector(0.75f, 0.75f, 1.58f));
+    RobeMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
+    WeaponMesh->SetupAttachment(GetCapsuleComponent());
+    WeaponMesh->SetRelativeLocation(FVector(26.0f, 18.0f, -40.0f));
+    WeaponMesh->SetRelativeRotation(FRotator(0.0f, 12.0f, -8.0f));
+    WeaponMesh->SetRelativeScale3D(FVector(0.08f, 0.08f, 1.35f));
+    WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    ShieldMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShieldMesh"));
+    ShieldMesh->SetupAttachment(GetCapsuleComponent());
+    ShieldMesh->SetRelativeLocation(FVector(0.0f, -28.0f, -20.0f));
+    ShieldMesh->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
+    ShieldMesh->SetRelativeScale3D(FVector(0.5f, 0.1f, 0.68f));
+    ShieldMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    CrownMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CrownMesh"));
+    CrownMesh->SetupAttachment(GetCapsuleComponent());
+    CrownMesh->SetRelativeLocation(FVector(0.0f, 0.0f, 36.0f));
+    CrownMesh->SetRelativeScale3D(FVector(0.3f, 0.3f, 0.1f));
+    CrownMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
     static ConstructorHelpers::FObjectFinder<UStaticMesh> CapsuleMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMesh(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> ConeMesh(TEXT("/Engine/BasicShapes/Cone.Cone"));
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
     if (CapsuleMesh.Succeeded())
     {
         BodyMesh->SetStaticMesh(CapsuleMesh.Object);
+        WeaponMesh->SetStaticMesh(CapsuleMesh.Object);
+        CrownMesh->SetStaticMesh(CapsuleMesh.Object);
     }
+    if (SphereMesh.Succeeded())
+    {
+        HeadMesh->SetStaticMesh(SphereMesh.Object);
+    }
+    if (ConeMesh.Succeeded())
+    {
+        RobeMesh->SetStaticMesh(ConeMesh.Object);
+    }
+    if (CubeMesh.Succeeded())
+    {
+        MantleMesh->SetStaticMesh(CubeMesh.Object);
+        ShieldMesh->SetStaticMesh(CubeMesh.Object);
+    }
+
+    ConfigureProxyVisuals();
 
     GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
     GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
@@ -42,6 +101,15 @@ ANazareneEnemyCharacter::ANazareneEnemyCharacter()
     GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
     GetMesh()->SetAnimInstanceClass(UNazareneEnemyAnimInstance::StaticClass());
+
+    if (!ProductionSkeletalMesh.ToSoftObjectPath().IsValid())
+    {
+        ProductionSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Art/Characters/Enemies/SK_BiblicalLegionary.SK_BiblicalLegionary")));
+    }
+    if (!ProductionAnimBlueprint.ToSoftObjectPath().IsValid())
+    {
+        ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(TEXT("/Game/Art/Animation/ABP_BiblicalEnemy.ABP_BiblicalEnemy_C")));
+    }
 }
 
 void ANazareneEnemyCharacter::BeginPlay()
@@ -75,7 +143,7 @@ void ANazareneEnemyCharacter::BeginPlay()
         }
     }
 
-    BodyMesh->SetHiddenInGame(bAppliedCharacterMesh);
+    SetProxyVisualsHidden(bAppliedCharacterMesh);
 
     if (SpawnId.IsNone())
     {
@@ -97,6 +165,65 @@ void ANazareneEnemyCharacter::BeginPlay()
     {
         AIController->SetBehaviorTreeAsset(BehaviorTreeAsset);
         AIController->SetFallbackTarget(TargetPlayer.Get());
+    }
+}
+
+void ANazareneEnemyCharacter::ConfigureProxyVisuals()
+{
+    UMaterialInterface* ShapeMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+    if (ShapeMaterial == nullptr)
+    {
+        return;
+    }
+
+    const auto ApplyTint = [ShapeMaterial](UStaticMeshComponent* Component, const FLinearColor& Tint)
+    {
+        if (Component == nullptr)
+        {
+            return;
+        }
+        Component->SetMaterial(0, ShapeMaterial);
+        Component->SetVectorParameterValueOnMaterials(TEXT("Color"), FVector(Tint.R, Tint.G, Tint.B));
+    };
+
+    ApplyTint(BodyMesh, FLinearColor(0.48f, 0.42f, 0.36f));
+    ApplyTint(HeadMesh, FLinearColor(0.62f, 0.50f, 0.40f));
+    ApplyTint(MantleMesh, FLinearColor(0.38f, 0.18f, 0.18f));
+    ApplyTint(RobeMesh, FLinearColor(0.35f, 0.26f, 0.19f));
+    ApplyTint(WeaponMesh, FLinearColor(0.40f, 0.30f, 0.18f));
+    ApplyTint(ShieldMesh, FLinearColor(0.31f, 0.23f, 0.16f));
+    ApplyTint(CrownMesh, FLinearColor(0.70f, 0.60f, 0.26f));
+}
+
+void ANazareneEnemyCharacter::SetProxyVisualsHidden(bool bHideProxy)
+{
+    if (BodyMesh != nullptr)
+    {
+        BodyMesh->SetHiddenInGame(bHideProxy);
+    }
+    if (HeadMesh != nullptr)
+    {
+        HeadMesh->SetHiddenInGame(bHideProxy);
+    }
+    if (MantleMesh != nullptr)
+    {
+        MantleMesh->SetHiddenInGame(bHideProxy);
+    }
+    if (RobeMesh != nullptr)
+    {
+        RobeMesh->SetHiddenInGame(bHideProxy);
+    }
+    if (WeaponMesh != nullptr)
+    {
+        WeaponMesh->SetHiddenInGame(bHideProxy);
+    }
+    if (ShieldMesh != nullptr)
+    {
+        ShieldMesh->SetHiddenInGame(bHideProxy);
+    }
+    if (CrownMesh != nullptr)
+    {
+        CrownMesh->SetHiddenInGame(bHideProxy);
     }
 }
 
@@ -329,6 +456,133 @@ void ANazareneEnemyCharacter::ConfigureFromArchetype()
     CurrentHealth = MaxHealth;
     CurrentPoise = MaxPoise;
     GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+    ApplyProxyArchetypeVisualStyle();
+}
+
+void ANazareneEnemyCharacter::ApplyProxyArchetypeVisualStyle()
+{
+    auto Tint = [](UStaticMeshComponent* Component, const FLinearColor& Color)
+    {
+        if (Component == nullptr)
+        {
+            return;
+        }
+        Component->SetVectorParameterValueOnMaterials(TEXT("Color"), FVector(Color.R, Color.G, Color.B));
+    };
+
+    if (ShieldMesh != nullptr)
+    {
+        ShieldMesh->SetVisibility(false);
+    }
+    if (CrownMesh != nullptr)
+    {
+        CrownMesh->SetVisibility(false);
+    }
+
+    if (WeaponMesh != nullptr)
+    {
+        WeaponMesh->SetRelativeLocation(FVector(26.0f, 18.0f, -40.0f));
+        WeaponMesh->SetRelativeRotation(FRotator(0.0f, 12.0f, -8.0f));
+        WeaponMesh->SetRelativeScale3D(FVector(0.08f, 0.08f, 1.35f));
+    }
+    if (ShieldMesh != nullptr)
+    {
+        ShieldMesh->SetRelativeLocation(FVector(0.0f, -28.0f, -20.0f));
+        ShieldMesh->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
+        ShieldMesh->SetRelativeScale3D(FVector(0.5f, 0.1f, 0.68f));
+    }
+    if (RobeMesh != nullptr)
+    {
+        RobeMesh->SetRelativeScale3D(FVector(0.75f, 0.75f, 1.58f));
+    }
+
+    UMaterialInterface* SkeletalMaterial = nullptr;
+
+    switch (Archetype)
+    {
+    case ENazareneEnemyArchetype::MeleeShield:
+        if (ShieldMesh != nullptr)
+        {
+            ShieldMesh->SetVisibility(true);
+        }
+        Tint(MantleMesh, FLinearColor(0.47f, 0.18f, 0.16f));
+        Tint(RobeMesh, FLinearColor(0.43f, 0.34f, 0.26f));
+        Tint(WeaponMesh, FLinearColor(0.34f, 0.30f, 0.24f));
+        Tint(ShieldMesh, FLinearColor(0.30f, 0.22f, 0.15f));
+        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Character_RomanArmor.MI_Character_RomanArmor"));
+        break;
+
+    case ENazareneEnemyArchetype::Spear:
+        if (WeaponMesh != nullptr)
+        {
+            WeaponMesh->SetRelativeLocation(FVector(32.0f, 8.0f, -32.0f));
+            WeaponMesh->SetRelativeRotation(FRotator(0.0f, -4.0f, -2.0f));
+            WeaponMesh->SetRelativeScale3D(FVector(0.06f, 0.06f, 2.3f));
+        }
+        Tint(MantleMesh, FLinearColor(0.53f, 0.24f, 0.16f));
+        Tint(RobeMesh, FLinearColor(0.49f, 0.40f, 0.30f));
+        Tint(WeaponMesh, FLinearColor(0.37f, 0.30f, 0.20f));
+        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Character_RomanArmor.MI_Character_RomanArmor"));
+        break;
+
+    case ENazareneEnemyArchetype::Ranged:
+        if (WeaponMesh != nullptr)
+        {
+            WeaponMesh->SetRelativeLocation(FVector(30.0f, 14.0f, -34.0f));
+            WeaponMesh->SetRelativeScale3D(FVector(0.23f, 0.23f, 0.35f));
+        }
+        Tint(MantleMesh, FLinearColor(0.30f, 0.24f, 0.20f));
+        Tint(RobeMesh, FLinearColor(0.34f, 0.31f, 0.26f));
+        Tint(WeaponMesh, FLinearColor(0.45f, 0.36f, 0.24f));
+        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Character_RomanArmor.MI_Character_RomanArmor"));
+        break;
+
+    case ENazareneEnemyArchetype::Demon:
+        if (WeaponMesh != nullptr)
+        {
+            WeaponMesh->SetRelativeLocation(FVector(20.0f, 10.0f, -32.0f));
+            WeaponMesh->SetRelativeScale3D(FVector(0.25f, 0.25f, 0.25f));
+        }
+        Tint(HeadMesh, FLinearColor(0.21f, 0.12f, 0.10f));
+        Tint(MantleMesh, FLinearColor(0.18f, 0.08f, 0.08f));
+        Tint(RobeMesh, FLinearColor(0.12f, 0.07f, 0.08f));
+        Tint(WeaponMesh, FLinearColor(0.80f, 0.16f, 0.14f));
+        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Character_Demon.MI_Character_Demon"));
+        break;
+
+    case ENazareneEnemyArchetype::Boss:
+        if (ShieldMesh != nullptr)
+        {
+            ShieldMesh->SetVisibility(true);
+            ShieldMesh->SetRelativeLocation(FVector(4.0f, -32.0f, -6.0f));
+            ShieldMesh->SetRelativeScale3D(FVector(0.74f, 0.14f, 1.06f));
+        }
+        if (WeaponMesh != nullptr)
+        {
+            WeaponMesh->SetRelativeLocation(FVector(40.0f, 14.0f, -18.0f));
+            WeaponMesh->SetRelativeScale3D(FVector(0.09f, 0.09f, 2.75f));
+        }
+        if (RobeMesh != nullptr)
+        {
+            RobeMesh->SetRelativeScale3D(FVector(0.9f, 0.9f, 2.0f));
+        }
+        if (CrownMesh != nullptr)
+        {
+            CrownMesh->SetVisibility(true);
+        }
+        Tint(MantleMesh, FLinearColor(0.47f, 0.18f, 0.15f));
+        Tint(RobeMesh, FLinearColor(0.21f, 0.13f, 0.12f));
+        Tint(WeaponMesh, FLinearColor(0.56f, 0.42f, 0.18f));
+        Tint(ShieldMesh, FLinearColor(0.40f, 0.29f, 0.14f));
+        Tint(CrownMesh, FLinearColor(0.78f, 0.62f, 0.24f));
+        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Character_Boss.MI_Character_Boss"));
+        break;
+    }
+
+    if (GetMesh() != nullptr && GetMesh()->GetSkeletalMeshAsset() != nullptr && SkeletalMaterial != nullptr)
+    {
+        GetMesh()->SetMaterial(0, SkeletalMaterial);
+    }
 }
 
 bool ANazareneEnemyCharacter::CanBeParried() const

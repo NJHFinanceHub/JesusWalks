@@ -185,6 +185,9 @@ public:
 
 private:
     void SyncTargetFromAIController();
+    void ConfigureProxyVisuals();
+    void SetProxyVisualsHidden(bool bHideProxy);
+    void ApplyProxyArchetypeVisualStyle();
     void TriggerPresentation(USoundBase* Sound, UNiagaraSystem* Effect, const FVector& Location, float VolumeMultiplier = 1.0f) const;
     void UpdateBossPhase();
     void ProcessChaseBehavior(float DistanceToPlayer, float DeltaSeconds);
@@ -213,6 +216,24 @@ private:
 private:
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<UStaticMeshComponent> BodyMesh;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> HeadMesh;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> MantleMesh;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> RobeMesh;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> WeaponMesh;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> ShieldMesh;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> CrownMesh;
 
     UPROPERTY()
     TWeakObjectPtr<ANazarenePlayerCharacter> TargetPlayer;

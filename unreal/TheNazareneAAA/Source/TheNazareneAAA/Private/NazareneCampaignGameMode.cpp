@@ -1,8 +1,12 @@
 #include "NazareneCampaignGameMode.h"
 
 #include "Components/DirectionalLightComponent.h"
+#include "Components/ExponentialHeightFogComponent.h"
+#include "Components/SkyLightComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/DirectionalLight.h"
+#include "Engine/ExponentialHeightFog.h"
+#include "Engine/SkyLight.h"
 #include "Engine/StaticMeshActor.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -266,6 +270,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
     FLinearColor GroundTint = FLinearColor(0.35f, 0.28f, 0.19f);
     FLinearColor AccentTint = FLinearColor(0.72f, 0.63f, 0.47f);
     float HeightJitter = 80.0f;
+    const TCHAR* EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
 
     if (Region.RegionId == GalileeId)
     {
@@ -274,6 +279,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.32f, 0.35f, 0.22f);
         AccentTint = FLinearColor(0.42f, 0.54f, 0.66f);
         HeightJitter = 120.0f;
+        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_OliveLeaf.MI_Env_OliveLeaf");
     }
     else if (Region.RegionId == DecapolisId)
     {
@@ -282,6 +288,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.34f, 0.31f, 0.30f);
         AccentTint = FLinearColor(0.68f, 0.66f, 0.61f);
         HeightJitter = 160.0f;
+        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
     }
     else if (Region.RegionId == WildernessId)
     {
@@ -290,6 +297,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.42f, 0.29f, 0.16f);
         AccentTint = FLinearColor(0.79f, 0.58f, 0.32f);
         HeightJitter = 210.0f;
+        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Sand.MI_Env_Sand");
     }
     else if (Region.RegionId == JerusalemId)
     {
@@ -298,9 +306,10 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.39f, 0.35f, 0.27f);
         AccentTint = FLinearColor(0.74f, 0.69f, 0.56f);
         HeightJitter = 140.0f;
+        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
     }
 
-    auto SpawnMeshActor = [this](const TCHAR* MeshPath, const FVector& Location, const FRotator& Rotation, const FVector& Scale, const FLinearColor& Tint) -> AStaticMeshActor*
+    auto SpawnMeshActor = [this, EnvironmentMaterialPath](const TCHAR* MeshPath, const FVector& Location, const FRotator& Rotation, const FVector& Scale, const FLinearColor& Tint) -> AStaticMeshActor*
     {
         AStaticMeshActor* Actor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Location, Rotation);
         if (Actor == nullptr)
@@ -308,14 +317,45 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
             return nullptr;
         }
 
-        UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, MeshPath);
+        const TCHAR* ResolvedMeshPath = MeshPath;
+        if (FCString::Strcmp(MeshPath, TEXT("/Engine/BasicShapes/Cube.Cube")) == 0)
+        {
+            ResolvedMeshPath = TEXT("/Game/Art/Environment/Meshes/SM_BiblicalBlock.SM_BiblicalBlock");
+        }
+        else if (FCString::Strcmp(MeshPath, TEXT("/Engine/BasicShapes/Cylinder.Cylinder")) == 0)
+        {
+            ResolvedMeshPath = TEXT("/Game/Art/Environment/Meshes/SM_BiblicalColumn.SM_BiblicalColumn");
+        }
+        else if (FCString::Strcmp(MeshPath, TEXT("/Engine/BasicShapes/Cone.Cone")) == 0)
+        {
+            ResolvedMeshPath = TEXT("/Game/Art/Environment/Meshes/SM_BiblicalTent.SM_BiblicalTent");
+        }
+        else if (FCString::Strcmp(MeshPath, TEXT("/Engine/BasicShapes/Sphere.Sphere")) == 0)
+        {
+            ResolvedMeshPath = TEXT("/Game/Art/Environment/Meshes/SM_BiblicalCanopy.SM_BiblicalCanopy");
+        }
+        else if (FCString::Strcmp(MeshPath, TEXT("/Engine/BasicShapes/Plane.Plane")) == 0)
+        {
+            ResolvedMeshPath = TEXT("/Game/Art/Environment/Meshes/SM_BiblicalFloorPlane.SM_BiblicalFloorPlane");
+        }
+
+        UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, ResolvedMeshPath);
+        if (Mesh == nullptr)
+        {
+            Mesh = LoadObject<UStaticMesh>(nullptr, MeshPath);
+        }
         if (Mesh != nullptr)
         {
             Actor->GetStaticMeshComponent()->SetStaticMesh(Mesh);
         }
 
         Actor->GetStaticMeshComponent()->SetWorldScale3D(Scale);
-        if (UMaterialInterface* ShapeMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial")))
+        UMaterialInterface* ShapeMaterial = LoadObject<UMaterialInterface>(nullptr, EnvironmentMaterialPath);
+        if (ShapeMaterial == nullptr)
+        {
+            ShapeMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+        }
+        if (ShapeMaterial != nullptr)
         {
             UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(ShapeMaterial, Actor);
             if (DynamicMaterial != nullptr)
@@ -335,6 +375,35 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         return Actor;
     };
 
+    auto SpawnPathSegment = [&SpawnMeshActor, &GroundTint](float Y, float HalfWidthScale, float ThicknessScale, float Elevation)
+    {
+        SpawnMeshActor(
+            TEXT("/Engine/BasicShapes/Cube.Cube"),
+            FVector(0.0f, Y, Elevation),
+            FRotator::ZeroRotator,
+            FVector(HalfWidthScale, 7.4f, ThicknessScale),
+            GroundTint * 1.04f
+        );
+    };
+
+    auto SpawnColonnade = [&SpawnMeshActor, &AccentTint](float StartY, int32 Count, float Spacing, float LateralOffset, float HeightScale, float RadiusScale)
+    {
+        for (int32 Index = 0; Index < Count; ++Index)
+        {
+            const float Y = StartY + float(Index) * Spacing;
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(-LateralOffset, Y, 140.0f), FRotator::ZeroRotator, FVector(RadiusScale, RadiusScale, HeightScale), AccentTint);
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(LateralOffset, Y, 140.0f), FRotator::ZeroRotator, FVector(RadiusScale, RadiusScale, HeightScale), AccentTint);
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, Y, 310.0f), FRotator::ZeroRotator, FVector(LateralOffset * 0.012f, 0.3f, 0.2f), AccentTint * 0.9f);
+        }
+    };
+
+    auto SpawnOliveTree = [&SpawnMeshActor](const FVector& Root, const FLinearColor& TrunkTint, const FLinearColor& LeafTint, float CanopyScale)
+    {
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), Root + FVector(0.0f, 0.0f, 80.0f), FRotator::ZeroRotator, FVector(0.18f, 0.18f, 1.2f), TrunkTint);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Sphere.Sphere"), Root + FVector(-35.0f, 10.0f, 200.0f), FRotator::ZeroRotator, FVector(CanopyScale, CanopyScale, CanopyScale * 0.8f), LeafTint);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Sphere.Sphere"), Root + FVector(30.0f, -25.0f, 190.0f), FRotator::ZeroRotator, FVector(CanopyScale * 0.9f, CanopyScale * 0.9f, CanopyScale * 0.72f), LeafTint * 0.95f);
+    };
+
     ADirectionalLight* Sun = GetWorld()->SpawnActor<ADirectionalLight>(ADirectionalLight::StaticClass(), FVector(0.0f, 0.0f, 600.0f), FRotator(-38.0f, -32.0f, 0.0f));
     if (Sun != nullptr)
     {
@@ -344,8 +413,36 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         RegionActors.Add(Sun);
     }
 
-    SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 0.0f, -50.0f), FRotator::ZeroRotator, FVector(120.0f, 120.0f, 1.0f), GroundTint);
-    SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, -1000.0f, -45.0f), FRotator::ZeroRotator, FVector(14.0f, 60.0f, 0.45f), GroundTint * 1.12f);
+    ASkyLight* SkyLight = GetWorld()->SpawnActor<ASkyLight>(ASkyLight::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
+    if (SkyLight != nullptr)
+    {
+        SkyLight->GetLightComponent()->SetIntensity(0.95f);
+        SkyLight->GetLightComponent()->SetLightColor(SunColor * 0.55f);
+        RegionActors.Add(SkyLight);
+    }
+
+    AExponentialHeightFog* HeightFog = GetWorld()->SpawnActor<AExponentialHeightFog>(AExponentialHeightFog::StaticClass(), FVector(0.0f, 0.0f, -120.0f), FRotator::ZeroRotator);
+    if (HeightFog != nullptr)
+    {
+        HeightFog->GetComponent()->SetFogDensity(0.014f);
+        HeightFog->GetComponent()->SetFogHeightFalloff(0.24f);
+        HeightFog->GetComponent()->SetFogInscatteringColor(SunColor * 0.35f);
+        RegionActors.Add(HeightFog);
+    }
+
+    SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 0.0f, -60.0f), FRotator::ZeroRotator, FVector(128.0f, 128.0f, 1.2f), GroundTint);
+    for (int32 Segment = 0; Segment < 9; ++Segment)
+    {
+        const float Y = 340.0f - float(Segment) * 520.0f;
+        const float Width = 11.0f + float((Segment % 3) == 0 ? 2 : 0);
+        const float Thickness = 0.34f + float(Segment % 2) * 0.05f;
+        SpawnPathSegment(Y, Width, Thickness, -42.0f);
+    }
+
+    // Sanctuary near spawn point.
+    SpawnColonnade(120.0f, 3, 220.0f, 380.0f, 2.2f, 0.24f);
+    SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 430.0f, 60.0f), FRotator::ZeroRotator, FVector(1.7f, 1.3f, 1.0f), AccentTint * 0.86f);
+    SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 740.0f, 190.0f), FRotator::ZeroRotator, FVector(2.5f, 0.4f, 3.4f), AccentTint * 0.92f);
 
     FVector BossArenaLocation(0.0f, -2200.0f, -45.0f);
     for (const FNazareneEnemySpawnDefinition& Spec : Region.Enemies)
@@ -359,14 +456,14 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
 
     SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), BossArenaLocation, FRotator::ZeroRotator, FVector(10.0f, 10.0f, 0.2f), AccentTint);
 
-    const float RingRadius = 2100.0f;
+    const float RingRadius = 1960.0f;
     for (int32 Index = 0; Index < 10; ++Index)
     {
         const float Angle = FMath::DegreesToRadians(float(Index) * 36.0f);
         const FVector RingLocation(
             FMath::Cos(Angle) * RingRadius,
             FMath::Sin(Angle) * RingRadius - 250.0f,
-            55.0f + FMath::Sin(Angle * 3.0f) * HeightJitter
+            70.0f + FMath::Sin(Angle * 3.0f) * HeightJitter
         );
         SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), RingLocation, FRotator::ZeroRotator, FVector(0.75f, 0.75f, 2.8f), AccentTint * 0.85f);
     }
@@ -387,6 +484,11 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
             const float X = -1800.0f + float(Index) * 620.0f;
             SpawnMeshActor(TEXT("/Engine/BasicShapes/Sphere.Sphere"), FVector(X, 1950.0f, -15.0f), FRotator::ZeroRotator, FVector(1.4f, 1.4f, 0.28f), FLinearColor(0.23f, 0.35f, 0.48f));
         }
+        for (int32 Index = 0; Index < 10; ++Index)
+        {
+            const FVector Root(-1850.0f + float(Index) * 410.0f, 1080.0f + float((Index % 2) * 340.0f), 0.0f);
+            SpawnOliveTree(Root, FLinearColor(0.31f, 0.23f, 0.16f), FLinearColor(0.24f, 0.37f, 0.20f), 0.72f);
+        }
     }
     else if (Region.RegionId == DecapolisId)
     {
@@ -396,6 +498,8 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
             const float Y = 1300.0f + float((Index % 2) * 260.0f);
             SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(X, Y, 120.0f), FRotator(0.0f, 0.0f, 0.0f), FVector(0.45f, 0.45f, 3.2f), AccentTint);
         }
+        SpawnColonnade(560.0f, 6, 250.0f, 700.0f, 3.2f, 0.28f);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 540.0f, 380.0f), FRotator::ZeroRotator, FVector(8.0f, 0.55f, 0.22f), AccentTint * 0.92f);
     }
     else if (Region.RegionId == WildernessId)
     {
@@ -405,6 +509,14 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
             const float Y = -500.0f + float((Index % 5) * 280.0f);
             const float Z = 80.0f + float((Index % 4) * 95.0f);
             SpawnMeshActor(TEXT("/Engine/BasicShapes/Cone.Cone"), FVector(X, Y, Z), FRotator(0.0f, float(Index) * 14.0f, 0.0f), FVector(0.9f, 0.9f, 2.0f), AccentTint * 0.88f);
+        }
+        for (int32 Index = 0; Index < 10; ++Index)
+        {
+            const float X = -1750.0f + float(Index) * 370.0f;
+            const float Y = 1250.0f + float((Index % 2) * 300.0f);
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(X, Y, 90.0f), FRotator(0.0f, float(Index) * 6.0f, 0.0f), FVector(1.4f, 1.0f, 0.05f), FLinearColor(0.63f, 0.48f, 0.26f));
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(X - 210.0f, Y, 70.0f), FRotator::ZeroRotator, FVector(0.06f, 0.06f, 0.9f), AccentTint * 0.8f);
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(X + 210.0f, Y, 70.0f), FRotator::ZeroRotator, FVector(0.06f, 0.06f, 0.9f), AccentTint * 0.8f);
         }
     }
     else if (Region.RegionId == JerusalemId)
@@ -418,6 +530,9 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
                 SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(X, Y, 220.0f), FRotator::ZeroRotator, FVector(0.45f, 0.45f, 4.6f), AccentTint * 1.04f);
             }
         }
+        SpawnColonnade(420.0f, 7, 210.0f, 560.0f, 3.8f, 0.3f);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 420.0f, 440.0f), FRotator::ZeroRotator, FVector(8.0f, 0.48f, 0.24f), AccentTint * 0.96f);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 360.0f, 180.0f), FRotator::ZeroRotator, FVector(2.5f, 0.8f, 3.8f), AccentTint * 0.86f);
     }
 }
 

@@ -42,3 +42,18 @@ Current checks:
 ```bat
 UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/validate_vertical_slice_content.py -unattended -nop4
 ```
+
+If invoking from outside the project directory, pass an absolute `-script=` path.
+
+## create_biblical_art_pack.py
+Creates a project-local art pack under `/Game/Art` using available engine/tutorial content.
+
+The script:
+- Duplicates a humanoid skeletal mesh + animation blueprint baseline into `/Game/Art`.
+- Creates project-owned environment mesh assets for map dressing.
+- Creates material instances for biblical-themed character and environment palettes.
+
+### Run headless
+```bat
+UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/create_biblical_art_pack.py -unattended -nop4
+```
