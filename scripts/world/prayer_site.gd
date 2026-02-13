@@ -46,12 +46,10 @@ func _build_site_visual() -> void:
 	if altar_mesh == null:
 		altar_mesh = MeshInstance3D.new()
 		altar_mesh.name = "AltarMesh"
-		var cylinder := CylinderMesh.new()
-		cylinder.top_radius = 0.65
-		cylinder.bottom_radius = 0.85
-		cylinder.height = 0.5
-		altar_mesh.mesh = cylinder
-		altar_mesh.position = Vector3(0.0, 0.25, 0.0)
+		var altar_stone := BoxMesh.new()
+		altar_stone.size = Vector3(1.5, 0.55, 1.1)
+		altar_mesh.mesh = altar_stone
+		altar_mesh.position = Vector3(0.0, 0.28, 0.0)
 		var altar_material := StandardMaterial3D.new()
 		altar_material.albedo_color = Color(0.77, 0.71, 0.6)
 		altar_material.emission_enabled = true
@@ -60,6 +58,33 @@ func _build_site_visual() -> void:
 		altar_material.roughness = 0.78
 		altar_mesh.material_override = altar_material
 		add_child(altar_mesh)
+
+		var cloth := MeshInstance3D.new()
+		cloth.name = "AltarCloth"
+		var cloth_mesh := PrismMesh.new()
+		cloth_mesh.left_to_right = 0.82
+		cloth_mesh.size = Vector3(1.22, 0.36, 0.78)
+		cloth.mesh = cloth_mesh
+		cloth.position = Vector3(0.0, 0.5, 0.0)
+		var cloth_mat := StandardMaterial3D.new()
+		cloth_mat.albedo_color = Color(0.58, 0.22, 0.18)
+		cloth_mat.roughness = 0.92
+		cloth.material_override = cloth_mat
+		add_child(cloth)
+
+		var brazier := MeshInstance3D.new()
+		brazier.name = "Brazier"
+		var bowl := SphereMesh.new()
+		bowl.radius = 0.2
+		bowl.height = 0.14
+		brazier.mesh = bowl
+		brazier.position = Vector3(0.0, 0.72, 0.0)
+		var brazier_mat := StandardMaterial3D.new()
+		brazier_mat.albedo_color = Color(0.38, 0.26, 0.2)
+		brazier_mat.metallic = 0.25
+		brazier_mat.roughness = 0.42
+		brazier.material_override = brazier_mat
+		add_child(brazier)
 
 	var flame_light := get_node_or_null("PrayerLight") as OmniLight3D
 	if flame_light == null:

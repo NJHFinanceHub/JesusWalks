@@ -715,10 +715,9 @@ func _place_tree(at: Vector3) -> void:
 	_region_root.add_child(tree)
 
 	var trunk := MeshInstance3D.new()
-	var trunk_mesh := CylinderMesh.new()
-	trunk_mesh.height = 2.8
-	trunk_mesh.top_radius = 0.24
-	trunk_mesh.bottom_radius = 0.33
+	var trunk_mesh := PrismMesh.new()
+	trunk_mesh.left_to_right = 0.78
+	trunk_mesh.size = Vector3(0.52, 2.8, 0.44)
 	trunk.mesh = trunk_mesh
 	trunk.position = Vector3(0.0, 1.4, 0.0)
 	trunk.material_override = _make_material(Color(0.42, 0.28, 0.16))
@@ -748,10 +747,9 @@ func _place_pillar(at: Vector3, height: float) -> void:
 	pillar.add_child(collision)
 
 	var mesh_instance := MeshInstance3D.new()
-	var mesh := CylinderMesh.new()
-	mesh.height = height
-	mesh.top_radius = 0.32
-	mesh.bottom_radius = 0.36
+	var mesh := PrismMesh.new()
+	mesh.left_to_right = 0.86
+	mesh.size = Vector3(0.66, height, 0.66)
 	mesh_instance.mesh = mesh
 	mesh_instance.position = Vector3(0.0, height * 0.5, 0.0)
 	mesh_instance.material_override = _make_material(Color(0.44, 0.29, 0.24))
@@ -793,10 +791,9 @@ func _place_spire(at: Vector3, height: float, radius: float) -> void:
 	spire.add_child(collision)
 
 	var mesh_instance := MeshInstance3D.new()
-	var mesh := CylinderMesh.new()
-	mesh.height = height
-	mesh.top_radius = radius * 0.3
-	mesh.bottom_radius = radius
+	var mesh := PrismMesh.new()
+	mesh.left_to_right = 0.72
+	mesh.size = Vector3(radius * 1.8, height, radius * 1.8)
 	mesh_instance.mesh = mesh
 	mesh_instance.position = Vector3(0.0, height * 0.5, 0.0)
 	mesh_instance.material_override = _make_material(Color(0.5, 0.4, 0.28))
@@ -805,21 +802,19 @@ func _place_spire(at: Vector3, height: float, radius: float) -> void:
 
 func _build_boss_arena(center: Vector3, radius: float, color: Color) -> void:
 	var arena_floor := MeshInstance3D.new()
-	var cylinder := CylinderMesh.new()
-	cylinder.top_radius = radius
-	cylinder.bottom_radius = radius
-	cylinder.height = 0.08
-	arena_floor.mesh = cylinder
+	var arena_disc := SphereMesh.new()
+	arena_disc.radius = radius
+	arena_disc.height = 0.12
+	arena_floor.mesh = arena_disc
+	arena_floor.scale = Vector3(1.0, 0.12, 1.0)
 	arena_floor.position = center
 	arena_floor.material_override = _make_material(color)
 	_region_root.add_child(arena_floor)
 
 	for i in range(10):
 		var pillar := MeshInstance3D.new()
-		var pillar_mesh := CylinderMesh.new()
-		pillar_mesh.top_radius = 0.24
-		pillar_mesh.bottom_radius = 0.32
-		pillar_mesh.height = 2.2
+		var pillar_mesh := BoxMesh.new()
+		pillar_mesh.size = Vector3(0.56, 2.2, 0.56)
 		pillar.mesh = pillar_mesh
 		var angle := TAU * float(i) / 10.0
 		pillar.position = center + Vector3(cos(angle) * (radius + 0.6), 1.1, sin(angle) * (radius + 0.6))

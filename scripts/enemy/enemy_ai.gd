@@ -198,18 +198,72 @@ func _build_collider_and_mesh() -> void:
 	if _mesh_instance == null:
 		_mesh_instance = MeshInstance3D.new()
 		_mesh_instance.name = "EnemyMesh"
-		var mesh := CapsuleMesh.new()
-		mesh.radius = 0.34
-		mesh.height = 1.1
-		_mesh_instance.mesh = mesh
-		_mesh_instance.position = Vector3(0.0, 1.0, 0.0)
+		var torso_mesh := CapsuleMesh.new()
+		torso_mesh.radius = 0.24
+		torso_mesh.mid_height = 0.62
+		_mesh_instance.mesh = torso_mesh
+		_mesh_instance.position = Vector3(0.0, 1.12, 0.0)
 		add_child(_mesh_instance)
+
+	var helmet := _mesh_instance.get_node_or_null("Helmet") as MeshInstance3D
+	if helmet == null:
+		helmet = MeshInstance3D.new()
+		helmet.name = "Helmet"
+		var helmet_mesh := SphereMesh.new()
+		helmet_mesh.radius = 0.2
+		helmet_mesh.height = 0.3
+		helmet.mesh = helmet_mesh
+		helmet.position = Vector3(0.0, 0.62, 0.0)
+		_mesh_instance.add_child(helmet)
+
+	var shoulders := _mesh_instance.get_node_or_null("Shoulders") as MeshInstance3D
+	if shoulders == null:
+		shoulders = MeshInstance3D.new()
+		shoulders.name = "Shoulders"
+		var shoulder_mesh := BoxMesh.new()
+		shoulder_mesh.size = Vector3(0.72, 0.16, 0.3)
+		shoulders.mesh = shoulder_mesh
+		shoulders.position = Vector3(0.0, 0.4, 0.02)
+		_mesh_instance.add_child(shoulders)
+
+	var weapon := _mesh_instance.get_node_or_null("Weapon") as MeshInstance3D
+	if weapon == null:
+		weapon = MeshInstance3D.new()
+		weapon.name = "Weapon"
+		var weapon_mesh := BoxMesh.new()
+		weapon_mesh.size = Vector3(0.12, 0.78, 0.12)
+		weapon.mesh = weapon_mesh
+		weapon.position = Vector3(0.38, 0.12, 0.0)
+		weapon.rotation_degrees = Vector3(0.0, 0.0, -18.0)
+		_mesh_instance.add_child(weapon)
 
 	if _mesh_instance.material_override == null:
 		_mesh_instance.material_override = StandardMaterial3D.new()
-	var material := _mesh_instance.material_override as StandardMaterial3D
-	material.roughness = 0.86
-	material.albedo_color = _base_color
+	var armor := _mesh_instance.material_override as StandardMaterial3D
+	armor.roughness = 0.64
+	armor.metallic = 0.18
+	armor.albedo_color = _base_color
+
+	if helmet.material_override == null:
+		helmet.material_override = StandardMaterial3D.new()
+	var helm_mat := helmet.material_override as StandardMaterial3D
+	helm_mat.albedo_color = _base_color.lightened(0.12)
+	helm_mat.metallic = 0.28
+	helm_mat.roughness = 0.42
+
+	if shoulders.material_override == null:
+		shoulders.material_override = StandardMaterial3D.new()
+	var shoulder_mat := shoulders.material_override as StandardMaterial3D
+	shoulder_mat.albedo_color = _base_color.darkened(0.08)
+	shoulder_mat.metallic = 0.2
+	shoulder_mat.roughness = 0.5
+
+	if weapon.material_override == null:
+		weapon.material_override = StandardMaterial3D.new()
+	var weapon_mat := weapon.material_override as StandardMaterial3D
+	weapon_mat.albedo_color = Color(0.35, 0.3, 0.24)
+	weapon_mat.metallic = 0.06
+	weapon_mat.roughness = 0.72
 
 
 func _configure_archetype() -> void:

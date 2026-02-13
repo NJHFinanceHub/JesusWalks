@@ -174,10 +174,14 @@ func _build_collider_and_mesh() -> void:
 		add_child(collision)
 
 	if get_node_or_null("BodyMesh") == null:
-		# Multi-part robed figure for Jesus
-		var body_root := Node3D.new()
+		# Multi-part robed figure for Jesus (non-placeholder silhouette)
+		var body_root := MeshInstance3D.new()
 		body_root.name = "BodyMesh"
 		body_root.position = Vector3(0.0, 0.0, 0.0)
+		var body_core := CapsuleMesh.new()
+		body_core.radius = 0.28
+		body_core.mid_height = 0.74
+		body_root.mesh = body_core
 		add_child(body_root)
 
 		var robe_mat := StandardMaterial3D.new()
@@ -185,24 +189,25 @@ func _build_collider_and_mesh() -> void:
 		robe_mat.roughness = 0.82
 		robe_mat.metallic = 0.0
 
-		# Robe body (tapered cylinder)
+		body_root.material_override = robe_mat
+
+		# Robe lower drape
 		var robe := MeshInstance3D.new()
 		robe.name = "Robe"
-		var robe_mesh := CylinderMesh.new()
-		robe_mesh.top_radius = 0.28
-		robe_mesh.bottom_radius = 0.44
-		robe_mesh.height = 1.2
+		var robe_mesh := PrismMesh.new()
+		robe_mesh.left_to_right = 0.9
+		robe_mesh.size = Vector3(0.86, 1.1, 0.72)
 		robe.mesh = robe_mesh
-		robe.position = Vector3(0.0, 0.6, 0.0)
+		robe.position = Vector3(0.0, 0.55, 0.0)
+		robe.rotation_degrees.y = 180.0
 		robe.material_override = robe_mat
 		body_root.add_child(robe)
 
 		# Sash / belt
 		var sash := MeshInstance3D.new()
-		var sash_mesh := CylinderMesh.new()
-		sash_mesh.top_radius = 0.34
-		sash_mesh.bottom_radius = 0.34
-		sash_mesh.height = 0.08
+		var sash_mesh := TorusMesh.new()
+		sash_mesh.ring_radius = 0.3
+		sash_mesh.pipe_radius = 0.034
 		sash.mesh = sash_mesh
 		sash.position = Vector3(0.0, 0.85, 0.0)
 		var sash_mat := StandardMaterial3D.new()
@@ -211,12 +216,11 @@ func _build_collider_and_mesh() -> void:
 		sash.material_override = sash_mat
 		body_root.add_child(sash)
 
-		# Torso / upper body
+		# Cloak layer
 		var torso := MeshInstance3D.new()
-		var torso_mesh := CylinderMesh.new()
-		torso_mesh.top_radius = 0.22
-		torso_mesh.bottom_radius = 0.3
-		torso_mesh.height = 0.5
+		var torso_mesh := CapsuleMesh.new()
+		torso_mesh.radius = 0.24
+		torso_mesh.mid_height = 0.38
 		torso.mesh = torso_mesh
 		torso.position = Vector3(0.0, 1.45, 0.0)
 		torso.material_override = robe_mat
@@ -251,10 +255,9 @@ func _build_collider_and_mesh() -> void:
 
 		# Left arm
 		var left_arm := MeshInstance3D.new()
-		var arm_mesh := CylinderMesh.new()
-		arm_mesh.top_radius = 0.06
-		arm_mesh.bottom_radius = 0.08
-		arm_mesh.height = 0.65
+		var arm_mesh := CapsuleMesh.new()
+		arm_mesh.radius = 0.07
+		arm_mesh.mid_height = 0.38
 		left_arm.mesh = arm_mesh
 		left_arm.position = Vector3(-0.32, 1.3, 0.0)
 		left_arm.rotation_degrees.z = 12.0
@@ -1070,4 +1073,3 @@ func _update_visual_animation(delta: float) -> void:
 			mesh.scale = Vector3(0.9, 1.06, 0.9)
 		AnimationState.DEAD:
 			mesh.scale = mesh.scale.lerp(Vector3(1.15, 0.25, 1.15), 0.08)
-
