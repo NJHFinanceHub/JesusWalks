@@ -17,6 +17,7 @@
 #include "NazareneHUD.h"
 #include "NazarenePlayerCharacter.h"
 #include "NazareneSaveSubsystem.h"
+#include "NazareneSettingsSubsystem.h"
 
 namespace
 {
@@ -283,6 +284,11 @@ void UNazareneHUDWidget::NativeOnInitialized()
         NewPilgrimageButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleNewPilgrimagePressed);
     }
 
+    if (UButton* PauseOptionsButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("PauseOptionsButton"), TEXT("Options"), ButtonLabel))
+    {
+        PauseOptionsButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsPressed);
+    }
+
     StartMenuOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("StartMenuOverlay"));
     StartMenuOverlay->SetBrushColor(FLinearColor(0.01f, 0.01f, 0.01f, 0.93f));
     StartMenuOverlay->SetVisibility(ESlateVisibility::Collapsed);
@@ -341,7 +347,99 @@ void UNazareneHUDWidget::NativeOnInitialized()
         QuitButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleQuitPressed);
     }
 
+    OptionsOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("OptionsOverlay"));
+    OptionsOverlay->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.94f));
+    OptionsOverlay->SetVisibility(ESlateVisibility::Collapsed);
+    UCanvasPanelSlot* OptionsOverlaySlot = RootPanel->AddChildToCanvas(OptionsOverlay);
+    if (OptionsOverlaySlot != nullptr)
+    {
+        OptionsOverlaySlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+        OptionsOverlaySlot->SetOffsets(FMargin(0.0f));
+    }
+
+    UCanvasPanel* OptionsCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("OptionsCanvas"));
+    OptionsOverlay->SetContent(OptionsCanvas);
+
+    UBorder* OptionsPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("OptionsPanel"));
+    OptionsPanel->SetBrushColor(FLinearColor(0.10f, 0.09f, 0.07f, 0.98f));
+    UCanvasPanelSlot* OptionsPanelSlot = OptionsCanvas->AddChildToCanvas(OptionsPanel);
+    if (OptionsPanelSlot != nullptr)
+    {
+        OptionsPanelSlot->SetSize(FVector2D(720.0f, 660.0f));
+        OptionsPanelSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+        OptionsPanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+        OptionsPanelSlot->SetPosition(FVector2D::ZeroVector);
+    }
+
+    UVerticalBox* OptionsContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("OptionsContent"));
+    OptionsPanel->SetContent(OptionsContent);
+
+    UTextBlock* OptionsTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("OptionsTitle"));
+    ConfigureText(OptionsTitle, TEXT("Options"), FLinearColor(0.98f, 0.92f, 0.80f), 28);
+    OptionsTitle->SetJustification(ETextJustify::Center);
+    AddVerticalChild(OptionsContent, OptionsTitle, FMargin(16.0f, 22.0f, 16.0f, 10.0f));
+
+    OptionsSummaryText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("OptionsSummaryText"));
+    ConfigureText(OptionsSummaryText, TEXT("Loading settings..."), FLinearColor(0.90f, 0.86f, 0.76f), 15);
+    OptionsSummaryText->SetAutoWrapText(true);
+    AddVerticalChild(OptionsContent, OptionsSummaryText, FMargin(18.0f, 4.0f, 18.0f, 12.0f));
+
+    UTextBlock* OptionsButtonLabel = nullptr;
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SensitivityDownButton"), TEXT("Sensitivity -"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSensitivityDownPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SensitivityUpButton"), TEXT("Sensitivity +"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSensitivityUpPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("InvertLookYButton"), TEXT("Toggle Invert Look Y"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleInvertLookYPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FovDownButton"), TEXT("Field Of View -"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFovDownPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FovUpButton"), TEXT("Field Of View +"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFovUpPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("GammaDownButton"), TEXT("Gamma -"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleGammaDownPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("GammaUpButton"), TEXT("Gamma +"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleGammaUpPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("VolumeDownButton"), TEXT("Master Volume -"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleVolumeDownPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("VolumeUpButton"), TEXT("Master Volume +"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleVolumeUpPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FrameLimitDownButton"), TEXT("Frame Limit -"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFrameLimitDownPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FrameLimitUpButton"), TEXT("Frame Limit +"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFrameLimitUpPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("OptionsApplyButton"), TEXT("Apply And Save"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsApplyPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("OptionsBackButton"), TEXT("Back"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsBackPressed);
+    }
+
     RefreshSlotSummaries();
+    RefreshOptionsSummary();
 }
 
 void UNazareneHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -404,6 +502,11 @@ void UNazareneHUDWidget::SetStartMenuVisible(bool bVisible)
     {
         PauseOverlay->SetVisibility(ESlateVisibility::Collapsed);
     }
+
+    if (!bVisible && OptionsOverlay != nullptr && bOptionsOpenedFromStartMenu)
+    {
+        OptionsOverlay->SetVisibility(ESlateVisibility::Collapsed);
+    }
 }
 
 bool UNazareneHUDWidget::IsStartMenuVisible() const
@@ -426,6 +529,10 @@ void UNazareneHUDWidget::SetPauseMenuVisible(bool bVisible)
     if (bVisible)
     {
         RefreshSlotSummaries();
+    }
+    else if (OptionsOverlay != nullptr && !bOptionsOpenedFromStartMenu)
+    {
+        OptionsOverlay->SetVisibility(ESlateVisibility::Collapsed);
     }
 }
 
@@ -471,6 +578,38 @@ void UNazareneHUDWidget::RefreshSlotSummaries()
     {
         SlotSummary3Text->SetText(FText::FromString(SaveSubsystem->GetSlotSummary(3)));
     }
+}
+
+void UNazareneHUDWidget::RefreshOptionsSummary()
+{
+    if (OptionsSummaryText == nullptr)
+    {
+        return;
+    }
+
+    UNazareneSettingsSubsystem* SettingsSubsystem = nullptr;
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        SettingsSubsystem = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>();
+    }
+
+    if (SettingsSubsystem == nullptr)
+    {
+        OptionsSummaryText->SetText(FText::FromString(TEXT("Settings subsystem unavailable.")));
+        return;
+    }
+
+    const FNazarenePlayerSettings& Settings = SettingsSubsystem->GetSettings();
+    const FString Summary = FString::Printf(
+        TEXT("Mouse Sensitivity: %.2f\nInvert Look Y: %s\nField Of View: %.0f\nDisplay Gamma: %.2f\nMaster Volume: %.0f%%\nFrame Rate Limit: %.0f"),
+        Settings.MouseSensitivity,
+        Settings.bInvertLookY ? TEXT("Enabled") : TEXT("Disabled"),
+        Settings.FieldOfView,
+        Settings.DisplayGamma,
+        Settings.MasterVolume * 100.0f,
+        Settings.FrameRateLimit
+    );
+    OptionsSummaryText->SetText(FText::FromString(Summary));
 }
 
 void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
@@ -596,7 +735,172 @@ void UNazareneHUDWidget::HandleContinuePilgrimagePressed()
 
 void UNazareneHUDWidget::HandleOptionsPressed()
 {
-    ShowMessage(TEXT("Options menu is queued for next sprint (video/audio/controls)."), 4.5f);
+    bOptionsOpenedFromStartMenu = IsStartMenuVisible();
+    if (OptionsOverlay != nullptr)
+    {
+        OptionsOverlay->SetVisibility(ESlateVisibility::Visible);
+    }
+    RefreshOptionsSummary();
+}
+
+void UNazareneHUDWidget::HandleOptionsBackPressed()
+{
+    if (OptionsOverlay != nullptr)
+    {
+        OptionsOverlay->SetVisibility(ESlateVisibility::Collapsed);
+    }
+}
+
+void UNazareneHUDWidget::HandleOptionsApplyPressed()
+{
+    UNazareneSettingsSubsystem* SettingsSubsystem = nullptr;
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        SettingsSubsystem = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>();
+    }
+
+    if (SettingsSubsystem == nullptr)
+    {
+        ShowMessage(TEXT("Settings subsystem unavailable."), 3.5f);
+        return;
+    }
+
+    SettingsSubsystem->ApplySettings();
+    const bool bSaved = SettingsSubsystem->SaveSettings();
+    ShowMessage(bSaved ? TEXT("Settings saved.") : TEXT("Settings applied, but save failed."), 3.5f);
+    RefreshOptionsSummary();
+}
+
+void UNazareneHUDWidget::HandleSensitivityDownPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetMouseSensitivity(Settings->GetSettings().MouseSensitivity - 0.1f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleSensitivityUpPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetMouseSensitivity(Settings->GetSettings().MouseSensitivity + 0.1f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleInvertLookYPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetInvertLookY(!Settings->GetSettings().bInvertLookY);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleFovDownPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetFieldOfView(Settings->GetSettings().FieldOfView - 2.0f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleFovUpPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetFieldOfView(Settings->GetSettings().FieldOfView + 2.0f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleGammaDownPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetDisplayGamma(Settings->GetSettings().DisplayGamma - 0.05f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleGammaUpPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetDisplayGamma(Settings->GetSettings().DisplayGamma + 0.05f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleVolumeDownPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetMasterVolume(Settings->GetSettings().MasterVolume - 0.05f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleVolumeUpPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetMasterVolume(Settings->GetSettings().MasterVolume + 0.05f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleFrameLimitDownPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetFrameRateLimit(Settings->GetSettings().FrameRateLimit - 10.0f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleFrameLimitUpPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetFrameRateLimit(Settings->GetSettings().FrameRateLimit + 10.0f);
+            RefreshOptionsSummary();
+        }
+    }
 }
 
 void UNazareneHUDWidget::HandleQuitPressed()

@@ -154,6 +154,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Player")
     bool IsMiracleUnlocked(FName MiracleId) const;
 
+    UFUNCTION(BlueprintCallable, Category = "Player|Settings")
+    void ApplyUserLookAndCameraSettings(float InMouseSensitivity, bool bInInvertLookY, float InFieldOfView);
+
     UFUNCTION(BlueprintCallable, Category = "Player")
     float GetHealth() const;
 
@@ -432,4 +435,6 @@ private:
     FVector DodgeDirection = FVector::ZeroVector;
     float MoveForwardAxis = 0.0f;
     float MoveRightAxis = 0.0f;
+    float MouseSensitivityScale = 1.0f;
+    bool bInvertLookY = false;
 };

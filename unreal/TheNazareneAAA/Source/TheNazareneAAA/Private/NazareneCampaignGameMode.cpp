@@ -14,6 +14,7 @@
 #include "NazarenePrayerSite.h"
 #include "NazareneSaveSubsystem.h"
 #include "NazareneTravelGate.h"
+#include "TimerManager.h"
 
 ANazareneCampaignGameMode::ANazareneCampaignGameMode()
 {
@@ -54,6 +55,7 @@ void ANazareneCampaignGameMode::BeginPlay()
     }
 
     SaveCheckpoint();
+    QueueIntroStoryIfNeeded();
 }
 
 void ANazareneCampaignGameMode::BuildDefaultRegions()
@@ -194,6 +196,9 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
     const FNazareneRegionDefinition& Region = Regions[RegionIndex];
     SpawnRegionEnvironment(Region);
     SpawnRegionActors(Region);
+    ActiveStoryLines.Empty();
+    StoryLineIndex = 0;
+    GetWorldTimerManager().ClearTimer(StoryLineTimerHandle);
 
     PlayerCharacter = Cast<ANazarenePlayerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
     if (PlayerCharacter == nullptr)
@@ -224,6 +229,12 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
     }
 
     bRegionCompleted = false;
+    bPrayerSiteConsecrated = false;
+    if (Session && !Region.PrayerSiteId.IsNone())
+    {
+        const FName ConsecratedFlag(*FString::Printf(TEXT("site_%s_consecrated"), *Region.PrayerSiteId.ToString()));
+        bPrayerSiteConsecrated = Session->IsFlagSet(ConsecratedFlag);
+    }
     SyncCompletionState();
     UpdateHUDForRegion(Region, bRegionCompleted);
 }
@@ -538,6 +549,44 @@ bool ANazareneCampaignGameMode::LoadCheckpoint()
     return true;
 }
 
+void ANazareneCampaignGameMode::NotifyPrayerSiteRest(FName SiteId)
+{
+    if (!Regions.IsValidIndex(RegionIndex))
+    {
+        return;
+    }
+
+    const FNazareneRegionDefinition& Region = Regions[RegionIndex];
+    if (SiteId != Region.PrayerSiteId)
+    {
+        return;
+    }
+
+    const FName ConsecratedFlag(*FString::Printf(TEXT("site_%s_consecrated"), *SiteId.ToString()));
+    if (Session && Session->IsFlagSet(ConsecratedFlag))
+    {
+        bPrayerSiteConsecrated = true;
+        return;
+    }
+
+    bPrayerSiteConsecrated = true;
+    if (Session)
+    {
+        Session->MarkFlag(ConsecratedFlag);
+    }
+
+    if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            HUD->ShowMessage(TEXT("Prayer Site consecrated. The guardian now stands revealed."), 5.0f);
+        }
+    }
+
+    UpdateHUDForRegion(Region, bRegionCompleted);
+    SaveCheckpoint();
+}
+
 FNazareneSavePayload ANazareneCampaignGameMode::BuildSavePayload() const
 {
     FNazareneSavePayload Payload;
@@ -610,6 +659,12 @@ void ANazareneCampaignGameMode::ApplySavePayload(const FNazareneSavePayload& Pay
     bSuppressRedeemedCallbacks = false;
 
     SyncCompletionState();
+    bPrayerSiteConsecrated = false;
+    if (Session && Regions.IsValidIndex(RegionIndex) && !Regions[RegionIndex].PrayerSiteId.IsNone())
+    {
+        const FName ConsecratedFlag(*FString::Printf(TEXT("site_%s_consecrated"), *Regions[RegionIndex].PrayerSiteId.ToString()));
+        bPrayerSiteConsecrated = Session->IsFlagSet(ConsecratedFlag);
+    }
     if (Regions.IsValidIndex(RegionIndex))
     {
         UpdateHUDForRegion(Regions[RegionIndex], bRegionCompleted);
@@ -706,6 +761,71 @@ bool ANazareneCampaignGameMode::ApplyRegionReward(const FNazareneRegionDefinitio
     return bAnyReward;
 }
 
+void ANazareneCampaignGameMode::QueueIntroStoryIfNeeded()
+{
+    if (Session == nullptr || RegionIndex != 0)
+    {
+        return;
+    }
+
+    const FName IntroFlag(TEXT("intro_ch1_seen"));
+    if (Session->IsFlagSet(IntroFlag))
+    {
+        return;
+    }
+
+    ActiveStoryLines =
+    {
+        TEXT("A hush falls over Galilee as the pilgrimage begins."),
+        TEXT("Consecrate the prayer site and gather your strength."),
+        TEXT("When the guardian falls, the road to Decapolis will open.")
+    };
+    StoryLineIndex = 0;
+    Session->MarkFlag(IntroFlag);
+
+    AdvanceStoryLine();
+    GetWorldTimerManager().SetTimer(StoryLineTimerHandle, this, &ANazareneCampaignGameMode::AdvanceStoryLine, 5.2f, true, 5.2f);
+}
+
+void ANazareneCampaignGameMode::AdvanceStoryLine()
+{
+    if (StoryLineIndex >= ActiveStoryLines.Num())
+    {
+        GetWorldTimerManager().ClearTimer(StoryLineTimerHandle);
+        return;
+    }
+
+    if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            HUD->ShowMessage(ActiveStoryLines[StoryLineIndex], 4.8f);
+        }
+    }
+
+    ++StoryLineIndex;
+}
+
+FString ANazareneCampaignGameMode::BuildObjectiveText(const FNazareneRegionDefinition& Region, bool bCompleted) const
+{
+    if (!bCompleted)
+    {
+        if (!bPrayerSiteConsecrated)
+        {
+            return FString::Printf(TEXT("Consecrate %s to reveal the guardian."), *Region.PrayerSiteName);
+        }
+
+        return Region.Objective;
+    }
+
+    if (RegionIndex >= Regions.Num() - 1)
+    {
+        return TEXT("Step into the light to conclude the pilgrimage.");
+    }
+
+    return FString::Printf(TEXT("Journey marker open: travel to %s."), *Regions[RegionIndex + 1].RegionName);
+}
+
 void ANazareneCampaignGameMode::EnableTravelGate(bool bEnabled)
 {
     if (TravelGate != nullptr)
@@ -729,16 +849,5 @@ void ANazareneCampaignGameMode::UpdateHUDForRegion(const FNazareneRegionDefiniti
     }
 
     HUD->SetRegionName(FString::Printf(TEXT("Chapter %d: %s"), Region.Chapter, *Region.RegionName));
-    if (!bCompleted)
-    {
-        HUD->SetObjective(Region.Objective);
-    }
-    else if (RegionIndex >= Regions.Num() - 1)
-    {
-        HUD->SetObjective(TEXT("Step into the light to conclude the pilgrimage."));
-    }
-    else
-    {
-        HUD->SetObjective(FString::Printf(TEXT("Journey marker open: travel to %s."), *Regions[RegionIndex + 1].RegionName));
-    }
+    HUD->SetObjective(BuildObjectiveText(Region, bCompleted));
 }

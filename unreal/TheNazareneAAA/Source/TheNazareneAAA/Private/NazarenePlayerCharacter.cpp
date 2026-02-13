@@ -25,6 +25,7 @@
 #include "NazareneHUD.h"
 #include "NazarenePlayerAnimInstance.h"
 #include "NazarenePrayerSite.h"
+#include "NazareneSettingsSubsystem.h"
 #include "NazareneTravelGate.h"
 #include "Sound/SoundBase.h"
 #include "UObject/ConstructorHelpers.h"
@@ -133,6 +134,15 @@ void ANazarenePlayerCharacter::BeginPlay()
     }
 
     RegisterEnhancedInputMappingContext();
+
+    if (UGameInstance* GI = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GI->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            const FNazarenePlayerSettings& Data = Settings->GetSettings();
+            ApplyUserLookAndCameraSettings(Data.MouseSensitivity, Data.bInvertLookY, Data.FieldOfView);
+        }
+    }
 }
 
 void ANazarenePlayerCharacter::Tick(float DeltaSeconds)
@@ -501,6 +511,17 @@ bool ANazarenePlayerCharacter::IsMiracleUnlocked(FName MiracleId) const
     return UnlockedMiracles.Contains(MiracleId);
 }
 
+void ANazarenePlayerCharacter::ApplyUserLookAndCameraSettings(float InMouseSensitivity, bool bInInvertLookY, float InFieldOfView)
+{
+    MouseSensitivityScale = FMath::Clamp(InMouseSensitivity, 0.2f, 3.0f);
+    bInvertLookY = bInInvertLookY;
+
+    if (FollowCamera != nullptr)
+    {
+        FollowCamera->SetFieldOfView(FMath::Clamp(InFieldOfView, 60.0f, 110.0f));
+    }
+}
+
 float ANazarenePlayerCharacter::GetHealth() const
 {
     return CurrentHealth;
@@ -686,6 +707,10 @@ void ANazarenePlayerCharacter::RestAtPrayerSite(ANazarenePrayerSite* Site)
     bAttackResolved = false;
     LastRestSiteId = Site->SiteId;
     SetContextHint(Site->GetPromptMessage());
+    if (CampaignGameMode.IsValid())
+    {
+        CampaignGameMode->NotifyPrayerSiteRest(Site->SiteId);
+    }
 
     for (TActorIterator<ANazareneEnemyCharacter> It(GetWorld()); It; ++It)
     {
@@ -744,12 +769,13 @@ void ANazarenePlayerCharacter::MoveRight(float Value)
 
 void ANazarenePlayerCharacter::Turn(float Value)
 {
-    AddControllerYawInput(Value);
+    AddControllerYawInput(Value * MouseSensitivityScale);
 }
 
 void ANazarenePlayerCharacter::LookUp(float Value)
 {
-    AddControllerPitchInput(Value);
+    const float InvertScale = bInvertLookY ? -1.0f : 1.0f;
+    AddControllerPitchInput(Value * MouseSensitivityScale * InvertScale);
 }
 
 void ANazarenePlayerCharacter::Interact()

@@ -37,6 +37,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Campaign")
     bool LoadCheckpoint();
 
+    UFUNCTION(BlueprintCallable, Category = "Campaign")
+    void NotifyPrayerSiteRest(FName SiteId);
+
 private:
     void BuildDefaultRegions();
     void LoadRegion(int32 TargetRegionIndex);
@@ -48,6 +51,9 @@ private:
     void SyncCompletionState();
     void OnBossRedeemed();
     bool ApplyRegionReward(const FNazareneRegionDefinition& Region);
+    void QueueIntroStoryIfNeeded();
+    void AdvanceStoryLine();
+    FString BuildObjectiveText(const FNazareneRegionDefinition& Region, bool bCompleted) const;
     void EnableTravelGate(bool bEnabled);
     void UpdateHUDForRegion(const FNazareneRegionDefinition& Region, bool bCompleted) const;
 
@@ -81,5 +87,12 @@ private:
 
     int32 RegionIndex = 0;
     bool bRegionCompleted = false;
+    bool bPrayerSiteConsecrated = false;
     bool bSuppressRedeemedCallbacks = false;
+    int32 StoryLineIndex = 0;
+
+    UPROPERTY()
+    TArray<FString> ActiveStoryLines;
+
+    FTimerHandle StoryLineTimerHandle;
 };

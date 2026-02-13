@@ -43,6 +43,45 @@ private:
     void HandleOptionsPressed();
 
     UFUNCTION()
+    void HandleOptionsBackPressed();
+
+    UFUNCTION()
+    void HandleOptionsApplyPressed();
+
+    UFUNCTION()
+    void HandleSensitivityDownPressed();
+
+    UFUNCTION()
+    void HandleSensitivityUpPressed();
+
+    UFUNCTION()
+    void HandleInvertLookYPressed();
+
+    UFUNCTION()
+    void HandleFovDownPressed();
+
+    UFUNCTION()
+    void HandleFovUpPressed();
+
+    UFUNCTION()
+    void HandleGammaDownPressed();
+
+    UFUNCTION()
+    void HandleGammaUpPressed();
+
+    UFUNCTION()
+    void HandleVolumeDownPressed();
+
+    UFUNCTION()
+    void HandleVolumeUpPressed();
+
+    UFUNCTION()
+    void HandleFrameLimitDownPressed();
+
+    UFUNCTION()
+    void HandleFrameLimitUpPressed();
+
+    UFUNCTION()
     void HandleQuitPressed();
 
     UFUNCTION()
@@ -67,6 +106,8 @@ private:
     void HandleNewPilgrimagePressed();
 
 private:
+    void RefreshOptionsSummary();
+
     UPROPERTY()
     TObjectPtr<UTextBlock> HealthText;
 
@@ -101,6 +142,9 @@ private:
     TObjectPtr<UBorder> StartMenuOverlay;
 
     UPROPERTY()
+    TObjectPtr<UBorder> OptionsOverlay;
+
+    UPROPERTY()
     TObjectPtr<UBorder> PauseOverlay;
 
     UPROPERTY()
@@ -112,8 +156,12 @@ private:
     UPROPERTY()
     TObjectPtr<UTextBlock> SlotSummary3Text;
 
+    UPROPERTY()
+    TObjectPtr<UTextBlock> OptionsSummaryText;
+
     FString CachedRegionName = TEXT("Chapter 1: Galilee Shores");
     FString CachedObjective = TEXT("Redeem the guardian.");
     float MessageTimer = 0.0f;
+    bool bOptionsOpenedFromStartMenu = true;
 };
 

@@ -56,3 +56,5 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 ## Updates (2026-02-13)
 - [x] Fixed Unreal 5.7 startup path, default map routing, and launch blockers; project now boots into `/Game/Maps/NazareneCampaign`. (@codex)
 - [x] Added startup menu overlay flow (`New Game`, `Continue`, `Options`, `Quit`) and wired menu-driven pause/input control in HUD runtime code. (@codex)
+- [x] Implemented persistent player settings subsystem (controls/video/audio baseline) and connected runtime options menu controls with save/apply behavior. (@codex)
+- [x] Added chapter objective progression hooks (prayer-site consecration milestone + intro story beat sequence) to campaign flow. (@codex)
