@@ -1,27 +1,27 @@
 {
-  "FileVersion": 3,
-  "EngineAssociation": "5.4",
-  "Category": "",
-  "Description": "The Nazarene AAA migration project from Godot prototype.",
-  "Modules": [
-    {
-      "Name": "TheNazareneAAA",
-      "Type": "Runtime",
-      "LoadingPhase": "Default"
-    }
-  ],
-  "Plugins": [
-    {
-      "Name": "EnhancedInput",
-      "Enabled": true
-    },
-    {
-      "Name": "Niagara",
-      "Enabled": true
-    },
-    {
-      "Name": "CommonUI",
-      "Enabled": true
-    }
-  ]
+	"FileVersion": 3,
+	"EngineAssociation": "5.7",
+	"Category": "",
+	"Description": "The Nazarene AAA migration project from Godot prototype.",
+	"Modules": [
+		{
+			"Name": "TheNazareneAAA",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "EnhancedInput",
+			"Enabled": true
+		},
+		{
+			"Name": "Niagara",
+			"Enabled": true
+		},
+		{
+			"Name": "CommonUI",
+			"Enabled": true
+		}
+	]
 }

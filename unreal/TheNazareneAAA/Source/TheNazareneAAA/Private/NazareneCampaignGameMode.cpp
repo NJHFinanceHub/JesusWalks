@@ -308,12 +308,12 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
             {
                 DynamicMaterial->SetVectorParameterValue(TEXT("Color"), Tint);
                 Actor->GetStaticMeshComponent()->SetMaterial(0, DynamicMaterial);
-                Actor->GetStaticMeshComponent()->SetVectorParameterValueOnMaterials(TEXT("Color"), Tint);
+                Actor->GetStaticMeshComponent()->SetVectorParameterValueOnMaterials(TEXT("Color"), FVector(Tint.R, Tint.G, Tint.B));
             }
             else
             {
                 Actor->GetStaticMeshComponent()->SetMaterial(0, ShapeMaterial);
-                Actor->GetStaticMeshComponent()->SetVectorParameterValueOnMaterials(TEXT("Color"), Tint);
+                Actor->GetStaticMeshComponent()->SetVectorParameterValueOnMaterials(TEXT("Color"), FVector(Tint.R, Tint.G, Tint.B));
             }
         }
 

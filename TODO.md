@@ -35,6 +35,16 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 - [x] Define networking scope (single-player only vs co-op) and technical implications. (@codex)
 - [x] Replace placeholder geometry with production environments for all four regions. (@claude)
 
+## Production backlog (full game)
+- [ ] Build production main menu/start menu flow (new game, continue, options, quit) with clean boot routing. (@codex)
+- [ ] Author Opening Chapter map as first vertical slice level with encounter pacing and traversal landmarks. (@codex)
+- [ ] Replace placeholder player/enemy meshes with production-ready models and animation blueprints. (@codex)
+- [ ] Implement quest/story objective system for chapter progression and failure/retry states. (@codex)
+- [ ] Add narrative intro sequence (camera, dialogue/text, mission kickoff). (@codex)
+- [ ] Establish asset integration pipeline (naming, folders, LODs, collision, materials) for art/audio imports. (@codex)
+- [ ] Implement options/settings menu (video, audio, controls) with persistent save. (@codex)
+- [ ] Add storefront-quality HUD/UX pass for readability and controller-first navigation. (@codex)
+
 ## Updates (2026-02-06)
 - [x] Delivered Unreal level bootstrap automation and campaign map defaults (`docs/UNREAL_LEVEL_BOOTSTRAP.md`, `unreal/TheNazareneAAA/Tools/create_campaign_level.py`). (@codex)
 - [x] Replaced code-only HUD with UMG pause/menu stack and in-UI save/load slot summaries (`UNazareneHUDWidget`, `ANazareneHUD`). (@codex)

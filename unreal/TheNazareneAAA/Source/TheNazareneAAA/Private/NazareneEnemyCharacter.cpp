@@ -24,7 +24,7 @@ ANazareneEnemyCharacter::ANazareneEnemyCharacter()
     BodyMesh->SetRelativeScale3D(FVector(0.8f, 0.8f, 1.8f));
     BodyMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> CapsuleMesh(TEXT("/Engine/BasicShapes/Capsule.Capsule"));
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> CapsuleMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
     if (CapsuleMesh.Succeeded())
     {
         BodyMesh->SetStaticMesh(CapsuleMesh.Object);
@@ -363,7 +363,7 @@ void ANazareneEnemyCharacter::OnParried(ANazarenePlayerCharacter* ByPlayer)
     }
 }
 
-void ANazareneEnemyCharacter::ReceiveHit(float Damage, float PoiseDamage, ANazarenePlayerCharacter* Source)
+void ANazareneEnemyCharacter::ReceiveCombatHit(float Damage, float PoiseDamage, ANazarenePlayerCharacter* Source)
 {
     if (CurrentState == ENazareneEnemyState::Redeemed)
     {

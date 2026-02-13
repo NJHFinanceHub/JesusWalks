@@ -71,7 +71,7 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
     BodyMesh->SetRelativeScale3D(FVector(0.8f, 0.8f, 1.8f));
     BodyMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> CapsuleMesh(TEXT("/Engine/BasicShapes/Capsule.Capsule"));
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> CapsuleMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
     if (CapsuleMesh.Succeeded())
     {
         BodyMesh->SetStaticMesh(CapsuleMesh.Object);
@@ -199,10 +199,10 @@ void ANazarenePlayerCharacter::InitializeEnhancedInputDefaults()
 
             for (const FEnhancedActionKeyMapping& Mapping : RuntimeInputMappingContext->GetMappings())
             {
-                UInputAction* Action = Mapping.Action;
+                const UInputAction* Action = Mapping.Action.Get();
                 if (Action != nullptr && Action->GetName().Contains(Token))
                 {
-                    return Action;
+                    return const_cast<UInputAction*>(Action);
                 }
             }
             return nullptr;
@@ -996,7 +996,7 @@ void ANazarenePlayerCharacter::TryRadianceMiracle()
         const FVector ToEnemy = Enemy->GetActorLocation() - GetActorLocation();
         if (ToEnemy.Size() <= RadianceRadius)
         {
-            Enemy->ReceiveHit(RadianceDamage, RadiancePoiseDamage, this);
+            Enemy->ReceiveCombatHit(RadianceDamage, RadiancePoiseDamage, this);
             Enemy->ApplyKnockback(ToEnemy.GetSafeNormal2D(), 450.0f);
         }
     }
@@ -1103,7 +1103,7 @@ void ANazarenePlayerCharacter::ResolvePendingAttack()
         }
         else
         {
-            Enemy->ReceiveHit(LightAttackDamage, LightAttackPoiseDamage, this);
+            Enemy->ReceiveCombatHit(LightAttackDamage, LightAttackPoiseDamage, this);
             AddFaith(1.0f);
         }
     }
@@ -1115,7 +1115,7 @@ void ANazarenePlayerCharacter::ResolvePendingAttack()
         }
         else
         {
-            Enemy->ReceiveHit(HeavyAttackDamage, HeavyAttackPoiseDamage, this);
+            Enemy->ReceiveCombatHit(HeavyAttackDamage, HeavyAttackPoiseDamage, this);
             AddFaith(1.5f);
         }
     }

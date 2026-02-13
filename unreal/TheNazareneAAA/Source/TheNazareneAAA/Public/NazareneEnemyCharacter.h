@@ -159,7 +159,7 @@ public:
     void OnParried(ANazarenePlayerCharacter* ByPlayer);
 
     UFUNCTION(BlueprintCallable, Category = "Enemy")
-    void ReceiveHit(float Damage, float PoiseDamage, ANazarenePlayerCharacter* Source);
+    void ReceiveCombatHit(float Damage, float PoiseDamage, ANazarenePlayerCharacter* Source);
 
     UFUNCTION(BlueprintCallable, Category = "Enemy")
     void ReceiveRiposte(float Damage, ANazarenePlayerCharacter* Source);
