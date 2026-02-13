@@ -178,10 +178,24 @@ void UNazareneHUDWidget::NativeOnInitialized()
         MessageSlot->SetPosition(FVector2D(0.0f, 18.0f));
     }
 
+
+    CriticalStateText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("CriticalStateText"));
+    ConfigureText(CriticalStateText, TEXT(""), FLinearColor(0.95f, 0.40f, 0.28f), 19);
+    CriticalStateText->SetJustification(ETextJustify::Center);
+    CriticalStateText->SetVisibility(ESlateVisibility::Collapsed);
+    UCanvasPanelSlot* CriticalStateSlot = RootPanel->AddChildToCanvas(CriticalStateText);
+    if (CriticalStateSlot != nullptr)
+    {
+        CriticalStateSlot->SetSize(FVector2D(700.0f, 46.0f));
+        CriticalStateSlot->SetAnchors(FAnchors(0.5f, 0.0f, 0.5f, 0.0f));
+        CriticalStateSlot->SetAlignment(FVector2D(0.5f, 0.0f));
+        CriticalStateSlot->SetPosition(FVector2D(0.0f, 72.0f));
+    }
+
     UTextBlock* ControlsText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ControlsText"));
     ConfigureText(
         ControlsText,
-        TEXT("WASD Move | LMB Light | RMB Heavy | Space Dodge | Shift Block | F Parry | Q Lock | R Heal | 1 Blessing | 2 Radiance | E Pray | Esc Menu"),
+        TEXT("Move/Look: WASD + Mouse | Combat: LMB Light, RMB Heavy, Shift Block, F Parry, Space Dodge | Miracles: R Heal, 1 Blessing, 2 Radiance | Interaction: E Pray, Q Lock, Esc Menu"),
         FLinearColor(0.90f, 0.85f, 0.70f),
         14
     );
@@ -655,6 +669,34 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
     if (ContextHintText != nullptr)
     {
         ContextHintText->SetText(FText::FromString(Player->GetContextHint()));
+    }
+
+    if (CriticalStateText != nullptr)
+    {
+        FString CriticalState;
+        FLinearColor CriticalColor(0.95f, 0.40f, 0.28f, 1.0f);
+
+        if (HealthRatio <= 0.25f)
+        {
+            CriticalState = TEXT("Critical Health - Retreat or heal now");
+            CriticalColor = FLinearColor(0.98f, 0.25f, 0.20f, 1.0f);
+        }
+        else if (StaminaRatio <= 0.15f)
+        {
+            CriticalState = TEXT("Exhausted - stamina nearly depleted");
+            CriticalColor = FLinearColor(0.96f, 0.72f, 0.24f, 1.0f);
+        }
+
+        if (CriticalState.IsEmpty())
+        {
+            CriticalStateText->SetVisibility(ESlateVisibility::Collapsed);
+        }
+        else
+        {
+            CriticalStateText->SetText(FText::FromString(CriticalState));
+            CriticalStateText->SetColorAndOpacity(FSlateColor(CriticalColor));
+            CriticalStateText->SetVisibility(ESlateVisibility::Visible);
+        }
     }
 }
 

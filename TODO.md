@@ -43,7 +43,7 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 - [x] Add narrative intro sequence (camera, dialogue/text, mission kickoff). (@codex)
 - [x] Establish asset integration pipeline (naming, folders, LODs, collision, materials) for art/audio imports. (@codex)
 - [x] Implement options/settings menu (video, audio, controls) with persistent save. (@codex)
-- [ ] Add storefront-quality HUD/UX pass for readability and controller-first navigation. (@codex)
+- [x] Add storefront-quality HUD/UX pass for readability and controller-first navigation. (@codex)
 
 ## Updates (2026-02-06)
 - [x] Delivered Unreal level bootstrap automation and campaign map defaults (`docs/UNREAL_LEVEL_BOOTSTRAP.md`, `unreal/TheNazareneAAA/Tools/create_campaign_level.py`). (@codex)
@@ -60,3 +60,4 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 - [x] Added chapter objective progression hooks (prayer-site consecration milestone + intro story beat sequence) to campaign flow. (@codex)
 - [x] Added explicit chapter stage state machine and per-region retry tracking persisted in campaign save payload. (@codex)
 - [x] Added asset integration pipeline standards doc + Unreal Python validator for naming, LOD, and collision checks. (@codex)
+- [x] Polished runtime HUD readability with clearer control legend and critical combat-state alerts for low health/stamina. (@codex)
