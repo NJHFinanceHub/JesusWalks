@@ -36,6 +36,9 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 - [x] Replace placeholder geometry with production environments for all four regions. (@claude)
 
 ## Production backlog (full game)
+- [ ] Refactor campaign flow into dedicated subsystems (Campaign/Quest/Narrative) and keep `ANazareneCampaignGameMode` as thin bootstrap only. (@codex)
+- [ ] Migrate hard-coded chapter/region definitions to DataAssets/DataTables with stable content IDs and authoring workflow docs. (@codex)
+- [ ] Add save schema migration tests for `SaveVersion` upgrades to guarantee long-term campaign compatibility. (@codex)
 - [x] Build production main menu/start menu flow (new game, continue, options, quit) with clean boot routing. (@codex)
 - [x] Author Opening Chapter map as first vertical slice level with encounter pacing and traversal landmarks. (@codex)
 - [x] Replace placeholder player/enemy meshes with production-ready models and animation blueprints. (@codex)
