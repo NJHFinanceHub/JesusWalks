@@ -7,6 +7,7 @@
 
 class ANazarenePlayerCharacter;
 class UBehaviorTree;
+class UAnimInstance;
 class UNiagaraSystem;
 class USkeletalMesh;
 class USoundBase;
@@ -100,6 +101,12 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Animation")
     TSoftObjectPtr<USkeletalMesh> RetargetedSkeletalMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Animation")
+    TSoftObjectPtr<USkeletalMesh> ProductionSkeletalMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Animation")
+    TSoftClassPtr<UAnimInstance> ProductionAnimBlueprint;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Audio")
     TObjectPtr<USoundBase> AttackSound;

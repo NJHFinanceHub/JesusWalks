@@ -38,7 +38,7 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 ## Production backlog (full game)
 - [x] Build production main menu/start menu flow (new game, continue, options, quit) with clean boot routing. (@codex)
 - [x] Author Opening Chapter map as first vertical slice level with encounter pacing and traversal landmarks. (@codex)
-- [ ] Replace placeholder player/enemy meshes with production-ready models and animation blueprints. (@codex)
+- [x] Replace placeholder player/enemy meshes with production-ready models and animation blueprints. (@codex)
 - [x] Implement quest/story objective system for chapter progression and failure/retry states. (@codex)
 - [x] Add narrative intro sequence (camera, dialogue/text, mission kickoff). (@codex)
 - [x] Establish asset integration pipeline (naming, folders, LODs, collision, materials) for art/audio imports. (@codex)
@@ -62,3 +62,5 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 - [x] Added asset integration pipeline standards doc + Unreal Python validator for naming, LOD, and collision checks. (@codex)
 - [x] Polished runtime HUD readability with clearer control legend, combat-state telemetry, and critical low-resource alerts. (@codex)
 - [x] Added opening chapter layout automation for repeatable encounter pacing and traversal landmarks in `NazareneCampaign`. (@codex)
+
+- [x] Added production character mesh + animation blueprint override hooks with fallback to retarget assets for player and enemies. (@codex)

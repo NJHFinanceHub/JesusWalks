@@ -13,6 +13,7 @@ class UInputAction;
 class UInputMappingContext;
 class USpringArmComponent;
 class UCameraComponent;
+class UAnimInstance;
 class UStaticMeshComponent;
 class USkeletalMesh;
 class USoundBase;
@@ -60,6 +61,12 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Animation")
     TSoftObjectPtr<USkeletalMesh> RetargetedSkeletalMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Animation")
+    TSoftObjectPtr<USkeletalMesh> ProductionSkeletalMesh;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Animation")
+    TSoftClassPtr<UAnimInstance> ProductionAnimBlueprint;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
     float LightAttackDamage = 26.0f;
