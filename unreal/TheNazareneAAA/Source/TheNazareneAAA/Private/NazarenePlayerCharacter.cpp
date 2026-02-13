@@ -112,14 +112,34 @@ void ANazarenePlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-    if (RetargetedSkeletalMesh.ToSoftObjectPath().IsValid())
+    bool bAppliedCharacterMesh = false;
+    if (ProductionSkeletalMesh.ToSoftObjectPath().IsValid())
+    {
+        if (USkeletalMesh* MeshAsset = ProductionSkeletalMesh.LoadSynchronous())
+        {
+            GetMesh()->SetSkeletalMesh(MeshAsset);
+            bAppliedCharacterMesh = true;
+        }
+    }
+
+    if (!bAppliedCharacterMesh && RetargetedSkeletalMesh.ToSoftObjectPath().IsValid())
     {
         if (USkeletalMesh* MeshAsset = RetargetedSkeletalMesh.LoadSynchronous())
         {
             GetMesh()->SetSkeletalMesh(MeshAsset);
-            BodyMesh->SetHiddenInGame(true);
+            bAppliedCharacterMesh = true;
         }
     }
+
+    if (ProductionAnimBlueprint.ToSoftObjectPath().IsValid())
+    {
+        if (UClass* AnimClass = ProductionAnimBlueprint.LoadSynchronous())
+        {
+            GetMesh()->SetAnimInstanceClass(AnimClass);
+        }
+    }
+
+    BodyMesh->SetHiddenInGame(bAppliedCharacterMesh);
 
     CurrentHealth = MaxHealth;
     CurrentStamina = MaxStamina;
