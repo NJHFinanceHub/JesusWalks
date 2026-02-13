@@ -124,6 +124,9 @@ private:
     TObjectPtr<UTextBlock> ContextHintText;
 
     UPROPERTY()
+    TObjectPtr<UTextBlock> CriticalStateText;
+
+    UPROPERTY()
     TObjectPtr<UProgressBar> HealthBar;
 
     UPROPERTY()
@@ -164,4 +167,3 @@ private:
     float MessageTimer = 0.0f;
     bool bOptionsOpenedFromStartMenu = true;
 };
-
