@@ -139,5 +139,4 @@ func _shake_pattern(time: float) -> float:
 func _reset_camera() -> void:
 	if _target_camera == null:
 		return
-	# Reset any shake-applied offsets while preserving parent-driven position
-	# The camera's position is managed by the player controller, so we don't override that
+	_target_camera.transform = _original_transform

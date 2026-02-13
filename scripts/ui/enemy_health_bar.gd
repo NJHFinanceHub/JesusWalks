@@ -161,9 +161,9 @@ func _update_screen_position() -> void:
 	# Calculate world position above enemy
 	var world_pos := _enemy.global_position + world_offset
 
-	# Check if enemy is in front of camera
+	# Check if enemy is in front of camera (forward is -basis.z in Godot)
 	var cam_to_enemy := world_pos - _camera.global_position
-	if cam_to_enemy.dot(_camera.global_transform.basis.z) > 0:
+	if cam_to_enemy.dot(-_camera.global_transform.basis.z) < 0:
 		# Enemy is behind camera, hide bar
 		visible = false
 		return
