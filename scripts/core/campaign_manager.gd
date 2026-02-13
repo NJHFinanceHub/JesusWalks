@@ -10,7 +10,7 @@ const REGIONS := [
 		"id": "galilee",
 		"name": "Galilee Shores",
 		"chapter": 1,
-		"objective": "Redeem the Legion Sovereign of Gerasa.",
+		"objective": "Bring deliverance to the man oppressed by Legion near Gerasa.",
 		"player_spawn": Vector3(0.0, 1.2, 12.0),
 		"prayer_site": {
 			"id": "galilee_site_01",
@@ -65,7 +65,7 @@ const REGIONS := [
 			{"id": "galilee_ranged_02", "name": "Roman Slinger II", "type": EnemyAI.EnemyType.RANGED, "pos": Vector3(-18.0, 1.0, -15.0)},
 			{"id": "galilee_demon_01", "name": "Unclean Spirit I", "type": EnemyAI.EnemyType.DEMON, "pos": Vector3(5.0, 1.0, -20.0)},
 			{"id": "galilee_demon_02", "name": "Unclean Spirit II", "type": EnemyAI.EnemyType.DEMON, "pos": Vector3(-6.0, 1.0, -22.0)},
-			{"id": "galilee_named_boss_01", "name": "Legion Sovereign of Gerasa", "type": EnemyAI.EnemyType.BOSS, "pos": Vector3(0.0, 1.0, -34.0)},
+			{"id": "galilee_named_boss_01", "name": "Man Oppressed by Legion", "type": EnemyAI.EnemyType.BOSS, "pos": Vector3(0.0, 1.0, -34.0)},
 		],
 		"boss_id": "galilee_named_boss_01",
 		"reward": {"miracle": "blessing", "health": 10.0, "stamina": 6.0},
@@ -74,7 +74,7 @@ const REGIONS := [
 		"id": "decapolis",
 		"name": "Decapolis Ruins",
 		"chapter": 2,
-		"objective": "Redeem the Gadarene Warlord among the ruins.",
+		"objective": "Carry mercy through the Decapolis and strengthen new faith.",
 		"player_spawn": Vector3(0.0, 1.2, 13.0),
 		"prayer_site": {
 			"id": "decapolis_site_01",
@@ -128,7 +128,7 @@ const REGIONS := [
 			{"id": "decapolis_demon_01", "name": "Unclean Spirit", "type": EnemyAI.EnemyType.DEMON, "pos": Vector3(6.0, 1.0, -18.0)},
 			{"id": "decapolis_demon_02", "name": "Unclean Spirit", "type": EnemyAI.EnemyType.DEMON, "pos": Vector3(-5.0, 1.0, -20.0)},
 			{"id": "decapolis_demon_03", "name": "Unclean Spirit", "type": EnemyAI.EnemyType.DEMON, "pos": Vector3(3.0, 1.0, -24.0)},
-			{"id": "decapolis_named_boss_01", "name": "Gadarene Warlord", "type": EnemyAI.EnemyType.BOSS, "pos": Vector3(0.0, 1.0, -30.0)},
+			{"id": "decapolis_named_boss_01", "name": "Decapolis Opposition Captain", "type": EnemyAI.EnemyType.BOSS, "pos": Vector3(0.0, 1.0, -30.0)},
 		],
 		"boss_id": "decapolis_named_boss_01",
 		"reward": {"miracle": "radiance", "health": 10.0, "stamina": 6.0},
@@ -137,7 +137,7 @@ const REGIONS := [
 		"id": "wilderness",
 		"name": "Wilderness of Temptation",
 		"chapter": 3,
-		"objective": "Resist the Adversary of the Desert.",
+		"objective": "Withstand wilderness temptation through prayer and obedience.",
 		"player_spawn": Vector3(0.0, 1.2, 14.0),
 		"prayer_site": {
 			"id": "wilderness_site_01",
@@ -184,7 +184,7 @@ const REGIONS := [
 			{"id": "wilderness_demon_02", "name": "Tempter Spirit", "type": EnemyAI.EnemyType.DEMON, "pos": Vector3(-6.0, 1.0, -19.0)},
 			{"id": "wilderness_demon_03", "name": "Tempter Spirit", "type": EnemyAI.EnemyType.DEMON, "pos": Vector3(4.0, 1.0, -26.0)},
 			{"id": "wilderness_demon_04", "name": "Tempter Spirit", "type": EnemyAI.EnemyType.DEMON, "pos": Vector3(-4.0, 1.0, -27.0)},
-			{"id": "wilderness_named_boss_01", "name": "Adversary of the Desert", "type": EnemyAI.EnemyType.BOSS, "pos": Vector3(0.0, 1.0, -32.0)},
+			{"id": "wilderness_named_boss_01", "name": "Voice of the Tempter", "type": EnemyAI.EnemyType.BOSS, "pos": Vector3(0.0, 1.0, -32.0)},
 		],
 		"boss_id": "wilderness_named_boss_01",
 		"reward": {"health": 12.0, "stamina": 8.0},
@@ -193,7 +193,7 @@ const REGIONS := [
 		"id": "jerusalem",
 		"name": "Jerusalem Approach",
 		"chapter": 4,
-		"objective": "Face the Temple Warden at the city's gate.",
+		"objective": "Enter Jerusalem and remain faithful on the road to the cross.",
 		"player_spawn": Vector3(0.0, 1.2, 12.0),
 		"prayer_site": {
 			"id": "jerusalem_site_01",
@@ -242,7 +242,7 @@ const REGIONS := [
 			{"id": "jerusalem_ranged_02", "name": "Temple Slinger", "type": EnemyAI.EnemyType.RANGED, "pos": Vector3(-16.0, 1.0, -14.0)},
 			{"id": "jerusalem_demon_01", "name": "Unclean Spirit", "type": EnemyAI.EnemyType.DEMON, "pos": Vector3(5.0, 1.0, -20.0)},
 			{"id": "jerusalem_demon_02", "name": "Unclean Spirit", "type": EnemyAI.EnemyType.DEMON, "pos": Vector3(-5.0, 1.0, -21.0)},
-			{"id": "jerusalem_named_boss_01", "name": "Temple Warden", "type": EnemyAI.EnemyType.BOSS, "pos": Vector3(0.0, 1.0, -28.0)},
+			{"id": "jerusalem_named_boss_01", "name": "Jerusalem Authority Guard", "type": EnemyAI.EnemyType.BOSS, "pos": Vector3(0.0, 1.0, -28.0)},
 		],
 		"boss_id": "jerusalem_named_boss_01",
 		"reward": {},
@@ -258,6 +258,7 @@ var _region_root: Node3D
 var _boss_instance: EnemyAI
 var _region_index: int = 0
 var _region_completed: bool = false
+var _difficulty_scale: float = 1.0
 var _pending_payload: Dictionary = {}
 var _session: GameSession
 var _suppress_redeem_events: bool = false
@@ -321,6 +322,7 @@ func _load_region(index: int) -> void:
 		_session.region_index = _region_index
 
 	var region := REGIONS[_region_index]
+	_difficulty_scale = 1.0 + float(_region_index) * 0.18
 	_region_root = Node3D.new()
 	_region_root.name = "RegionRoot"
 	add_child(_region_root)
@@ -329,6 +331,8 @@ func _load_region(index: int) -> void:
 	_spawn_player(region)
 	_spawn_prayer_site(region)
 	_spawn_enemies(region)
+	_spawn_hazards(region)
+	_spawn_npcs(region)
 	_spawn_travel_gate(region)
 	_spawn_hud(region)
 	_spawn_pause_menu()
@@ -446,6 +450,11 @@ func _spawn_player(region: Dictionary) -> void:
 		_player.current_health = _player.max_health
 		_player.current_stamina = _player.max_stamina
 		_player.set_unlocked_miracles(_session.unlocked_miracles)
+		_player.total_xp = _session.total_xp
+		_player.player_level = _session.player_level
+		_player.unspent_skill_points = _session.skill_points
+		_player.apply_character_class(int(_session.selected_class))
+		_player.set_skill_tree_state(_session.unlocked_skills)
 
 
 func _spawn_prayer_site(region: Dictionary) -> void:
@@ -469,6 +478,9 @@ func _spawn_enemies(region: Dictionary) -> void:
 		enemy.enemy_name = str(spec.get("name", "Enemy"))
 		enemy.enemy_type = int(spec.get("type", EnemyAI.EnemyType.MELEE_SHIELD))
 		enemy.global_position = spec.get("pos", Vector3.ZERO)
+		enemy.max_health *= _difficulty_scale
+		enemy.attack_damage *= (1.0 + float(_region_index) * 0.1)
+		enemy.posture_damage *= (1.0 + float(_region_index) * 0.08)
 		_region_root.add_child(enemy)
 		enemy.redeemed.connect(_on_enemy_redeemed.bind(enemy))
 		if enemy.spawn_id == str(region.get("boss_id", "")):
@@ -488,6 +500,43 @@ func _spawn_travel_gate(region: Dictionary) -> void:
 	_travel_gate.travel_requested.connect(_on_travel_requested)
 	_region_root.add_child(_travel_gate)
 
+
+
+
+func _spawn_hazards(region: Dictionary) -> void:
+	for i in range(4):
+		var hazard := Area3D.new()
+		hazard.name = "Hazard_%d" % i
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = Vector3(2.5, 1.0, 2.5)
+		shape.shape = box
+		hazard.add_child(shape)
+		hazard.position = Vector3(-12.0 + i * 8.0, 0.5, -10.0 - i * 4.0)
+		hazard.body_entered.connect(_on_hazard_body_entered)
+		_region_root.add_child(hazard)
+
+
+func _spawn_npcs(region: Dictionary) -> void:
+	var npc := Node3D.new()
+	npc.name = "PilgrimNPC"
+	npc.position = Vector3(6.0, 0.0, 5.0)
+	var label := Label3D.new()
+	label.text = "Pilgrim: Hold to your faith in %s." % region.get("name", "this land")
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position = Vector3(0.0, 2.2, 0.0)
+	npc.add_child(label)
+	_region_root.add_child(npc)
+
+
+func _on_hazard_body_entered(body: Node) -> void:
+	if _player == null:
+		return
+	if body != _player:
+		return
+	_player.receive_enemy_attack(null, 8.0, 6.0)
+	if _hud != null:
+		_hud.show_popup("Hazard", "You stepped into dangerous terrain.")
 
 func _spawn_hud(region: Dictionary) -> void:
 	if _hud == null:
@@ -575,9 +624,13 @@ func _sync_completion_state() -> void:
 		_region_completed = false
 
 
-func _on_enemy_redeemed(_enemy_name: String, _faith_reward: float, enemy: EnemyAI) -> void:
+func _on_enemy_redeemed(enemy_name: String, faith_reward: float, enemy: EnemyAI) -> void:
 	if _suppress_redeem_events:
 		return
+	if _player != null:
+		_player.gain_experience(int(round(faith_reward * 4.0)))
+	if _hud != null:
+		_hud.show_popup("Enemy Redeemed", "%s (+%d XP)" % [enemy_name, int(round(faith_reward * 4.0))])
 	if enemy != _boss_instance:
 		return
 	_on_boss_redeemed()
@@ -684,6 +737,12 @@ func _on_travel_requested(target_region_index: int) -> void:
 func _save_checkpoint() -> void:
 	if _player == null:
 		return
+	if _session != null:
+		_session.total_xp = _player.total_xp
+		_session.player_level = _player.player_level
+		_session.skill_points = _player.unspent_skill_points
+		_session.unlocked_skills = _player.unlocked_skills.duplicate()
+		_session.selected_class = _player.character_class
 	var payload := _player.build_save_payload()
 	payload["campaign"] = _build_campaign_payload()
 	SaveSystemScript.save_checkpoint(payload)
@@ -715,10 +774,9 @@ func _place_tree(at: Vector3) -> void:
 	_region_root.add_child(tree)
 
 	var trunk := MeshInstance3D.new()
-	var trunk_mesh := CylinderMesh.new()
-	trunk_mesh.height = 2.8
-	trunk_mesh.top_radius = 0.24
-	trunk_mesh.bottom_radius = 0.33
+	var trunk_mesh := PrismMesh.new()
+	trunk_mesh.left_to_right = 0.78
+	trunk_mesh.size = Vector3(0.52, 2.8, 0.44)
 	trunk.mesh = trunk_mesh
 	trunk.position = Vector3(0.0, 1.4, 0.0)
 	trunk.material_override = _make_material(Color(0.42, 0.28, 0.16))
@@ -748,10 +806,9 @@ func _place_pillar(at: Vector3, height: float) -> void:
 	pillar.add_child(collision)
 
 	var mesh_instance := MeshInstance3D.new()
-	var mesh := CylinderMesh.new()
-	mesh.height = height
-	mesh.top_radius = 0.32
-	mesh.bottom_radius = 0.36
+	var mesh := PrismMesh.new()
+	mesh.left_to_right = 0.86
+	mesh.size = Vector3(0.66, height, 0.66)
 	mesh_instance.mesh = mesh
 	mesh_instance.position = Vector3(0.0, height * 0.5, 0.0)
 	mesh_instance.material_override = _make_material(Color(0.44, 0.29, 0.24))
@@ -793,10 +850,9 @@ func _place_spire(at: Vector3, height: float, radius: float) -> void:
 	spire.add_child(collision)
 
 	var mesh_instance := MeshInstance3D.new()
-	var mesh := CylinderMesh.new()
-	mesh.height = height
-	mesh.top_radius = radius * 0.3
-	mesh.bottom_radius = radius
+	var mesh := PrismMesh.new()
+	mesh.left_to_right = 0.72
+	mesh.size = Vector3(radius * 1.8, height, radius * 1.8)
 	mesh_instance.mesh = mesh
 	mesh_instance.position = Vector3(0.0, height * 0.5, 0.0)
 	mesh_instance.material_override = _make_material(Color(0.5, 0.4, 0.28))
@@ -805,21 +861,19 @@ func _place_spire(at: Vector3, height: float, radius: float) -> void:
 
 func _build_boss_arena(center: Vector3, radius: float, color: Color) -> void:
 	var arena_floor := MeshInstance3D.new()
-	var cylinder := CylinderMesh.new()
-	cylinder.top_radius = radius
-	cylinder.bottom_radius = radius
-	cylinder.height = 0.08
-	arena_floor.mesh = cylinder
+	var arena_disc := SphereMesh.new()
+	arena_disc.radius = radius
+	arena_disc.height = 0.12
+	arena_floor.mesh = arena_disc
+	arena_floor.scale = Vector3(1.0, 0.12, 1.0)
 	arena_floor.position = center
 	arena_floor.material_override = _make_material(color)
 	_region_root.add_child(arena_floor)
 
 	for i in range(10):
 		var pillar := MeshInstance3D.new()
-		var pillar_mesh := CylinderMesh.new()
-		pillar_mesh.top_radius = 0.24
-		pillar_mesh.bottom_radius = 0.32
-		pillar_mesh.height = 2.2
+		var pillar_mesh := BoxMesh.new()
+		pillar_mesh.size = Vector3(0.56, 2.2, 0.56)
 		pillar.mesh = pillar_mesh
 		var angle := TAU * float(i) / 10.0
 		pillar.position = center + Vector3(cos(angle) * (radius + 0.6), 1.1, sin(angle) * (radius + 0.6))

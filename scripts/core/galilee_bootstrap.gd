@@ -330,11 +330,9 @@ func _build_stone_path() -> void:
 	# Worn stone path leading toward the boss arena
 	for i in range(20):
 		var stone := MeshInstance3D.new()
-		var stone_mesh := CylinderMesh.new()
+		var stone_mesh := BoxMesh.new()
 		var stone_radius := randf_range(0.35, 0.6)
-		stone_mesh.top_radius = stone_radius
-		stone_mesh.bottom_radius = stone_radius * 1.08
-		stone_mesh.height = 0.05
+		stone_mesh.size = Vector3(stone_radius * 1.9, 0.06, stone_radius * 1.7)
 		stone.mesh = stone_mesh
 		var t := float(i) / 19.0
 		var z_pos := lerp(4.0, -30.0, t)
@@ -354,10 +352,9 @@ func _build_ruins() -> void:
 
 	# Fallen column section
 	var fallen := MeshInstance3D.new()
-	var fallen_mesh := CylinderMesh.new()
-	fallen_mesh.top_radius = 0.32
-	fallen_mesh.bottom_radius = 0.36
-	fallen_mesh.height = 2.8
+	var fallen_mesh := CapsuleMesh.new()
+	fallen_mesh.radius = 0.34
+	fallen_mesh.mid_height = 2.1
 	fallen.mesh = fallen_mesh
 	fallen.position = Vector3(-4.0, 0.22, -10.0)
 	fallen.rotation_degrees.z = 86.0
@@ -374,11 +371,11 @@ func _build_boss_arena() -> void:
 
 	# Raised stone floor
 	var arena_floor := MeshInstance3D.new()
-	var floor_cyl := CylinderMesh.new()
-	floor_cyl.top_radius = 10.0
-	floor_cyl.bottom_radius = 10.5
-	floor_cyl.height = 0.22
-	arena_floor.mesh = floor_cyl
+	var floor_disc := SphereMesh.new()
+	floor_disc.radius = 10.2
+	floor_disc.height = 0.24
+	arena_floor.mesh = floor_disc
+	arena_floor.scale = Vector3(1.0, 0.1, 1.0)
 	arena_floor.position = arena_center + Vector3(0.0, 0.1, 0.0)
 	var arena_mat := StandardMaterial3D.new()
 	arena_mat.albedo_color = Color(0.38, 0.28, 0.22)
@@ -389,10 +386,9 @@ func _build_boss_arena() -> void:
 
 	# Inner ring pattern
 	var inner_ring := MeshInstance3D.new()
-	var ring_mesh := CylinderMesh.new()
-	ring_mesh.top_radius = 6.0
-	ring_mesh.bottom_radius = 6.0
-	ring_mesh.height = 0.04
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.ring_radius = 6.0
+	ring_mesh.pipe_radius = 0.16
 	inner_ring.mesh = ring_mesh
 	inner_ring.position = arena_center + Vector3(0.0, 0.23, 0.0)
 	var ring_mat := StandardMaterial3D.new()
@@ -408,10 +404,9 @@ func _build_boss_arena() -> void:
 
 		# Column shaft
 		var pillar := MeshInstance3D.new()
-		var pillar_mesh := CylinderMesh.new()
-		pillar_mesh.top_radius = 0.30
-		pillar_mesh.bottom_radius = 0.38
-		pillar_mesh.height = 3.2
+		var pillar_mesh := PrismMesh.new()
+		pillar_mesh.left_to_right = 0.86
+		pillar_mesh.size = Vector3(0.68, 3.2, 0.68)
 		pillar.mesh = pillar_mesh
 		pillar.position = pillar_pos + Vector3(0.0, 1.6, 0.0)
 		var pillar_mat := StandardMaterial3D.new()
@@ -432,10 +427,8 @@ func _build_boss_arena() -> void:
 
 		# Column base
 		var col_base := MeshInstance3D.new()
-		var base_mesh := CylinderMesh.new()
-		base_mesh.top_radius = 0.42
-		base_mesh.bottom_radius = 0.48
-		base_mesh.height = 0.18
+		var base_mesh := BoxMesh.new()
+		base_mesh.size = Vector3(1.0, 0.18, 1.0)
 		col_base.mesh = base_mesh
 		col_base.position = pillar_pos + Vector3(0.0, 0.09, 0.0)
 		col_base.material_override = pillar_mat
@@ -519,10 +512,9 @@ func _place_tree(at: Vector3, scale_factor: float) -> void:
 
 	# Gnarled olive tree trunk
 	var trunk := MeshInstance3D.new()
-	var trunk_mesh := CylinderMesh.new()
-	trunk_mesh.height = 3.2 * scale_factor
-	trunk_mesh.top_radius = 0.18 * scale_factor
-	trunk_mesh.bottom_radius = 0.42 * scale_factor
+	var trunk_mesh := PrismMesh.new()
+	trunk_mesh.left_to_right = 0.78
+	trunk_mesh.size = Vector3(0.62 * scale_factor, 3.2 * scale_factor, 0.56 * scale_factor)
 	trunk.mesh = trunk_mesh
 	trunk.position = Vector3(0.0, trunk_mesh.height * 0.5, 0.0)
 
@@ -576,10 +568,9 @@ func _place_tree(at: Vector3, scale_factor: float) -> void:
 
 	# Shadow blob on ground
 	var shadow := MeshInstance3D.new()
-	var shadow_mesh := CylinderMesh.new()
-	shadow_mesh.top_radius = 1.8 * scale_factor
-	shadow_mesh.bottom_radius = 2.0 * scale_factor
-	shadow_mesh.height = 0.02
+	var shadow_mesh := SphereMesh.new()
+	shadow_mesh.radius = 1.9 * scale_factor
+	shadow_mesh.height = 0.08
 	shadow.mesh = shadow_mesh
 	shadow.position = Vector3(0.0, 0.01, 0.0)
 	var shadow_mat := StandardMaterial3D.new()
@@ -610,10 +601,9 @@ func _place_bush(at: Vector3) -> void:
 
 func _place_broken_column(at: Vector3, height: float) -> void:
 	var column := MeshInstance3D.new()
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = 0.28
-	mesh.bottom_radius = 0.34
-	mesh.height = height
+	var mesh := PrismMesh.new()
+	mesh.left_to_right = 0.84
+	mesh.size = Vector3(0.62, height, 0.62)
 	column.mesh = mesh
 	column.position = at + Vector3(0.0, height * 0.5, 0.0)
 
@@ -626,10 +616,8 @@ func _place_broken_column(at: Vector3, height: float) -> void:
 
 	# Broken top cap
 	var cap := MeshInstance3D.new()
-	var cap_mesh := CylinderMesh.new()
-	cap_mesh.top_radius = 0.22
-	cap_mesh.bottom_radius = 0.3
-	cap_mesh.height = 0.12
+	var cap_mesh := BoxMesh.new()
+	cap_mesh.size = Vector3(0.58, 0.12, 0.58)
 	cap.mesh = cap_mesh
 	cap.position = at + Vector3(0.0, height + 0.06, 0.0)
 	cap.rotation_degrees = Vector3(randf_range(-8.0, 8.0), 0.0, randf_range(-8.0, 8.0))
@@ -640,10 +628,9 @@ func _place_broken_column(at: Vector3, height: float) -> void:
 func _place_brazier(at: Vector3) -> void:
 	# Stone bowl
 	var bowl := MeshInstance3D.new()
-	var bowl_mesh := CylinderMesh.new()
-	bowl_mesh.top_radius = 0.42
-	bowl_mesh.bottom_radius = 0.28
-	bowl_mesh.height = 0.65
+	var bowl_mesh := SphereMesh.new()
+	bowl_mesh.radius = 0.42
+	bowl_mesh.height = 0.3
 	bowl.mesh = bowl_mesh
 	bowl.position = at + Vector3(0.0, 0.32, 0.0)
 	var bowl_mat := StandardMaterial3D.new()
@@ -654,10 +641,9 @@ func _place_brazier(at: Vector3) -> void:
 
 	# Stand
 	var stand := MeshInstance3D.new()
-	var stand_mesh := CylinderMesh.new()
-	stand_mesh.top_radius = 0.14
-	stand_mesh.bottom_radius = 0.22
-	stand_mesh.height = 0.65
+	var stand_mesh := PrismMesh.new()
+	stand_mesh.left_to_right = 0.84
+	stand_mesh.size = Vector3(0.32, 0.65, 0.32)
 	stand.mesh = stand_mesh
 	stand.position = at + Vector3(0.0, 0.0, 0.0)
 	stand.material_override = bowl_mat

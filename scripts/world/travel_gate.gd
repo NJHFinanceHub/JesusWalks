@@ -70,17 +70,27 @@ func _build_gate_visual() -> void:
 	if pillar == null:
 		pillar = MeshInstance3D.new()
 		pillar.name = "GatePillar"
-		var column := CylinderMesh.new()
-		column.top_radius = 0.45
-		column.bottom_radius = 0.55
-		column.height = 1.2
-		pillar.mesh = column
-		pillar.position = Vector3(0.0, 0.6, 0.0)
+		var pedestal := BoxMesh.new()
+		pedestal.size = Vector3(1.35, 1.05, 1.35)
+		pillar.mesh = pedestal
+		pillar.position = Vector3(0.0, 0.53, 0.0)
 		var pillar_material := StandardMaterial3D.new()
 		pillar_material.albedo_color = Color(0.6, 0.54, 0.44)
 		pillar_material.roughness = 0.85
 		pillar.material_override = pillar_material
 		add_child(pillar)
+
+		for i in range(4):
+			var obelisk := MeshInstance3D.new()
+			var obelisk_mesh := PrismMesh.new()
+			obelisk_mesh.left_to_right = 0.68
+			obelisk_mesh.size = Vector3(0.28, 1.8, 0.28)
+			obelisk.mesh = obelisk_mesh
+			var angle := TAU * float(i) / 4.0
+			obelisk.position = Vector3(cos(angle) * 1.02, 0.95, sin(angle) * 1.02)
+			obelisk.rotation_degrees.y = rad_to_deg(angle) + 45.0
+			obelisk.material_override = pillar_material
+			add_child(obelisk)
 
 	var light := get_node_or_null("GateLight") as OmniLight3D
 	if light == null:

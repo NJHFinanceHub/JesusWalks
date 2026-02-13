@@ -38,3 +38,12 @@ Biblical action RPG in active migration to Unreal Engine 5.
 - Networking scope: `docs/NETWORKING_SCOPE.md`
 - Narrative scope: `docs/PLOT.md`
 - Character roster: `docs/CHARACTER_LIBRARY.md`
+
+
+## Jesus Walks prototype enhancements (this branch)
+- New branded main menu title **Jesus Walks** with New/Continue/Settings/Credits/Quit actions and animated + music-backed presentation.
+- Character class system (Shepherd, Zealot, Prophet) with persistent campaign metadata.
+- XP + level progression and skill points integrated with enemy redemption rewards.
+- Multi-branch skill tree (combat, movement, miracles, defense) with unlock requirements and persistence.
+- HUD improvements: class/XP display, skill-tree status, and contextual popups for level-up/reward events.
+- Campaign progression updates: region difficulty scaling, scripted hazards, and ambient NPC dialogue actors.

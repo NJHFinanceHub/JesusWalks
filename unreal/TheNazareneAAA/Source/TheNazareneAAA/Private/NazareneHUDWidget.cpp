@@ -142,12 +142,17 @@ void UNazareneHUDWidget::NativeOnInitialized()
     ConfigureText(ContextHintText, TEXT(""), FLinearColor(0.92f, 0.82f, 0.66f), 14);
     AddVerticalChild(PlayerPanelContent, ContextHintText, FMargin(14.0f, 6.0f, 12.0f, 10.0f));
 
+    CombatStateText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("CombatStateText"));
+    ConfigureText(CombatStateText, TEXT("Cooldowns: Heal Ready | Blessing Locked | Radiance Locked"), FLinearColor(0.84f, 0.86f, 0.92f), 13);
+    CombatStateText->SetAutoWrapText(true);
+    AddVerticalChild(PlayerPanelContent, CombatStateText, FMargin(14.0f, 0.0f, 12.0f, 8.0f));
+
     UBorder* ObjectivePanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("ObjectivePanel"));
     ObjectivePanel->SetBrushColor(FLinearColor(0.07f, 0.07f, 0.06f, 0.74f));
     UCanvasPanelSlot* ObjectivePanelSlot = RootPanel->AddChildToCanvas(ObjectivePanel);
     if (ObjectivePanelSlot != nullptr)
     {
-        ObjectivePanelSlot->SetSize(FVector2D(470.0f, 150.0f));
+        ObjectivePanelSlot->SetSize(FVector2D(500.0f, 190.0f));
         ObjectivePanelSlot->SetAnchors(FAnchors(1.0f, 0.0f, 1.0f, 0.0f));
         ObjectivePanelSlot->SetAlignment(FVector2D(1.0f, 0.0f));
         ObjectivePanelSlot->SetPosition(FVector2D(-24.0f, 18.0f));
@@ -197,7 +202,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
         ControlsText,
         TEXT("Move/Look: WASD + Mouse | Combat: LMB Light, RMB Heavy, Shift Block, F Parry, Space Dodge | Miracles: R Heal, 1 Blessing, 2 Radiance | Interaction: E Pray, Q Lock, Esc Menu"),
         FLinearColor(0.90f, 0.85f, 0.70f),
-        14
+        13
     );
     ControlsText->SetAutoWrapText(true);
     UCanvasPanelSlot* ControlsSlot = RootPanel->AddChildToCanvas(ControlsText);

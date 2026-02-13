@@ -20,7 +20,7 @@ ANazarenePrayerSite::ANazarenePrayerSite()
     AltarMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AltarMesh"));
     AltarMesh->SetupAttachment(InteractionSphere);
     AltarMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -70.0f));
-    AltarMesh->SetRelativeScale3D(FVector(1.3f, 1.3f, 0.5f));
+    AltarMesh->SetRelativeScale3D(FVector(1.4f, 1.0f, 0.55f));
     AltarMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     PrayerLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("PrayerLight"));
@@ -30,10 +30,10 @@ ANazarenePrayerSite::ANazarenePrayerSite()
     PrayerLight->SetAttenuationRadius(1000.0f);
     PrayerLight->SetLightColor(FColor(255, 229, 189));
 
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMesh(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
-    if (CylinderMesh.Succeeded())
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> AltarBlockMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
+    if (AltarBlockMesh.Succeeded())
     {
-        AltarMesh->SetStaticMesh(CylinderMesh.Object);
+        AltarMesh->SetStaticMesh(AltarBlockMesh.Object);
     }
 }
 
