@@ -24,6 +24,7 @@ void ANazareneHUD::BeginPlay()
     RuntimeWidget->AddToViewport(0);
     RuntimeWidget->SetRegionName(RegionName);
     RuntimeWidget->SetObjective(Objective);
+    SetStartMenuVisible(true);
 }
 
 void ANazareneHUD::DrawHUD()
@@ -64,9 +65,30 @@ bool ANazareneHUD::TogglePauseMenu()
         return false;
     }
 
+    if (RuntimeWidget->IsStartMenuVisible())
+    {
+        return false;
+    }
+
     const bool bNextVisible = !RuntimeWidget->IsPauseMenuVisible();
     SetPauseMenuVisible(bNextVisible);
     return bNextVisible;
+}
+
+void ANazareneHUD::SetStartMenuVisible(bool bVisible)
+{
+    if (RuntimeWidget != nullptr)
+    {
+        RuntimeWidget->SetStartMenuVisible(bVisible);
+    }
+
+    const bool bAnyMenuVisible = RuntimeWidget != nullptr && (RuntimeWidget->IsStartMenuVisible() || RuntimeWidget->IsPauseMenuVisible());
+    ApplyMenuInputMode(bAnyMenuVisible);
+}
+
+bool ANazareneHUD::IsStartMenuVisible() const
+{
+    return RuntimeWidget != nullptr && RuntimeWidget->IsStartMenuVisible();
 }
 
 void ANazareneHUD::SetPauseMenuVisible(bool bVisible)
@@ -76,30 +98,35 @@ void ANazareneHUD::SetPauseMenuVisible(bool bVisible)
         RuntimeWidget->SetPauseMenuVisible(bVisible);
     }
 
+    const bool bAnyMenuVisible = RuntimeWidget != nullptr && (RuntimeWidget->IsStartMenuVisible() || RuntimeWidget->IsPauseMenuVisible());
+    ApplyMenuInputMode(bAnyMenuVisible);
+}
+
+bool ANazareneHUD::IsPauseMenuVisible() const
+{
+    return RuntimeWidget != nullptr && RuntimeWidget->IsPauseMenuVisible();
+}
+
+void ANazareneHUD::ApplyMenuInputMode(bool bMenuVisible)
+{
     APlayerController* PlayerController = GetOwningPlayerController();
     if (PlayerController == nullptr)
     {
         return;
     }
 
-    UGameplayStatics::SetGamePaused(this, bVisible);
-    PlayerController->bShowMouseCursor = bVisible;
+    UGameplayStatics::SetGamePaused(this, bMenuVisible);
+    PlayerController->bShowMouseCursor = bMenuVisible;
 
-    if (bVisible)
+    if (bMenuVisible)
     {
         FInputModeGameAndUI InputMode;
         InputMode.SetHideCursorDuringCapture(false);
         InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
         PlayerController->SetInputMode(InputMode);
+        return;
     }
-    else
-    {
-        PlayerController->SetInputMode(FInputModeGameOnly());
-    }
-}
 
-bool ANazareneHUD::IsPauseMenuVisible() const
-{
-    return RuntimeWidget != nullptr && RuntimeWidget->IsPauseMenuVisible();
+    PlayerController->SetInputMode(FInputModeGameOnly());
 }
 

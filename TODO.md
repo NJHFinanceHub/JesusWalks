@@ -52,3 +52,7 @@ bash -lc 'printf "\n## Updates (%s)\n- [ ] <new todo> (@claude|@codex)\n" "$(dat
 - [x] Added animation runtime state classes and retarget-ready skeletal mesh hooks for player/enemies. (@codex)
 - [x] Added Niagara/audio/material integration hooks across combat systems and region environment pass. (@codex)
 - [x] Published gameplay validation, packaging pipeline, GAS evaluation, and networking scope docs. (@codex)
+
+## Updates (2026-02-13)
+- [x] Fixed Unreal 5.7 startup path, default map routing, and launch blockers; project now boots into `/Game/Maps/NazareneCampaign`. (@codex)
+- [x] Added startup menu overlay flow (`New Game`, `Continue`, `Options`, `Quit`) and wired menu-driven pause/input control in HUD runtime code. (@codex)

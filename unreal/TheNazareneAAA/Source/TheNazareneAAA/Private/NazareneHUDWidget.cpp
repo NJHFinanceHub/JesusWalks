@@ -11,6 +11,8 @@
 #include "Components/VerticalBoxSlot.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "NazareneCampaignGameMode.h"
 #include "NazareneGameInstance.h"
 #include "NazareneHUD.h"
 #include "NazarenePlayerCharacter.h"
@@ -281,6 +283,64 @@ void UNazareneHUDWidget::NativeOnInitialized()
         NewPilgrimageButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleNewPilgrimagePressed);
     }
 
+    StartMenuOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("StartMenuOverlay"));
+    StartMenuOverlay->SetBrushColor(FLinearColor(0.01f, 0.01f, 0.01f, 0.93f));
+    StartMenuOverlay->SetVisibility(ESlateVisibility::Collapsed);
+    UCanvasPanelSlot* StartOverlaySlot = RootPanel->AddChildToCanvas(StartMenuOverlay);
+    if (StartOverlaySlot != nullptr)
+    {
+        StartOverlaySlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+        StartOverlaySlot->SetOffsets(FMargin(0.0f));
+    }
+
+    UCanvasPanel* StartCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("StartCanvas"));
+    StartMenuOverlay->SetContent(StartCanvas);
+
+    UBorder* StartMenuPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("StartMenuPanel"));
+    StartMenuPanel->SetBrushColor(FLinearColor(0.10f, 0.09f, 0.07f, 0.98f));
+    UCanvasPanelSlot* StartPanelSlot = StartCanvas->AddChildToCanvas(StartMenuPanel);
+    if (StartPanelSlot != nullptr)
+    {
+        StartPanelSlot->SetSize(FVector2D(620.0f, 520.0f));
+        StartPanelSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+        StartPanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+        StartPanelSlot->SetPosition(FVector2D::ZeroVector);
+    }
+
+    UVerticalBox* StartMenuContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("StartMenuContent"));
+    StartMenuPanel->SetContent(StartMenuContent);
+
+    UTextBlock* StartTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("StartTitle"));
+    ConfigureText(StartTitle, TEXT("THE NAZARENE"), FLinearColor(0.98f, 0.92f, 0.80f), 30);
+    StartTitle->SetJustification(ETextJustify::Center);
+    AddVerticalChild(StartMenuContent, StartTitle, FMargin(16.0f, 24.0f, 16.0f, 8.0f));
+
+    UTextBlock* StartSubtitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("StartSubtitle"));
+    ConfigureText(StartSubtitle, TEXT("Rise and walk the opening pilgrimage."), FLinearColor(0.88f, 0.84f, 0.72f), 16);
+    StartSubtitle->SetJustification(ETextJustify::Center);
+    AddVerticalChild(StartMenuContent, StartSubtitle, FMargin(16.0f, 0.0f, 16.0f, 24.0f));
+
+    UTextBlock* StartButtonLabel = nullptr;
+    if (UButton* StartButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("StartPilgrimageButton"), TEXT("New Game"), StartButtonLabel))
+    {
+        StartButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleStartPilgrimagePressed);
+    }
+
+    if (UButton* ContinueButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("ContinuePilgrimageButton"), TEXT("Continue"), StartButtonLabel))
+    {
+        ContinueButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleContinuePilgrimagePressed);
+    }
+
+    if (UButton* OptionsButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("OptionsButton"), TEXT("Options"), StartButtonLabel))
+    {
+        OptionsButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsPressed);
+    }
+
+    if (UButton* QuitButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("QuitButton"), TEXT("Quit"), StartButtonLabel))
+    {
+        QuitButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleQuitPressed);
+    }
+
     RefreshSlotSummaries();
 }
 
@@ -333,8 +393,31 @@ void UNazareneHUDWidget::ShowMessage(const FString& InMessage, float Duration)
     MessageTimer = FMath::Max(0.0f, Duration);
 }
 
+void UNazareneHUDWidget::SetStartMenuVisible(bool bVisible)
+{
+    if (StartMenuOverlay != nullptr)
+    {
+        StartMenuOverlay->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+    }
+
+    if (bVisible && PauseOverlay != nullptr)
+    {
+        PauseOverlay->SetVisibility(ESlateVisibility::Collapsed);
+    }
+}
+
+bool UNazareneHUDWidget::IsStartMenuVisible() const
+{
+    return StartMenuOverlay != nullptr && StartMenuOverlay->GetVisibility() == ESlateVisibility::Visible;
+}
+
 void UNazareneHUDWidget::SetPauseMenuVisible(bool bVisible)
 {
+    if (IsStartMenuVisible() && bVisible)
+    {
+        return;
+    }
+
     if (PauseOverlay != nullptr)
     {
         PauseOverlay->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
@@ -445,6 +528,81 @@ void UNazareneHUDWidget::HandleResumePressed()
             HUD->SetPauseMenuVisible(false);
         }
     }
+}
+
+void UNazareneHUDWidget::HandleStartPilgrimagePressed()
+{
+    if (UWorld* World = GetWorld())
+    {
+        if (UNazareneGameInstance* Session = World->GetGameInstance<UNazareneGameInstance>())
+        {
+            Session->StartNewGame();
+        }
+    }
+
+    if (APlayerController* PlayerController = GetOwningPlayer())
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PlayerController->GetHUD()))
+        {
+            HUD->SetStartMenuVisible(false);
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleContinuePilgrimagePressed()
+{
+    bool bLoaded = false;
+    FString LoadedSource;
+
+    if (UWorld* World = GetWorld())
+    {
+        if (ANazareneCampaignGameMode* CampaignMode = Cast<ANazareneCampaignGameMode>(World->GetAuthGameMode()))
+        {
+            if (CampaignMode->LoadCheckpoint())
+            {
+                bLoaded = true;
+                LoadedSource = TEXT("checkpoint");
+            }
+            else
+            {
+                for (int32 SlotId = 1; SlotId <= 3; ++SlotId)
+                {
+                    if (CampaignMode->LoadFromSlot(SlotId))
+                    {
+                        bLoaded = true;
+                        LoadedSource = FString::Printf(TEXT("slot %d"), SlotId);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if (!bLoaded)
+    {
+        ShowMessage(TEXT("No checkpoint or save slots found. Start a new game."), 4.5f);
+        return;
+    }
+
+    ShowMessage(FString::Printf(TEXT("Continuing from %s."), *LoadedSource), 3.0f);
+    if (APlayerController* PlayerController = GetOwningPlayer())
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PlayerController->GetHUD()))
+        {
+            HUD->SetStartMenuVisible(false);
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleOptionsPressed()
+{
+    ShowMessage(TEXT("Options menu is queued for next sprint (video/audio/controls)."), 4.5f);
+}
+
+void UNazareneHUDWidget::HandleQuitPressed()
+{
+    APlayerController* PlayerController = GetOwningPlayer();
+    UKismetSystemLibrary::QuitGame(this, PlayerController, EQuitPreference::Quit, false);
 }
 
 void UNazareneHUDWidget::HandleSaveSlot1Pressed()

@@ -21,6 +21,8 @@ public:
     void SetRegionName(const FString& InRegionName);
     void SetObjective(const FString& InObjective);
     void ShowMessage(const FString& InMessage, float Duration = 3.5f);
+    void SetStartMenuVisible(bool bVisible);
+    bool IsStartMenuVisible() const;
     void SetPauseMenuVisible(bool bVisible);
     bool IsPauseMenuVisible() const;
     void RefreshSlotSummaries();
@@ -30,6 +32,18 @@ private:
 
     UFUNCTION()
     void HandleResumePressed();
+
+    UFUNCTION()
+    void HandleStartPilgrimagePressed();
+
+    UFUNCTION()
+    void HandleContinuePilgrimagePressed();
+
+    UFUNCTION()
+    void HandleOptionsPressed();
+
+    UFUNCTION()
+    void HandleQuitPressed();
 
     UFUNCTION()
     void HandleSaveSlot1Pressed();
@@ -82,6 +96,9 @@ private:
 
     UPROPERTY()
     TObjectPtr<UTextBlock> MessageText;
+
+    UPROPERTY()
+    TObjectPtr<UBorder> StartMenuOverlay;
 
     UPROPERTY()
     TObjectPtr<UBorder> PauseOverlay;

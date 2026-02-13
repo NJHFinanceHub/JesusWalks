@@ -28,10 +28,19 @@ public:
     bool TogglePauseMenu();
 
     UFUNCTION(BlueprintCallable, Category = "HUD")
+    void SetStartMenuVisible(bool bVisible);
+
+    UFUNCTION(BlueprintCallable, Category = "HUD")
+    bool IsStartMenuVisible() const;
+
+    UFUNCTION(BlueprintCallable, Category = "HUD")
     void SetPauseMenuVisible(bool bVisible);
 
     UFUNCTION(BlueprintCallable, Category = "HUD")
     bool IsPauseMenuVisible() const;
+
+private:
+    void ApplyMenuInputMode(bool bMenuVisible);
 
 private:
     UPROPERTY()
