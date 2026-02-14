@@ -15,6 +15,7 @@
 #include "Engine/PostProcessVolume.h"
 #include "Engine/SkyLight.h"
 #include "Engine/StaticMeshActor.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -36,6 +37,25 @@
 #include "NazareneTravelGate.h"
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
+#include "AIController.h"
+
+namespace
+{
+    FName OpeningIntroFlag()
+    {
+        return FName(TEXT("intro_ch1_seen"));
+    }
+
+    FName NativityQuestCompleteFlag()
+    {
+        return FName(TEXT("nativity_prologue_complete"));
+    }
+
+    FName NativityDialogueFlag(FName CharacterSlug)
+    {
+        return FName(*FString::Printf(TEXT("nativity_spoke_%s"), *CharacterSlug.ToString().ToLower()));
+    }
+}
 
 ANazareneCampaignGameMode::ANazareneCampaignGameMode()
 {
@@ -58,6 +78,8 @@ ANazareneCampaignGameMode::ANazareneCampaignGameMode()
     BTRangedAsset = TSoftObjectPtr<UBehaviorTree>(FSoftObjectPath(TEXT("/Game/AI/BehaviorTrees/BT_Ranged.BT_Ranged")));
     BTDemonAsset = TSoftObjectPtr<UBehaviorTree>(FSoftObjectPath(TEXT("/Game/AI/BehaviorTrees/BT_Demon.BT_Demon")));
     BTBossAsset = TSoftObjectPtr<UBehaviorTree>(FSoftObjectPath(TEXT("/Game/AI/BehaviorTrees/BT_Boss.BT_Boss")));
+
+    NativityQuestRequiredSlugs = { FName(TEXT("mary")), FName(TEXT("joseph")), FName(TEXT("shepherd")) };
 }
 
 void ANazareneCampaignGameMode::BeginPlay()
@@ -119,50 +141,46 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
 
     FNazareneRegionDefinition Galilee;
     Galilee.RegionId = FName(TEXT("galilee"));
-    Galilee.RegionName = TEXT("Galilee Shores");
+    Galilee.RegionName = TEXT("Bethlehem Nativity");
     Galilee.Chapter = 1;
-    Galilee.Objective = TEXT("Redeem the Legion Sovereign of Gerasa.");
+    Galilee.Objective = TEXT("Witness the nativity in peace, then depart Bethlehem for the Jordan when called.");
+    Galilee.ChapterTitle = TEXT("The Promise");
     Galilee.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Galilee/L_GalileeShores"));
     Galilee.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Galilee.PrayerSiteId = FName(TEXT("galilee_site_01"));
-    Galilee.PrayerSiteName = TEXT("Prayer Site: Galilee Shores");
+    Galilee.PrayerSiteName = TEXT("Prayer Site: Nativity Grotto");
     Galilee.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
-    Galilee.TravelGatePrompt = TEXT("Press E to travel to Decapolis Ruins");
+    Galilee.TravelGatePrompt = TEXT("Press E to begin the journey to the Jordan River");
     Galilee.TravelGateLocation = FVector(0.0f, 1800.0f, 20.0f);
-    Galilee.BossSpawnId = FName(TEXT("galilee_named_boss_01"));
-    Galilee.RewardMiracle = FName(TEXT("blessing"));
-    Galilee.RewardHealthBonus = 10.0f;
-    Galilee.RewardStaminaBonus = 6.0f;
-    Galilee.Enemies =
+    Galilee.BossSpawnId = NAME_None;
+    Galilee.RewardMiracle = NAME_None;
+    Galilee.RewardHealthBonus = 0.0f;
+    Galilee.RewardStaminaBonus = 0.0f;
+    Galilee.Enemies = {};
+    Galilee.LoreText = TEXT("In Bethlehem, the Word became flesh; shepherds and sages rejoiced at his birth.");
+    Galilee.RewardItems =
     {
-        { FName(TEXT("galilee_shield_01")), TEXT("Roman Shieldbearer I"), ENazareneEnemyArchetype::MeleeShield, FVector(850.0f, 420.0f, 100.0f) },
-        { FName(TEXT("galilee_shield_02")), TEXT("Roman Shieldbearer II"), ENazareneEnemyArchetype::MeleeShield, FVector(-900.0f, 450.0f, 100.0f) },
-        { FName(TEXT("galilee_spear_01")), TEXT("Roman Spearman I"), ENazareneEnemyArchetype::Spear, FVector(1200.0f, -250.0f, 100.0f) },
-        { FName(TEXT("galilee_spear_02")), TEXT("Roman Spearman II"), ENazareneEnemyArchetype::Spear, FVector(-1200.0f, -300.0f, 100.0f) },
-        { FName(TEXT("galilee_ranged_01")), TEXT("Roman Slinger I"), ENazareneEnemyArchetype::Ranged, FVector(1300.0f, 950.0f, 100.0f) },
-        { FName(TEXT("galilee_ranged_02")), TEXT("Roman Slinger II"), ENazareneEnemyArchetype::Ranged, FVector(-1300.0f, 980.0f, 100.0f) },
-        { FName(TEXT("galilee_demon_01")), TEXT("Unclean Spirit I"), ENazareneEnemyArchetype::Demon, FVector(460.0f, -1100.0f, 100.0f) },
-        { FName(TEXT("galilee_demon_02")), TEXT("Unclean Spirit II"), ENazareneEnemyArchetype::Demon, FVector(-460.0f, -1180.0f, 100.0f) },
-        { FName(TEXT("galilee_named_boss_01")), TEXT("Legion Sovereign of Gerasa"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2200.0f, 100.0f) }
+        { FName(TEXT("oil_lamp_of_watchfulness")), TEXT("Oil Lamp of Watchfulness"), TEXT("A consecrated lamp carried into dark valleys. Increases resolve."), ENazareneItemType::Relic, ENazareneItemRarity::Rare, 1 }
     };
-    Galilee.LoreText = TEXT("By these shores the Teacher called his first followers, saying: Come, and I will make you fishers of men.");
     Galilee.NPCs =
     {
-        { TEXT("Peter"), TEXT("peter"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Peter"), { { TEXT("Follow me, and I will make you fishers of men."), 4.0f }, { TEXT("The nets are full, Lord."), 4.0f } } },
-        { TEXT("Mary"), TEXT("mary"), FVector(350.0f, 280.0f, 100.0f), TEXT("Press E to speak with Mary"), { { TEXT("He has done great things for us."), 4.0f } } }
+        { TEXT("Mary"), TEXT("mary"), FVector(250.0f, 220.0f, 100.0f), TEXT("Press E to speak with Mary"), { { TEXT("My soul magnifies the Lord, and my spirit rejoices in God my Savior."), 4.2f }, { TEXT("Treasure these things in your heart."), 3.8f } } },
+        { TEXT("Joseph"), TEXT("joseph"), FVector(-260.0f, 210.0f, 100.0f), TEXT("Press E to speak with Joseph"), { { TEXT("Peace be with this house. The child is kept in the Father's care."), 4.0f }, { TEXT("When the time comes, we will walk the road before us."), 4.0f } } },
+        { TEXT("Shepherd"), TEXT("shepherd"), FVector(0.0f, 340.0f, 100.0f), TEXT("Press E to speak with the Shepherd"), { { TEXT("We saw the glory in the night sky and came with haste."), 4.0f } } }
     };
 
     FNazareneRegionDefinition Decapolis;
     Decapolis.RegionId = FName(TEXT("decapolis"));
-    Decapolis.RegionName = TEXT("Decapolis Ruins");
+    Decapolis.RegionName = TEXT("Jordan River Baptism");
     Decapolis.Chapter = 2;
-    Decapolis.Objective = TEXT("Redeem the Gadarene Warlord among the ruins.");
+    Decapolis.Objective = TEXT("Be baptized and prepare the way for public ministry.");
+    Decapolis.ChapterTitle = TEXT("Open Heavens");
     Decapolis.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Decapolis/L_DecapolisRuins"));
     Decapolis.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Decapolis.PrayerSiteId = FName(TEXT("decapolis_site_01"));
-    Decapolis.PrayerSiteName = TEXT("Prayer Site: Decapolis Ruins");
+    Decapolis.PrayerSiteName = TEXT("Prayer Site: Jordan Bank");
     Decapolis.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
-    Decapolis.TravelGatePrompt = TEXT("Press E to travel to Wilderness of Temptation");
+    Decapolis.TravelGatePrompt = TEXT("Press E to travel to the Wilderness of Testing");
     Decapolis.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
     Decapolis.BossSpawnId = FName(TEXT("decapolis_named_boss_01"));
     Decapolis.RewardMiracle = FName(TEXT("radiance"));
@@ -180,7 +198,11 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("decapolis_demon_02")), TEXT("Unclean Spirit"), ENazareneEnemyArchetype::Demon, FVector(-350.0f, -1450.0f, 100.0f) },
         { FName(TEXT("decapolis_named_boss_01")), TEXT("Gadarene Warlord"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2300.0f, 100.0f) }
     };
-    Decapolis.LoreText = TEXT("Among the ruins of Gentile cities, mercy crossed every boundary.");
+    Decapolis.LoreText = TEXT("At the Jordan, the heavens opened and the Father affirmed the Son.");
+    Decapolis.RewardItems =
+    {
+        { FName(TEXT("seal_of_jordan")), TEXT("Seal of the Jordan"), TEXT("A water-marked seal carried by early disciples. Unlocks later testimony dialogue."), ENazareneItemType::Quest, ENazareneItemRarity::Rare, 1 }
+    };
     Decapolis.NPCs =
     {
         { TEXT("Andrew"), TEXT("andrew"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Andrew"), { { TEXT("We have found the Messiah."), 4.0f } } },
@@ -191,7 +213,8 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     Wilderness.RegionId = FName(TEXT("wilderness"));
     Wilderness.RegionName = TEXT("Wilderness of Temptation");
     Wilderness.Chapter = 3;
-    Wilderness.Objective = TEXT("Resist the Adversary of the Desert.");
+    Wilderness.Objective = TEXT("Resist temptation through fasting, prayer, and obedience.");
+    Wilderness.ChapterTitle = TEXT("The Testing");
     Wilderness.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Wilderness/L_WildernessTemptation"));
     Wilderness.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Wilderness.PrayerSiteId = FName(TEXT("wilderness_site_01"));
@@ -214,6 +237,10 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("wilderness_named_boss_01")), TEXT("Adversary of the Desert"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2400.0f, 100.0f) }
     };
     Wilderness.LoreText = TEXT("Forty days in solitude. Every temptation met with scripture and obedience.");
+    Wilderness.RewardItems =
+    {
+        { FName(TEXT("scroll_of_endurance")), TEXT("Scroll of Endurance"), TEXT("Scripture fragments memorized in the wilderness. Grants bonus XP flavor progression."), ENazareneItemType::Relic, ENazareneItemRarity::Epic, 1 }
+    };
     Wilderness.NPCs =
     {
         { TEXT("Moses"), TEXT("moses"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Moses"), { { TEXT("Be strong and courageous. The Lord your God goes with you."), 4.0f } } },
@@ -226,13 +253,14 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
 
     FNazareneRegionDefinition Jerusalem;
     Jerusalem.RegionId = FName(TEXT("jerusalem"));
-    Jerusalem.RegionName = TEXT("Jerusalem Approach");
+    Jerusalem.RegionName = TEXT("Galilean Ministry");
     Jerusalem.Chapter = 4;
-    Jerusalem.Objective = TEXT("Face the Temple Warden at the city's gate.");
+    Jerusalem.Objective = TEXT("Teach, heal, and call disciples to follow the kingdom way.");
+    Jerusalem.ChapterTitle = TEXT("Kingdom Proclaimed");
     Jerusalem.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Jerusalem/L_JerusalemApproach"));
     Jerusalem.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Jerusalem.PrayerSiteId = FName(TEXT("jerusalem_site_01"));
-    Jerusalem.PrayerSiteName = TEXT("Prayer Site: Jerusalem Approach");
+    Jerusalem.PrayerSiteName = TEXT("Prayer Site: Capernaum Shore");
     Jerusalem.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
     Jerusalem.TravelGatePrompt = TEXT("Press E to conclude the pilgrimage");
     Jerusalem.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
@@ -249,7 +277,11 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("jerusalem_demon_02")), TEXT("Unclean Spirit"), ENazareneEnemyArchetype::Demon, FVector(-350.0f, -1650.0f, 100.0f) },
         { FName(TEXT("jerusalem_named_boss_01")), TEXT("Temple Warden"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2450.0f, 100.0f) }
     };
-    Jerusalem.LoreText = TEXT("The city on the hill, where prophets are received and rejected alike.");
+    Jerusalem.LoreText = TEXT("Crowds gathered in Galilee as parables and miracles revealed the kingdom.");
+    Jerusalem.RewardItems =
+    {
+        { FName(TEXT("bread_of_multitude")), TEXT("Bread of the Multitude"), TEXT("A remembered token from a miracle meal, cherished by the faithful."), ENazareneItemType::Consumable, ENazareneItemRarity::Rare, 2 }
+    };
     Jerusalem.NPCs =
     {
         { TEXT("Isaiah"), TEXT("isaiah"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Isaiah"), { { TEXT("Though your sins are like scarlet, they shall be white as snow."), 4.0f } } },
@@ -261,24 +293,29 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     };
 
     // Update Jerusalem travel gate prompt for new chapter progression
-    Jerusalem.TravelGatePrompt = TEXT("Press E to travel to Gethsemane");
+    Jerusalem.TravelGatePrompt = TEXT("Press E to begin the journey to Jerusalem");
 
     FNazareneRegionDefinition Gethsemane;
     Gethsemane.RegionId = FName(TEXT("gethsemane"));
-    Gethsemane.RegionName = TEXT("Garden of Gethsemane");
+    Gethsemane.RegionName = TEXT("Journey to Jerusalem");
     Gethsemane.Chapter = 5;
-    Gethsemane.Objective = TEXT("Endure the hour of anguish in the garden.");
+    Gethsemane.Objective = TEXT("Set your face toward Jerusalem and prepare for Passion Week.");
+    Gethsemane.ChapterTitle = TEXT("Journey to Jerusalem");
     Gethsemane.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Gethsemane/L_GardenGethsemane"));
     Gethsemane.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Gethsemane.PrayerSiteId = FName(TEXT("gethsemane_site_01"));
-    Gethsemane.PrayerSiteName = TEXT("Prayer Site: Garden of Gethsemane");
+    Gethsemane.PrayerSiteName = TEXT("Prayer Site: Jericho Road");
     Gethsemane.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
-    Gethsemane.TravelGatePrompt = TEXT("Press E to travel to Via Dolorosa");
+    Gethsemane.TravelGatePrompt = TEXT("Press E to enter Jerusalem");
     Gethsemane.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
     Gethsemane.BossSpawnId = FName(TEXT("gethsemane_named_boss_01"));
     Gethsemane.RewardHealthBonus = 14.0f;
     Gethsemane.RewardStaminaBonus = 10.0f;
-    Gethsemane.LoreText = TEXT("Not my will, but yours be done.");
+    Gethsemane.LoreText = TEXT("On the road to Jerusalem, Jesus taught humility, mercy, and repentance.");
+    Gethsemane.RewardItems =
+    {
+        { FName(TEXT("olive_branch_of_peace")), TEXT("Olive Branch of Peace"), TEXT("A branch gathered near Gethsemane, symbol of faithful surrender."), ENazareneItemType::Relic, ENazareneItemRarity::Epic, 1 }
+    };
     Gethsemane.Enemies =
     {
         { FName(TEXT("gethsemane_shield_01")), TEXT("Temple Guard I"), ENazareneEnemyArchetype::MeleeShield, FVector(900.0f, 400.0f, 100.0f) },
@@ -308,17 +345,22 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     ViaDolorosa.RegionName = TEXT("Via Dolorosa");
     ViaDolorosa.Chapter = 6;
     ViaDolorosa.Objective = TEXT("Bear the weight of judgment on the road of sorrow.");
+    ViaDolorosa.ChapterTitle = TEXT("Passion Week");
     ViaDolorosa.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/ViaDolorosa/L_ViaDolorosa"));
     ViaDolorosa.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     ViaDolorosa.PrayerSiteId = FName(TEXT("via_dolorosa_site_01"));
     ViaDolorosa.PrayerSiteName = TEXT("Prayer Site: Via Dolorosa");
     ViaDolorosa.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
-    ViaDolorosa.TravelGatePrompt = TEXT("Press E to travel to the Empty Tomb");
+    ViaDolorosa.TravelGatePrompt = TEXT("Press E to travel to Golgotha");
     ViaDolorosa.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
     ViaDolorosa.BossSpawnId = FName(TEXT("via_dolorosa_named_boss_01"));
     ViaDolorosa.RewardHealthBonus = 16.0f;
     ViaDolorosa.RewardStaminaBonus = 12.0f;
     ViaDolorosa.LoreText = TEXT("He bore the cross for the joy set before him.");
+    ViaDolorosa.RewardItems =
+    {
+        { FName(TEXT("nails_of_remembrance")), TEXT("Nails of Remembrance"), TEXT("A solemn keepsake that marks the cost of redemption."), ENazareneItemType::Quest, ENazareneItemRarity::Legendary, 1 }
+    };
     ViaDolorosa.Enemies =
     {
         { FName(TEXT("via_dolorosa_shield_01")), TEXT("Roman Legionary I"), ENazareneEnemyArchetype::MeleeShield, FVector(800.0f, 350.0f, 100.0f) },
@@ -345,18 +387,23 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
 
     FNazareneRegionDefinition EmptyTomb;
     EmptyTomb.RegionId = FName(TEXT("empty_tomb"));
-    EmptyTomb.RegionName = TEXT("The Empty Tomb");
+    EmptyTomb.RegionName = TEXT("Golgotha Crucifixion");
     EmptyTomb.Chapter = 7;
-    EmptyTomb.Objective = TEXT("Rise and proclaim the commission to the nations.");
+    EmptyTomb.Objective = TEXT("Fulfill the sacrifice on the cross and complete the earthly mission.");
+    EmptyTomb.ChapterTitle = TEXT("Golgotha");
     EmptyTomb.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/EmptyTomb/L_EmptyTomb"));
     EmptyTomb.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     EmptyTomb.PrayerSiteId = FName(TEXT("empty_tomb_site_01"));
-    EmptyTomb.PrayerSiteName = TEXT("Prayer Site: The Empty Tomb");
+    EmptyTomb.PrayerSiteName = TEXT("Prayer Site: Hill of Calvary");
     EmptyTomb.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
-    EmptyTomb.TravelGatePrompt = TEXT("Step into the light to conclude the pilgrimage");
+    EmptyTomb.TravelGatePrompt = TEXT("Remain at the cross to conclude the pilgrimage");
     EmptyTomb.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
     EmptyTomb.BossSpawnId = FName(TEXT("empty_tomb_named_boss_01"));
-    EmptyTomb.LoreText = TEXT("He is not here. He is risen.");
+    EmptyTomb.LoreText = TEXT("At Golgotha, the crucified King gave himself in perfect love.");
+    EmptyTomb.RewardItems =
+    {
+        { FName(TEXT("resurrection_shroud_fragment")), TEXT("Resurrection Shroud Fragment"), TEXT("A final relic of victory over death. Marks campaign completion."), ENazareneItemType::Relic, ENazareneItemRarity::Legendary, 1 }
+    };
     EmptyTomb.Enemies =
     {
         { FName(TEXT("empty_tomb_shield_01")), TEXT("Shadow Guard I"), ENazareneEnemyArchetype::MeleeShield, FVector(900.0f, 400.0f, 100.0f) },
@@ -422,6 +469,10 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
     EnemyBySpawnId.Empty();
     BossEnemy = nullptr;
     TravelGate = nullptr;
+    IntroDeferredEnemySpawns.Empty();
+    bIntroSequencePendingStart = false;
+    bIntroSequenceActive = false;
+    bEnemyCombatSuppressed = false;
 
     RegionIndex = FMath::Clamp(TargetRegionIndex, 0, Regions.Num() - 1);
     if (Session)
@@ -458,6 +509,8 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
     {
         PlayerCharacter->SetActorLocation(Region.PlayerSpawn);
         PlayerCharacter->SetCampaignGameMode(this);
+        PlayerCharacter->SetBabyIntroMode(false);
+        PlayerCharacter->SetCombatEnabled(RegionIndex > 0);
 
         if (Session)
         {
@@ -476,6 +529,7 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
         bPrayerSiteConsecrated = Session->IsFlagSet(ConsecratedFlag);
     }
     SyncCompletionState();
+    InitializeNativityQuestState();
     EnsureRetryCounterForCurrentRegion();
     UpdateChapterStageFromState();
     UpdateHUDForRegion(Region, bRegionCompleted);
@@ -502,6 +556,163 @@ void ANazareneCampaignGameMode::ClearRegionActors()
         }
     }
     RegionActors.Empty();
+}
+
+bool ANazareneCampaignGameMode::IsStartMenuVisible() const
+{
+    if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+    {
+        if (const ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            return HUD->IsStartMenuVisible();
+        }
+    }
+    return false;
+}
+
+bool ANazareneCampaignGameMode::ShouldRunOpeningIntro() const
+{
+    return Session != nullptr && RegionIndex == 0 && !Session->IsFlagSet(OpeningIntroFlag());
+}
+
+void ANazareneCampaignGameMode::SetEnemyCombatEnabled(bool bEnabled)
+{
+    bEnemyCombatSuppressed = !bEnabled;
+
+    for (const TPair<FName, TObjectPtr<ANazareneEnemyCharacter>>& Pair : EnemyBySpawnId)
+    {
+        ANazareneEnemyCharacter* Enemy = Pair.Value;
+        if (!IsValid(Enemy))
+        {
+            continue;
+        }
+
+        Enemy->SetActorHiddenInGame(!bEnabled);
+        Enemy->SetActorEnableCollision(bEnabled);
+        Enemy->SetActorTickEnabled(bEnabled);
+
+        if (AAIController* AIController = Cast<AAIController>(Enemy->GetController()))
+        {
+            AIController->StopMovement();
+        }
+
+        if (UCharacterMovementComponent* Movement = Enemy->GetCharacterMovement())
+        {
+            Movement->StopMovementImmediately();
+            if (bEnabled)
+            {
+                Movement->SetMovementMode(EMovementMode::MOVE_Walking);
+            }
+            else
+            {
+                Movement->DisableMovement();
+            }
+        }
+    }
+}
+
+ANazareneEnemyCharacter* ANazareneCampaignGameMode::SpawnConfiguredEnemy(const FNazareneEnemySpawnDefinition& Spec, const FNazareneRegionDefinition& Region, bool bIsWaveEnemy)
+{
+    ANazareneEnemyCharacter* Enemy = GetWorld()->SpawnActor<ANazareneEnemyCharacter>(ANazareneEnemyCharacter::StaticClass(), Spec.Location, FRotator::ZeroRotator);
+    if (Enemy == nullptr)
+    {
+        return nullptr;
+    }
+
+    Enemy->SpawnId = Spec.SpawnId;
+    Enemy->EnemyName = Spec.EnemyName;
+    Enemy->Archetype = Spec.Archetype;
+    Enemy->ConfigureFromArchetype();
+    ApplyRegionalEnemyTuning(Enemy, Region, bIsWaveEnemy);
+    ConfigureEnemyBehaviorTree(Enemy);
+    Enemy->OnRedeemed.AddDynamic(this, &ANazareneCampaignGameMode::HandleEnemyRedeemed);
+
+    RegionActors.Add(Enemy);
+    EnemyBySpawnId.Add(Spec.SpawnId, Enemy);
+
+    if (!bIsWaveEnemy && Spec.SpawnId == Region.BossSpawnId)
+    {
+        BossEnemy = Enemy;
+        BossEnemy->OnPhaseChanged.AddDynamic(this, &ANazareneCampaignGameMode::HandleReinforcementWave);
+    }
+
+    if (bEnemyCombatSuppressed)
+    {
+        SetEnemyCombatEnabled(false);
+    }
+
+    return Enemy;
+}
+
+void ANazareneCampaignGameMode::SpawnIntroDeferredEnemies()
+{
+    if (!Regions.IsValidIndex(RegionIndex) || IntroDeferredEnemySpawns.Num() == 0)
+    {
+        return;
+    }
+
+    const FNazareneRegionDefinition& Region = Regions[RegionIndex];
+    for (const FNazareneEnemySpawnDefinition& Spec : IntroDeferredEnemySpawns)
+    {
+        SpawnConfiguredEnemy(Spec, Region, false);
+    }
+    IntroDeferredEnemySpawns.Empty();
+}
+
+void ANazareneCampaignGameMode::StartOpeningIntroSequence()
+{
+    if (!bIntroSequencePendingStart || ActiveStoryLines.Num() == 0)
+    {
+        return;
+    }
+
+    if (!ShouldRunOpeningIntro())
+    {
+        bIntroSequencePendingStart = false;
+        return;
+    }
+
+    bIntroSequencePendingStart = false;
+    bIntroSequenceActive = true;
+
+    if (Session)
+    {
+        Session->MarkFlag(OpeningIntroFlag());
+    }
+
+    AdvanceStoryLine();
+    GetWorldTimerManager().SetTimer(StoryLineTimerHandle, this, &ANazareneCampaignGameMode::AdvanceStoryLine, 5.2f, true, 5.2f);
+}
+
+void ANazareneCampaignGameMode::CompleteOpeningIntroSequence()
+{
+    if (!bIntroSequenceActive)
+    {
+        return;
+    }
+
+    bIntroSequenceActive = false;
+    GetWorldTimerManager().ClearTimer(StoryLineTimerHandle);
+
+    if (PlayerCharacter != nullptr)
+    {
+        PlayerCharacter->SetBabyIntroMode(false);
+    }
+
+    SpawnIntroDeferredEnemies();
+    SetEnemyCombatEnabled(true);
+    if (bRegionCompleted)
+    {
+        EnableTravelGate(true);
+    }
+
+    if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            HUD->ShowMessage(TEXT("The child grows in wisdom and favor. Speak with Mary, Joseph, and the Shepherd to continue."), 5.2f);
+        }
+    }
 }
 
 bool ANazareneCampaignGameMode::TryLoadRegionSublevel(const FNazareneRegionDefinition& Region)
@@ -1526,6 +1737,9 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
 
 void ANazareneCampaignGameMode::SpawnRegionActors(const FNazareneRegionDefinition& Region)
 {
+    const bool bRunOpeningIntro = ShouldRunOpeningIntro();
+    IntroDeferredEnemySpawns.Empty();
+
     ANazarenePrayerSite* Site = GetWorld()->SpawnActor<ANazarenePrayerSite>(ANazarenePrayerSite::StaticClass(), Region.PrayerSiteLocation, FRotator::ZeroRotator);
     if (Site != nullptr)
     {
@@ -1544,28 +1758,15 @@ void ANazareneCampaignGameMode::SpawnRegionActors(const FNazareneRegionDefinitio
         RegionActors.Add(TravelGate);
     }
 
-    for (const FNazareneEnemySpawnDefinition& Spec : Region.Enemies)
+    if (bRunOpeningIntro)
     {
-        ANazareneEnemyCharacter* Enemy = GetWorld()->SpawnActor<ANazareneEnemyCharacter>(ANazareneEnemyCharacter::StaticClass(), Spec.Location, FRotator::ZeroRotator);
-        if (Enemy == nullptr)
+        IntroDeferredEnemySpawns = Region.Enemies;
+    }
+    else
+    {
+        for (const FNazareneEnemySpawnDefinition& Spec : Region.Enemies)
         {
-            continue;
-        }
-
-        Enemy->SpawnId = Spec.SpawnId;
-        Enemy->EnemyName = Spec.EnemyName;
-        Enemy->Archetype = Spec.Archetype;
-        Enemy->ConfigureFromArchetype();
-        ApplyRegionalEnemyTuning(Enemy, Region, false);
-        ConfigureEnemyBehaviorTree(Enemy);
-        Enemy->OnRedeemed.AddDynamic(this, &ANazareneCampaignGameMode::HandleEnemyRedeemed);
-
-        RegionActors.Add(Enemy);
-        EnemyBySpawnId.Add(Spec.SpawnId, Enemy);
-        if (Spec.SpawnId == Region.BossSpawnId)
-        {
-            BossEnemy = Enemy;
-            BossEnemy->OnPhaseChanged.AddDynamic(this, &ANazareneCampaignGameMode::HandleReinforcementWave);
+            SpawnConfiguredEnemy(Spec, Region, false);
         }
     }
 
@@ -1587,12 +1788,24 @@ void ANazareneCampaignGameMode::SpawnRegionActors(const FNazareneRegionDefinitio
     {
         if (Wave.Trigger == ENazareneSpawnTrigger::OnRegionLoad)
         {
-            SpawnWaveEnemies(Wave);
+            if (bRunOpeningIntro)
+            {
+                DeferredWaves.Add(Wave);
+            }
+            else
+            {
+                SpawnWaveEnemies(Wave);
+            }
         }
         else
         {
             DeferredWaves.Add(Wave);
         }
+    }
+
+    if (bRunOpeningIntro)
+    {
+        SetEnemyCombatEnabled(false);
     }
 }
 
@@ -1602,7 +1815,7 @@ void ANazareneCampaignGameMode::RequestTravel(int32 TargetRegionIndex)
     {
         if (PlayerCharacter != nullptr)
         {
-            PlayerCharacter->SetContextHint(TEXT("Redeem the region's guardian to proceed."));
+            PlayerCharacter->SetContextHint(bNativityQuestActive ? TEXT("Speak with Mary, Joseph, and the Shepherd before leaving Bethlehem.") : TEXT("Redeem the region's guardian to proceed."));
         }
         return;
     }
@@ -1698,6 +1911,19 @@ void ANazareneCampaignGameMode::NotifyPrayerSiteRest(FName SiteId)
         return;
     }
 
+    if (Region.RegionId == FName(TEXT("galilee")))
+    {
+        if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+        {
+            if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+            {
+                HUD->ShowMessage(TEXT("You rest in the grotto. Peace remains over Bethlehem."), 4.2f);
+            }
+        }
+        SaveCheckpoint();
+        return;
+    }
+
     const FName ConsecratedFlag(*FString::Printf(TEXT("site_%s_consecrated"), *SiteId.ToString()));
     if (Session && Session->IsFlagSet(ConsecratedFlag))
     {
@@ -1724,6 +1950,63 @@ void ANazareneCampaignGameMode::NotifyPrayerSiteRest(FName SiteId)
     SetMusicState(ENazareneMusicState::Tension, true);
     SaveCheckpoint();
     CheckDeferredWaves(ENazareneSpawnTrigger::OnPrayerSiteConsecrated);
+}
+
+void ANazareneCampaignGameMode::NotifyNPCDialogue(FName CharacterSlug)
+{
+    if (!bNativityQuestActive || !Regions.IsValidIndex(RegionIndex) || Regions[RegionIndex].RegionId != FName(TEXT("galilee")))
+    {
+        return;
+    }
+
+    const FName NormalizedSlug(*CharacterSlug.ToString().ToLower());
+    if (!NativityQuestRequiredSlugs.Contains(NormalizedSlug))
+    {
+        return;
+    }
+
+    const int32 PreviousCount = NativityQuestSpokenSlugs.Num();
+    NativityQuestSpokenSlugs.Add(NormalizedSlug);
+    if (NativityQuestSpokenSlugs.Num() == PreviousCount)
+    {
+        return;
+    }
+
+    if (Session != nullptr)
+    {
+        Session->MarkFlag(NativityDialogueFlag(NormalizedSlug));
+    }
+
+    if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            HUD->ShowMessage(FString::Printf(TEXT("Nativity blessing heard (%d/%d)."), NativityQuestSpokenSlugs.Num(), NativityQuestRequiredSlugs.Num()), 3.4f);
+        }
+    }
+
+    if (IsNativityQuestComplete())
+    {
+        bNativityQuestActive = false;
+        bRegionCompleted = true;
+        EnableTravelGate(true);
+        if (Session != nullptr)
+        {
+            Session->MarkFlag(NativityQuestCompleteFlag());
+        }
+
+        if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+        {
+            if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+            {
+                HUD->ShowMessage(TEXT("Prologue complete. Depart Bethlehem for the Jordan River."), 5.0f);
+            }
+        }
+    }
+
+    UpdateChapterStageFromState();
+    UpdateHUDForRegion(Regions[RegionIndex], bRegionCompleted);
+    SaveCheckpoint();
 }
 
 void ANazareneCampaignGameMode::NotifyPlayerDefeated()
@@ -1834,6 +2117,7 @@ void ANazareneCampaignGameMode::ApplySavePayload(const FNazareneSavePayload& Pay
     bSuppressRedeemedCallbacks = false;
 
     SyncCompletionState();
+    InitializeNativityQuestState();
     bPrayerSiteConsecrated = false;
     if (Session && Regions.IsValidIndex(RegionIndex) && !Regions[RegionIndex].PrayerSiteId.IsNone())
     {
@@ -1850,7 +2134,17 @@ void ANazareneCampaignGameMode::ApplySavePayload(const FNazareneSavePayload& Pay
 
 void ANazareneCampaignGameMode::SyncCompletionState()
 {
-    bRegionCompleted = (BossEnemy != nullptr && BossEnemy->IsRedeemed());
+    bool bHasBossRequirement = false;
+    if (Regions.IsValidIndex(RegionIndex))
+    {
+        bHasBossRequirement = !Regions[RegionIndex].BossSpawnId.IsNone();
+    }
+
+    bRegionCompleted = !bHasBossRequirement || (BossEnemy != nullptr && BossEnemy->IsRedeemed());
+    if (Regions.IsValidIndex(RegionIndex) && Regions[RegionIndex].RegionId == FName(TEXT("galilee")) && bNativityQuestActive)
+    {
+        bRegionCompleted = IsNativityQuestComplete();
+    }
     EnableTravelGate(bRegionCompleted);
     UpdateChapterStageFromState();
 }
@@ -1933,7 +2227,25 @@ void ANazareneCampaignGameMode::OnBossRedeemed()
     {
         if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
         {
-            HUD->ShowMessage(bRewardApplied ? TEXT("Blessings strengthened. The way forward is open.") : TEXT("The way forward is open."));
+            if (bRewardApplied)
+            {
+                FString RewardSummary = TEXT("Blessings strengthened. The way forward is open.");
+                if (Region.RewardItems.Num() > 0)
+                {
+                    TArray<FString> ItemNames;
+                    ItemNames.Reserve(Region.RewardItems.Num());
+                    for (const FNazareneInventoryItem& Item : Region.RewardItems)
+                    {
+                        ItemNames.Add(Item.ItemName);
+                    }
+                    RewardSummary += FString::Printf(TEXT(" Added to inventory: %s."), *FString::Join(ItemNames, TEXT(", ")));
+                }
+                HUD->ShowMessage(RewardSummary);
+            }
+            else
+            {
+                HUD->ShowMessage(TEXT("The way forward is open."));
+            }
         }
     }
 
@@ -1972,6 +2284,11 @@ bool ANazareneCampaignGameMode::ApplyRegionReward(const FNazareneRegionDefinitio
         bAnyReward = true;
     }
 
+    for (const FNazareneInventoryItem& RewardItem : Region.RewardItems)
+    {
+        bAnyReward |= Session->AddInventoryItem(RewardItem);
+    }
+
     if (PlayerCharacter != nullptr)
     {
         PlayerCharacter->SetCampaignBaseVitals(120.0f + State.MaxHealthBonus, 100.0f + State.MaxStaminaBonus, true);
@@ -1987,31 +2304,112 @@ bool ANazareneCampaignGameMode::ApplyRegionReward(const FNazareneRegionDefinitio
     return bAnyReward;
 }
 
-void ANazareneCampaignGameMode::QueueIntroStoryIfNeeded()
+void ANazareneCampaignGameMode::InitializeNativityQuestState()
 {
-    if (Session == nullptr || RegionIndex != 0)
+    NativityQuestSpokenSlugs.Empty();
+    bNativityQuestActive = false;
+
+    if (!Regions.IsValidIndex(RegionIndex) || Regions[RegionIndex].RegionId != FName(TEXT("galilee")))
     {
         return;
     }
 
-    const FName IntroFlag(TEXT("intro_ch1_seen"));
-    if (Session->IsFlagSet(IntroFlag))
+    const bool bQuestCompleted = Session != nullptr && Session->IsFlagSet(NativityQuestCompleteFlag());
+    bNativityQuestActive = !bQuestCompleted;
+    bRegionCompleted = bQuestCompleted;
+
+    if (bNativityQuestActive && Session != nullptr)
+    {
+        for (const FName& RequiredSlug : NativityQuestRequiredSlugs)
+        {
+            if (Session->IsFlagSet(NativityDialogueFlag(RequiredSlug)))
+            {
+                NativityQuestSpokenSlugs.Add(RequiredSlug);
+            }
+        }
+
+        if (IsNativityQuestComplete())
+        {
+            bNativityQuestActive = false;
+            bRegionCompleted = true;
+            Session->MarkFlag(NativityQuestCompleteFlag());
+        }
+    }
+
+    EnableTravelGate(bRegionCompleted);
+
+    if (PlayerCharacter != nullptr)
+    {
+        PlayerCharacter->SetCombatEnabled(false);
+    }
+}
+
+bool ANazareneCampaignGameMode::IsNativityQuestComplete() const
+{
+    if (!bNativityQuestActive)
+    {
+        return Session != nullptr && Session->IsFlagSet(NativityQuestCompleteFlag());
+    }
+
+    for (const FName& RequiredSlug : NativityQuestRequiredSlugs)
+    {
+        if (!NativityQuestSpokenSlugs.Contains(RequiredSlug))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+FString ANazareneCampaignGameMode::BuildNativityObjectiveText() const
+{
+    if (IsNativityQuestComplete())
+    {
+        return TEXT("Nativity complete. Travel to the Jordan River when ready.");
+    }
+
+    const int32 SpokeCount = NativityQuestSpokenSlugs.Num();
+    const int32 RequiredCount = FMath::Max(1, NativityQuestRequiredSlugs.Num());
+    return FString::Printf(TEXT("Nativity: speak with Mary, Joseph, and the Shepherd (%d/%d)."), SpokeCount, RequiredCount);
+}
+
+void ANazareneCampaignGameMode::QueueIntroStoryIfNeeded()
+{
+    if (!ShouldRunOpeningIntro())
     {
         return;
     }
 
     ActiveStoryLines =
     {
-        TEXT("A hush falls over Galilee as the pilgrimage begins."),
-        TEXT("Consecrate the prayer site and gather your strength."),
-        TEXT("When the guardian falls, the road to Decapolis will open.")
+        TEXT("Bethlehem, under winter stars. Mary and Joseph keep watch by the manger."),
+        TEXT("You begin as the child in the nativity, sheltered in peace."),
+        TEXT("Speak with your family, then depart for the Jordan when you are ready.")
     };
     StoryLineIndex = 0;
-    Session->MarkFlag(IntroFlag);
+    bIntroSequencePendingStart = true;
+    bIntroSequenceActive = false;
     SetMusicState(ENazareneMusicState::Peace, false);
+    SetEnemyCombatEnabled(false);
+    EnableTravelGate(false);
 
-    AdvanceStoryLine();
-    GetWorldTimerManager().SetTimer(StoryLineTimerHandle, this, &ANazareneCampaignGameMode::AdvanceStoryLine, 5.2f, true, 5.2f);
+    if (PlayerCharacter != nullptr)
+    {
+        PlayerCharacter->SetBabyIntroMode(true);
+    }
+
+    FTimerHandle IntroStartGuardHandle;
+    GetWorldTimerManager().SetTimer(
+        IntroStartGuardHandle,
+        [this]()
+        {
+            if (bIntroSequencePendingStart && !IsStartMenuVisible() && MenuCamera == nullptr)
+            {
+                StartOpeningIntroSequence();
+            }
+        },
+        0.6f,
+        false);
 }
 
 void ANazareneCampaignGameMode::AdvanceStoryLine()
@@ -2019,6 +2417,7 @@ void ANazareneCampaignGameMode::AdvanceStoryLine()
     if (StoryLineIndex >= ActiveStoryLines.Num())
     {
         GetWorldTimerManager().ClearTimer(StoryLineTimerHandle);
+        CompleteOpeningIntroSequence();
         return;
     }
 
@@ -2035,6 +2434,11 @@ void ANazareneCampaignGameMode::AdvanceStoryLine()
 
 FString ANazareneCampaignGameMode::BuildObjectiveText(const FNazareneRegionDefinition& Region, bool bCompleted) const
 {
+    if (Region.RegionId == FName(TEXT("galilee")))
+    {
+        return BuildNativityObjectiveText();
+    }
+
     const int32 RetryCount = GetCurrentRegionRetryCount();
     const FString RetrySuffix = RetryCount > 0 ? FString::Printf(TEXT(" (Retries: %d)"), RetryCount) : FString();
 
@@ -2085,7 +2489,8 @@ void ANazareneCampaignGameMode::UpdateHUDForRegion(const FNazareneRegionDefiniti
         return;
     }
 
-    HUD->SetRegionName(FString::Printf(TEXT("Chapter %d: %s"), Region.Chapter, *Region.RegionName));
+    const FString ChapterLabel = Region.ChapterTitle.IsEmpty() ? Region.RegionName : FString::Printf(TEXT("%s - %s"), *Region.RegionName, *Region.ChapterTitle);
+    HUD->SetRegionName(FString::Printf(TEXT("Chapter %d: %s"), Region.Chapter, *ChapterLabel));
     HUD->SetObjective(BuildObjectiveText(Region, bCompleted));
 }
 
@@ -2434,26 +2839,15 @@ void ANazareneCampaignGameMode::SetCurrentRegionRetryCount(int32 RetryCount)
 
 void ANazareneCampaignGameMode::SpawnWaveEnemies(const FNazareneEncounterWave& Wave)
 {
+    if (!Regions.IsValidIndex(RegionIndex))
+    {
+        return;
+    }
+
+    const FNazareneRegionDefinition& Region = Regions[RegionIndex];
     for (const FNazareneEnemySpawnDefinition& Spec : Wave.Enemies)
     {
-        ANazareneEnemyCharacter* Enemy = GetWorld()->SpawnActor<ANazareneEnemyCharacter>(ANazareneEnemyCharacter::StaticClass(), Spec.Location, FRotator::ZeroRotator);
-        if (Enemy == nullptr)
-        {
-            continue;
-        }
-
-        Enemy->SpawnId = Spec.SpawnId;
-        Enemy->EnemyName = Spec.EnemyName;
-        Enemy->Archetype = Spec.Archetype;
-        Enemy->ConfigureFromArchetype();
-        if (Regions.IsValidIndex(RegionIndex))
-        {
-            ApplyRegionalEnemyTuning(Enemy, Regions[RegionIndex], true);
-        }
-        ConfigureEnemyBehaviorTree(Enemy);
-        Enemy->OnRedeemed.AddDynamic(this, &ANazareneCampaignGameMode::HandleEnemyRedeemed);
-        RegionActors.Add(Enemy);
-        EnemyBySpawnId.Add(Spec.SpawnId, Enemy);
+        SpawnConfiguredEnemy(Spec, Region, true);
     }
 }
 
@@ -2510,22 +2904,24 @@ void ANazareneCampaignGameMode::SpawnMenuCamera()
     }
 
     SpawnMenuSetpiece(CameraCenter);
+    const FVector TombFocusCenter = CameraCenter + FVector(430.0f, 0.0f, 96.0f);
+    const FVector PanStartOffset(-90.0f, 0.0f, 34.0f);
 
     MenuCamera = GetWorld()->SpawnActor<ANazareneMenuCameraActor>(
         ANazareneMenuCameraActor::StaticClass(),
-        CameraCenter + FVector(-220.0f, 0.0f, 110.0f),
+        TombFocusCenter + PanStartOffset,
         FRotator::ZeroRotator
     );
 
     if (MenuCamera != nullptr)
     {
-        MenuCamera->OrbitCenter = CameraCenter;
+        MenuCamera->OrbitCenter = TombFocusCenter;
         MenuCamera->CameraMode = ENazareneMenuCameraMode::PanOut;
-        MenuCamera->PanStartOffset = FVector(-220.0f, 0.0f, 110.0f);
-        MenuCamera->PanEndOffset = FVector(1080.0f, 0.0f, 250.0f);
-        MenuCamera->PanLookAtOffset = FVector(420.0f, 0.0f, 110.0f);
-        MenuCamera->PanDuration = 18.0f;
-        MenuCamera->bLoopPan = true;
+        MenuCamera->PanStartOffset = PanStartOffset;
+        MenuCamera->PanEndOffset = FVector(-940.0f, 240.0f, 224.0f);
+        MenuCamera->PanLookAtOffset = FVector(25.0f, 0.0f, 28.0f);
+        MenuCamera->PanDuration = 28.0f;
+        MenuCamera->bLoopPan = false;
 
         APlayerController* PC = GetWorld()->GetFirstPlayerController();
         if (PC != nullptr)
@@ -2556,6 +2952,11 @@ void ANazareneCampaignGameMode::DestroyMenuCamera()
 void ANazareneCampaignGameMode::OnMenuDismissed()
 {
     DestroyMenuCamera();
+
+    if (bIntroSequencePendingStart)
+    {
+        StartOpeningIntroSequence();
+    }
 }
 
 void ANazareneCampaignGameMode::SpawnMenuSetpiece(const FVector& CameraCenter)
@@ -2621,6 +3022,30 @@ void ANazareneCampaignGameMode::SpawnMenuSetpiece(const FVector& CameraCenter)
 
     // Outer path slab to support the pan-out framing.
     SpawnPiece(BlockMesh, TombBase + FVector(760.0f, 0.0f, -80.0f), FVector(4.6f, 2.6f, 0.25f), FRotator::ZeroRotator);
+
+    auto SpawnPointLightForMenu = [this, World](const FVector& Location, const FLinearColor& Color, float Intensity, float Radius) -> void
+    {
+        APointLight* PointLight = World->SpawnActor<APointLight>(APointLight::StaticClass(), Location, FRotator::ZeroRotator);
+        if (PointLight == nullptr)
+        {
+            return;
+        }
+
+        if (UPointLightComponent* Component = Cast<UPointLightComponent>(PointLight->GetLightComponent()))
+        {
+            Component->SetIntensity(Intensity);
+            Component->SetLightColor(Color.ToFColor(true));
+            Component->SetAttenuationRadius(Radius);
+            Component->SetSourceRadius(64.0f);
+            Component->SetSoftSourceRadius(96.0f);
+        }
+
+        MenuSetpieceActors.Add(PointLight);
+    };
+
+    // Key and rim lighting to make the tomb intro readable from frame one.
+    SpawnPointLightForMenu(TombBase + FVector(330.0f, -35.0f, 160.0f), FLinearColor(1.0f, 0.92f, 0.75f), 4800.0f, 1600.0f);
+    SpawnPointLightForMenu(TombBase + FVector(-250.0f, 180.0f, 210.0f), FLinearColor(0.82f, 0.90f, 1.0f), 2600.0f, 1300.0f);
 }
 
 void ANazareneCampaignGameMode::DestroyMenuSetpiece()

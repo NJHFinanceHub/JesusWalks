@@ -1,23 +1,23 @@
 # Opening Chapter Layout
 
 ## Goal
-Define the first playable chapter as a paced traversal from spawn to boss arena, with clear encounter beats and chapter exit readability.
+Define the first playable chapter as Bethlehem Nativity: a story-first traversal with prayer, dialogue, and pilgrimage beats (not shooter-style combat framing).
 
 ## Map target
 - Map: `/Game/Maps/NazareneCampaign`
-- Region: Chapter 1 (`Galilee Shores`)
+- Region: Chapter 1 (`Bethlehem Nativity`)
 
 ## Encounter pacing
-1. **Sanctuary Start**
-   - Safe spawn and first prayer site orientation.
-2. **Shore Skirmish**
-   - Intro melee/ranged pressure and player control onboarding.
-3. **Ridge Choke**
-   - Mid-combat lane control, dodge/parry pressure, miracle usage.
-4. **Legion Sovereign Arena**
-   - Dedicated circular boss arena with readable bounds.
+1. **Manger Arrival**
+   - Safe spawn with Mary and Joseph dialogue.
+2. **Shepherd Path**
+   - Guided movement/tutorial beats with non-combat interaction prompts.
+3. **Nativity Courtyard**
+   - Prayer, scripture narration, and worship ambience.
+4. **Temple Foreshadowing**
+   - Story beat introducing the mission arc toward baptism and ministry.
 5. **Chapter Exit**
-   - Clearly framed travel gate silhouette and post-boss flow.
+   - Clearly framed travel gate silhouette toward the Jordan chapter.
 
 ## Layout automation
 - Script: `unreal/TheNazareneAAA/Tools/create_opening_chapter_layout.py`

@@ -200,6 +200,18 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Player")
     void SetCampaignGameMode(ANazareneCampaignGameMode* InCampaignGameMode);
 
+    UFUNCTION(BlueprintCallable, Category = "Player|Intro")
+    void SetBabyIntroMode(bool bEnabled);
+
+    UFUNCTION(BlueprintPure, Category = "Player|Intro")
+    bool IsBabyIntroMode() const { return bBabyIntroMode; }
+
+    UFUNCTION(BlueprintCallable, Category = "Player|Combat")
+    void SetCombatEnabled(bool bEnabled);
+
+    UFUNCTION(BlueprintPure, Category = "Player|Combat")
+    bool IsCombatEnabled() const { return bCombatEnabled; }
+
     UFUNCTION(BlueprintCallable, Category = "Player")
     void SetUnlockedMiracles(const TArray<FName>& Miracles);
 
@@ -574,4 +586,9 @@ private:
     float BaseCameraFOV = 72.0f;
     float MouseSensitivityScale = 1.0f;
     bool bInvertLookY = false;
+    bool bBabyIntroMode = false;
+    bool bCombatEnabled = true;
+    float BabyIntroMovementMultiplier = 0.56f;
+    float BabyIntroVisualScale = 0.52f;
+    FVector DefaultActorScale = FVector::OneVector;
 };

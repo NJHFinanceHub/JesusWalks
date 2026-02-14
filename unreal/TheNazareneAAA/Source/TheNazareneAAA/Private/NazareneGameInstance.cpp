@@ -23,6 +23,55 @@ FNazareneCampaignState& UNazareneGameInstance::GetMutableCampaignState()
     return CampaignState;
 }
 
+
+bool UNazareneGameInstance::AddInventoryItem(const FNazareneInventoryItem& Item)
+{
+    if (Item.ItemId.IsNone() || Item.Quantity <= 0)
+    {
+        return false;
+    }
+
+    for (FNazareneInventoryItem& Existing : CampaignState.Inventory)
+    {
+        if (Existing.ItemId == Item.ItemId)
+        {
+            Existing.Quantity += Item.Quantity;
+            if (Existing.ItemName.IsEmpty())
+            {
+                Existing.ItemName = Item.ItemName;
+            }
+            if (Existing.Description.IsEmpty())
+            {
+                Existing.Description = Item.Description;
+            }
+            Existing.ItemType = Item.ItemType;
+            Existing.Rarity = Item.Rarity;
+            return true;
+        }
+    }
+
+    CampaignState.Inventory.Add(Item);
+    return true;
+}
+
+bool UNazareneGameInstance::HasInventoryItem(FName ItemId) const
+{
+    if (ItemId.IsNone())
+    {
+        return false;
+    }
+
+    for (const FNazareneInventoryItem& Item : CampaignState.Inventory)
+    {
+        if (Item.ItemId == ItemId && Item.Quantity > 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool UNazareneGameInstance::EnsureMiracleUnlocked(FName MiracleId)
 {
     if (MiracleId.IsNone())

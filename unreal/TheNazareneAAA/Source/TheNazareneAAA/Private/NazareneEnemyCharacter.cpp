@@ -18,6 +18,20 @@
 
 namespace
 {
+    bool ContainsModernWeaponTerm(const FString& InPath)
+    {
+        const FString Lower = InPath.ToLower();
+        const TCHAR* WeaponTerms[] = { TEXT("rifle"), TEXT("pistol"), TEXT("shotgun"), TEXT("sniper"), TEXT("smg"), TEXT("assault"), TEXT("carbine"), TEXT("ak"), TEXT("m4"), TEXT("gun") };
+        for (const TCHAR* Term : WeaponTerms)
+        {
+            if (Lower.Contains(Term))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     const TCHAR* EnemyMeshOverrideKey(ENazareneEnemyArchetype Archetype)
     {
         switch (Archetype)
@@ -148,15 +162,15 @@ ANazareneEnemyCharacter::ANazareneEnemyCharacter()
     }
     if (!ProductionAnimBlueprint.ToSoftObjectPath().IsValid())
     {
+        // Keep the default C++ anim instance class unless an explicit override is configured.
         const FString ResolvedEnemyAnimBP = NazareneAssetResolver::ResolveObjectPath(
             TEXT("EnemyAnimBlueprint"),
-            TEXT("/Game/Art/Animation/ABP_BiblicalEnemy.ABP_BiblicalEnemy_C"),
-            {
-                TEXT("/Game/AnimationStarterPack/UE4ASP_HeroTPP_AnimBlueprint.UE4ASP_HeroTPP_AnimBlueprint_C"),
-                TEXT("/Game/Characters/MedievalOrientalArmour/Animations/ABP_MOH_Soldier.ABP_MOH_Soldier_C"),
-                TEXT("/Game/MedievalOrientalArmour/Animations/ABP_MOH_Soldier.ABP_MOH_Soldier_C")
-            });
-        ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(ResolvedEnemyAnimBP));
+            TEXT(""),
+            {});
+        if (!ResolvedEnemyAnimBP.IsEmpty())
+        {
+            ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(ResolvedEnemyAnimBP));
+        }
     }
 
     if (AttackSound == nullptr)
@@ -194,21 +208,26 @@ void ANazareneEnemyCharacter::BeginPlay()
         ResolvedProductionMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(ResolvedMeshPath));
     }
 
+    if (ContainsModernWeaponTerm(ResolvedProductionMesh.ToSoftObjectPath().ToString()))
+    {
+        ResolvedProductionMesh = TSoftObjectPtr<USkeletalMesh>(
+            FSoftObjectPath(TEXT("/Game/Art/Characters/Enemies/SK_BiblicalLegionary.SK_BiblicalLegionary")));
+    }
+
     TSoftClassPtr<UAnimInstance> ResolvedProductionAnim = ProductionAnimBlueprint;
     if (const TCHAR* AnimKey = EnemyAnimOverrideKey(Archetype))
     {
         const FString BaseAnimPath = ProductionAnimBlueprint.ToSoftObjectPath().IsValid()
             ? ProductionAnimBlueprint.ToSoftObjectPath().ToString()
-            : TEXT("/Game/Art/Animation/ABP_BiblicalEnemy.ABP_BiblicalEnemy_C");
+            : TEXT("");
         const FString ResolvedAnimPath = NazareneAssetResolver::ResolveObjectPath(
             AnimKey,
             BaseAnimPath,
-            {
-                TEXT("/Game/Art/Animation/ABP_BiblicalEnemy.ABP_BiblicalEnemy_C"),
-                TEXT("/Game/AnimationStarterPack/UE4ASP_HeroTPP_AnimBlueprint.UE4ASP_HeroTPP_AnimBlueprint_C"),
-                TEXT("/Game/Characters/MedievalOrientalArmour/Animations/ABP_MOH_Soldier.ABP_MOH_Soldier_C")
-            });
-        ResolvedProductionAnim = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(ResolvedAnimPath));
+            {});
+        if (!ResolvedAnimPath.IsEmpty())
+        {
+            ResolvedProductionAnim = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(ResolvedAnimPath));
+        }
     }
 
     bool bAppliedCharacterMesh = false;

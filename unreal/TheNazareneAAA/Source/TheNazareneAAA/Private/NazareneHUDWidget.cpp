@@ -6,6 +6,8 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/ProgressBar.h"
+#include "Components/ScrollBox.h"
+#include "Components/Spacer.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
@@ -41,6 +43,8 @@ namespace
         FSlateFontInfo FontInfo = Text->GetFont();
         FontInfo.Size = Size;
         Text->SetFont(FontInfo);
+        Text->SetShadowOffset(FVector2D(1.0f, 1.0f));
+        Text->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.55f));
     }
 
     static void AddVerticalChild(UVerticalBox* Parent, UWidget* Child, const FMargin& Padding)
@@ -64,25 +68,25 @@ namespace
         // Normal state: dark warm brown with subtle gold border
         FSlateBrush NormalBrush;
         NormalBrush.DrawAs = ESlateBrushDrawType::RoundedBox;
-        NormalBrush.TintColor = FSlateColor(FLinearColor(0.10f, 0.08f, 0.05f, 1.0f));
-        NormalBrush.OutlineSettings.CornerRadii = FVector4(4.0f, 4.0f, 4.0f, 4.0f);
+        NormalBrush.TintColor = FSlateColor(FLinearColor(0.12f, 0.09f, 0.05f, 1.0f));
+        NormalBrush.OutlineSettings.CornerRadii = FVector4(8.0f, 8.0f, 8.0f, 8.0f);
         NormalBrush.OutlineSettings.RoundingType = ESlateBrushRoundingType::FixedRadius;
-        NormalBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.55f, 0.45f, 0.22f, 0.70f));
-        NormalBrush.OutlineSettings.Width = 1.5f;
+        NormalBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.66f, 0.54f, 0.28f, 0.75f));
+        NormalBrush.OutlineSettings.Width = 2.0f;
         Style.SetNormal(NormalBrush);
 
         // Hovered state: gold-tinted brightening with glowing border
         FSlateBrush HoveredBrush = NormalBrush;
-        HoveredBrush.TintColor = FSlateColor(FLinearColor(0.22f, 0.18f, 0.08f, 1.0f));
-        HoveredBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.78f, 0.68f, 0.38f, 0.95f));
-        HoveredBrush.OutlineSettings.Width = 2.0f;
+        HoveredBrush.TintColor = FSlateColor(FLinearColor(0.27f, 0.21f, 0.10f, 1.0f));
+        HoveredBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.90f, 0.78f, 0.45f, 1.0f));
+        HoveredBrush.OutlineSettings.Width = 2.5f;
         Style.SetHovered(HoveredBrush);
 
         // Pressed state: darkened inset with dimmer border
         FSlateBrush PressedBrush = NormalBrush;
-        PressedBrush.TintColor = FSlateColor(FLinearColor(0.06f, 0.05f, 0.03f, 1.0f));
-        PressedBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.40f, 0.34f, 0.18f, 0.80f));
-        PressedBrush.OutlineSettings.Width = 1.0f;
+        PressedBrush.TintColor = FSlateColor(FLinearColor(0.08f, 0.06f, 0.03f, 1.0f));
+        PressedBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.55f, 0.45f, 0.22f, 0.90f));
+        PressedBrush.OutlineSettings.Width = 1.5f;
         Style.SetPressed(PressedBrush);
 
         // Padding with 1px downshift on press for physical push feel
@@ -116,8 +120,9 @@ namespace
 
         const FName LabelName(*FString::Printf(TEXT("%sLabel"), Name));
         OutLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), LabelName);
-        ConfigureText(OutLabel, Label, FLinearColor(0.95f, 0.90f, 0.82f), 20);
+        ConfigureText(OutLabel, Label, FLinearColor(0.95f, 0.90f, 0.82f), 18);
         OutLabel->SetJustification(ETextJustify::Center);
+        OutLabel->SetMargin(FMargin(0.0f, 2.0f));
         Button->AddChild(OutLabel);
 
         // Wrap in SizeBox for 48px minimum click target
@@ -125,16 +130,80 @@ namespace
         USizeBox* SizeWrapper = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), SizeBoxName);
         if (SizeWrapper != nullptr)
         {
-            SizeWrapper->SetMinDesiredHeight(48.0f);
+            SizeWrapper->SetMinDesiredHeight(50.0f);
             SizeWrapper->AddChild(Button);
-            AddVerticalChild(Parent, SizeWrapper, FMargin(12.0f, 8.0f, 12.0f, 8.0f));
+            AddVerticalChild(Parent, SizeWrapper, FMargin(14.0f, 5.0f, 14.0f, 5.0f));
         }
         else
         {
-            AddVerticalChild(Parent, Button, FMargin(12.0f, 8.0f, 12.0f, 8.0f));
+            AddVerticalChild(Parent, Button, FMargin(14.0f, 5.0f, 14.0f, 5.0f));
         }
 
         return Button;
+    }
+    static void AddSectionDivider(UWidgetTree* WidgetTree, UVerticalBox* Parent, const FLinearColor& Color, const FMargin& Padding)
+    {
+        if (WidgetTree == nullptr || Parent == nullptr)
+        {
+            return;
+        }
+
+        UBorder* Divider = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+        if (Divider == nullptr)
+        {
+            return;
+        }
+
+        Divider->SetBrushColor(Color);
+        USizeBox* DividerHeight = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+        if (DividerHeight != nullptr)
+        {
+            DividerHeight->SetHeightOverride(1.5f);
+            DividerHeight->AddChild(Divider);
+            AddVerticalChild(Parent, DividerHeight, Padding);
+            return;
+        }
+
+        AddVerticalChild(Parent, Divider, Padding);
+    }
+
+    static void AddVerticalSpacer(UWidgetTree* WidgetTree, UVerticalBox* Parent, float Height, const FMargin& Padding)
+    {
+        if (WidgetTree == nullptr || Parent == nullptr)
+        {
+            return;
+        }
+
+        USpacer* Spacer = WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass());
+        if (Spacer == nullptr)
+        {
+            return;
+        }
+
+        Spacer->SetSize(FVector2D(1.0f, Height));
+        AddVerticalChild(Parent, Spacer, Padding);
+    }
+
+    static FVector2D ResolveViewportSize(const UUserWidget* Widget)
+    {
+        FVector2D ViewportSize(1920.0f, 1080.0f);
+        if (Widget == nullptr)
+        {
+            return ViewportSize;
+        }
+
+        if (APlayerController* PC = Widget->GetOwningPlayer())
+        {
+            int32 ViewportX = 0;
+            int32 ViewportY = 0;
+            PC->GetViewportSize(ViewportX, ViewportY);
+            if (ViewportX > 0 && ViewportY > 0)
+            {
+                ViewportSize = FVector2D(float(ViewportX), float(ViewportY));
+            }
+        }
+
+        return ViewportSize;
     }
 }
 
@@ -156,6 +225,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
 
     UBorder* PlayerPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PlayerPanel"));
     PlayerPanel->SetBrushColor(FLinearColor(0.07f, 0.07f, 0.06f, 0.74f));
+    PlayerPanelRoot = PlayerPanel;
     UCanvasPanelSlot* PlayerPanelSlot = RootPanel->AddChildToCanvas(PlayerPanel);
     if (PlayerPanelSlot != nullptr)
     {
@@ -239,6 +309,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
 
     UBorder* ObjectivePanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("ObjectivePanel"));
     ObjectivePanel->SetBrushColor(FLinearColor(0.07f, 0.07f, 0.06f, 0.74f));
+    ObjectivePanelRoot = ObjectivePanel;
     UCanvasPanelSlot* ObjectivePanelSlot = RootPanel->AddChildToCanvas(ObjectivePanel);
     if (ObjectivePanelSlot != nullptr)
     {
@@ -287,15 +358,15 @@ void UNazareneHUDWidget::NativeOnInitialized()
         CriticalStateSlot->SetPosition(FVector2D(0.0f, 72.0f));
     }
 
-    UTextBlock* ControlsText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ControlsText"));
+    ControlsTextRoot = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ControlsText"));
     ConfigureText(
-        ControlsText,
+        ControlsTextRoot,
         TEXT("Move/Look: WASD + Mouse | Combat: LMB Light, RMB Heavy, Shift Block, F Parry, Space Dodge | Miracles: R Heal, 1 Blessing, 2 Radiance | Interaction: E Pray, Q Lock, T Skill Tree, Esc Menu"),
         FLinearColor(0.90f, 0.85f, 0.70f),
         13
     );
-    ControlsText->SetAutoWrapText(true);
-    UCanvasPanelSlot* ControlsSlot = RootPanel->AddChildToCanvas(ControlsText);
+    ControlsTextRoot->SetAutoWrapText(true);
+    UCanvasPanelSlot* ControlsSlot = RootPanel->AddChildToCanvas(ControlsTextRoot);
     if (ControlsSlot != nullptr)
     {
         ControlsSlot->SetSize(FVector2D(1300.0f, 40.0f));
@@ -305,7 +376,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
     }
 
     PauseOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PauseOverlay"));
-    PauseOverlay->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.74f));
+    PauseOverlay->SetBrushColor(FLinearColor(0.01f, 0.01f, 0.01f, 0.82f));
     PauseOverlay->SetVisibility(ESlateVisibility::Collapsed);
     UCanvasPanelSlot* PauseOverlaySlot = RootPanel->AddChildToCanvas(PauseOverlay);
     if (PauseOverlaySlot != nullptr)
@@ -318,23 +389,33 @@ void UNazareneHUDWidget::NativeOnInitialized()
     PauseOverlay->SetContent(PauseCanvas);
 
     UBorder* PauseMenuPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PauseMenuPanel"));
-    PauseMenuPanel->SetBrushColor(FLinearColor(0.09f, 0.09f, 0.07f, 0.96f));
+    PauseMenuPanel->SetBrushColor(FLinearColor(0.08f, 0.06f, 0.04f, 0.97f));
     UCanvasPanelSlot* PauseMenuSlot = PauseCanvas->AddChildToCanvas(PauseMenuPanel);
-    if (PauseMenuSlot != nullptr)
-    {
-        PauseMenuSlot->SetSize(FVector2D(560.0f, 640.0f));
-        PauseMenuSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
-        PauseMenuSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-        PauseMenuSlot->SetPosition(FVector2D::ZeroVector);
-    }
+    PauseMenuPanelSlotRef = PauseMenuSlot;
+
+    UScrollBox* PauseScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("PauseMenuScroll"));
+    PauseMenuPanel->SetContent(PauseScroll);
 
     UVerticalBox* PauseMenuContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("PauseMenuContent"));
-    PauseMenuPanel->SetContent(PauseMenuContent);
+    if (PauseScroll != nullptr)
+    {
+        PauseScroll->SetConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible);
+        PauseScroll->SetScrollbarPadding(FMargin(4.0f, 6.0f, 4.0f, 6.0f));
+        PauseScroll->AddChild(PauseMenuContent);
+    }
 
     UTextBlock* PauseTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("PauseTitle"));
-    ConfigureText(PauseTitle, TEXT("Pilgrimage Menu"), FLinearColor(0.95f, 0.90f, 0.78f), 22);
+    ConfigureText(PauseTitle, TEXT("PILGRIMAGE MENU"), FLinearColor(0.98f, 0.93f, 0.82f), 28);
     PauseTitle->SetJustification(ETextJustify::Center);
-    AddVerticalChild(PauseMenuContent, PauseTitle, FMargin(12.0f, 16.0f, 12.0f, 8.0f));
+    AddVerticalChild(PauseMenuContent, PauseTitle, FMargin(12.0f, 20.0f, 12.0f, 4.0f));
+
+    UTextBlock* PauseSubtitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("PauseSubtitle"));
+    ConfigureText(PauseSubtitle, TEXT("Rest, reflect, and choose the next step of your journey."), FLinearColor(0.90f, 0.84f, 0.68f), 14);
+    PauseSubtitle->SetAutoWrapText(true);
+    PauseSubtitle->SetJustification(ETextJustify::Center);
+    AddVerticalChild(PauseMenuContent, PauseSubtitle, FMargin(26.0f, 0.0f, 26.0f, 10.0f));
+
+    AddSectionDivider(WidgetTree, PauseMenuContent, FLinearColor(0.62f, 0.50f, 0.25f, 0.95f), FMargin(24.0f, 0.0f, 24.0f, 10.0f));
 
     UTextBlock* ButtonLabel = nullptr;
     PauseResumeButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("ResumeButton"), TEXT("Resume"), ButtonLabel);
@@ -345,7 +426,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
 
     UTextBlock* SaveHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SaveHeader"));
     ConfigureText(SaveHeader, TEXT("Save Slots"), FLinearColor(0.94f, 0.88f, 0.74f), 18);
-    AddVerticalChild(PauseMenuContent, SaveHeader, FMargin(12.0f, 16.0f, 12.0f, 6.0f));
+    AddVerticalChild(PauseMenuContent, SaveHeader, FMargin(20.0f, 14.0f, 12.0f, 6.0f));
 
     PauseSaveSlot1Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot1Button"), TEXT("Save Slot 1"), ButtonLabel);
     if (PauseSaveSlot1Button != nullptr)
@@ -365,7 +446,8 @@ void UNazareneHUDWidget::NativeOnInitialized()
 
     UTextBlock* LoadHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LoadHeader"));
     ConfigureText(LoadHeader, TEXT("Load Slots"), FLinearColor(0.94f, 0.88f, 0.74f), 18);
-    AddVerticalChild(PauseMenuContent, LoadHeader, FMargin(12.0f, 14.0f, 12.0f, 6.0f));
+    AddSectionDivider(WidgetTree, PauseMenuContent, FLinearColor(0.35f, 0.30f, 0.18f, 0.85f), FMargin(26.0f, 6.0f, 26.0f, 8.0f));
+    AddVerticalChild(PauseMenuContent, LoadHeader, FMargin(20.0f, 2.0f, 12.0f, 6.0f));
 
     PauseLoadSlot1Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot1Button"), TEXT("Load Slot 1"), ButtonLabel);
     if (PauseLoadSlot1Button != nullptr)
@@ -385,15 +467,17 @@ void UNazareneHUDWidget::NativeOnInitialized()
 
     SlotSummary1Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SlotSummary1Text"));
     ConfigureText(SlotSummary1Text, TEXT("Slot 1: Empty"), FLinearColor(0.82f, 0.82f, 0.78f), 14);
-    AddVerticalChild(PauseMenuContent, SlotSummary1Text, FMargin(14.0f, 8.0f, 12.0f, 0.0f));
+    AddVerticalChild(PauseMenuContent, SlotSummary1Text, FMargin(20.0f, 10.0f, 12.0f, 0.0f));
 
     SlotSummary2Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SlotSummary2Text"));
     ConfigureText(SlotSummary2Text, TEXT("Slot 2: Empty"), FLinearColor(0.82f, 0.82f, 0.78f), 14);
-    AddVerticalChild(PauseMenuContent, SlotSummary2Text, FMargin(14.0f, 2.0f, 12.0f, 0.0f));
+    AddVerticalChild(PauseMenuContent, SlotSummary2Text, FMargin(20.0f, 2.0f, 12.0f, 0.0f));
 
     SlotSummary3Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SlotSummary3Text"));
     ConfigureText(SlotSummary3Text, TEXT("Slot 3: Empty"), FLinearColor(0.82f, 0.82f, 0.78f), 14);
-    AddVerticalChild(PauseMenuContent, SlotSummary3Text, FMargin(14.0f, 2.0f, 12.0f, 0.0f));
+    AddVerticalChild(PauseMenuContent, SlotSummary3Text, FMargin(20.0f, 2.0f, 12.0f, 0.0f));
+
+    AddVerticalSpacer(WidgetTree, PauseMenuContent, 4.0f, FMargin(0.0f));
 
     PauseNewPilgrimageButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("NewPilgrimageButton"), TEXT("New Pilgrimage"), ButtonLabel);
     if (PauseNewPilgrimageButton != nullptr)
@@ -432,7 +516,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
     }
 
     StartMenuOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("StartMenuOverlay"));
-    StartMenuOverlay->SetBrushColor(FLinearColor(0.02f, 0.02f, 0.01f, 0.42f));
+    StartMenuOverlay->SetBrushColor(FLinearColor(0.01f, 0.01f, 0.00f, 0.56f));
     StartMenuOverlay->SetVisibility(ESlateVisibility::Collapsed);
     UCanvasPanelSlot* StartOverlaySlot = RootPanel->AddChildToCanvas(StartMenuOverlay);
     if (StartOverlaySlot != nullptr)
@@ -445,15 +529,9 @@ void UNazareneHUDWidget::NativeOnInitialized()
     StartMenuOverlay->SetContent(StartCanvas);
 
     UBorder* StartMenuPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("StartMenuPanel"));
-    StartMenuPanel->SetBrushColor(FLinearColor(0.08f, 0.07f, 0.05f, 0.90f));
+    StartMenuPanel->SetBrushColor(FLinearColor(0.09f, 0.07f, 0.04f, 0.93f));
     UCanvasPanelSlot* StartPanelSlot = StartCanvas->AddChildToCanvas(StartMenuPanel);
-    if (StartPanelSlot != nullptr)
-    {
-        StartPanelSlot->SetSize(FVector2D(620.0f, 470.0f));
-        StartPanelSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
-        StartPanelSlot->SetAlignment(FVector2D(0.0f, 1.0f));
-        StartPanelSlot->SetPosition(FVector2D(54.0f, -42.0f));
-    }
+    StartMenuPanelSlotRef = StartPanelSlot;
 
     UVerticalBox* StartMenuContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("StartMenuContent"));
     StartMenuPanel->SetContent(StartMenuContent);
@@ -472,7 +550,8 @@ void UNazareneHUDWidget::NativeOnInitialized()
     ConfigureText(StartLoreLine, TEXT("An empty tomb. Dawn over Jerusalem. Begin the pilgrimage."), FLinearColor(0.86f, 0.82f, 0.74f), 14);
     StartLoreLine->SetAutoWrapText(true);
     StartLoreLine->SetJustification(ETextJustify::Left);
-    AddVerticalChild(StartMenuContent, StartLoreLine, FMargin(20.0f, 0.0f, 20.0f, 18.0f));
+    AddVerticalChild(StartMenuContent, StartLoreLine, FMargin(20.0f, 0.0f, 20.0f, 16.0f));
+    AddSectionDivider(WidgetTree, StartMenuContent, FLinearColor(0.62f, 0.50f, 0.25f, 0.95f), FMargin(24.0f, 0.0f, 24.0f, 10.0f));
 
     UTextBlock* StartButtonLabel = nullptr;
     StartNewGameButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("StartPilgrimageButton"), TEXT("Begin Pilgrimage"), StartButtonLabel);
@@ -535,30 +614,18 @@ void UNazareneHUDWidget::NativeOnInitialized()
     UBorder* OptionsPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("OptionsPanel"));
     OptionsPanel->SetBrushColor(FLinearColor(0.10f, 0.09f, 0.07f, 0.98f));
     UCanvasPanelSlot* OptionsPanelSlot = OptionsCanvas->AddChildToCanvas(OptionsPanel);
-    if (OptionsPanelSlot != nullptr)
-    {
-        FVector2D ViewportSize(1920.0f, 1080.0f);
-        if (APlayerController* PC = GetOwningPlayer())
-        {
-            int32 ViewportX = 0;
-            int32 ViewportY = 0;
-            PC->GetViewportSize(ViewportX, ViewportY);
-            if (ViewportX > 0 && ViewportY > 0)
-            {
-                ViewportSize = FVector2D(float(ViewportX), float(ViewportY));
-            }
-        }
+    OptionsPanelSlotRef = OptionsPanelSlot;
 
-        const float ResponsiveWidth = FMath::Clamp(ViewportSize.X * 0.42f, 640.0f, 900.0f);
-        const float ResponsiveHeight = FMath::Clamp(ViewportSize.Y * 0.86f, 760.0f, 1080.0f);
-        OptionsPanelSlot->SetSize(FVector2D(ResponsiveWidth, ResponsiveHeight));
-        OptionsPanelSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
-        OptionsPanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-        OptionsPanelSlot->SetPosition(FVector2D::ZeroVector);
-    }
+    UScrollBox* OptionsScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("OptionsScroll"));
+    OptionsPanel->SetContent(OptionsScroll);
 
     UVerticalBox* OptionsContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("OptionsContent"));
-    OptionsPanel->SetContent(OptionsContent);
+    if (OptionsScroll != nullptr)
+    {
+        OptionsScroll->SetConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible);
+        OptionsScroll->SetScrollbarPadding(FMargin(4.0f, 6.0f, 4.0f, 6.0f));
+        OptionsScroll->AddChild(OptionsContent);
+    }
 
     UTextBlock* OptionsTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("OptionsTitle"));
     ConfigureText(OptionsTitle, TEXT("Options"), FLinearColor(0.98f, 0.92f, 0.80f), 28);
@@ -767,6 +834,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
         }
     }
 
+    RefreshResponsiveMenuLayout();
     RefreshSlotSummaries();
     RefreshOptionsSummary();
 }
@@ -776,6 +844,12 @@ void UNazareneHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
     Super::NativeTick(MyGeometry, InDeltaTime);
 
     CachedDeltaTime = InDeltaTime;
+    const FVector2D ViewportSize = ResolveViewportSize(this);
+    if (!ViewportSize.Equals(CachedMenuViewportSize, 1.0f))
+    {
+        CachedMenuViewportSize = ViewportSize;
+        RefreshResponsiveMenuLayout();
+    }
 
     ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
     RefreshVitals(Player);
@@ -801,6 +875,64 @@ void UNazareneHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
         {
             DamageNumberWidgets.RemoveAtSwap(Index);
         }
+    }
+}
+
+void UNazareneHUDWidget::RefreshResponsiveMenuLayout()
+{
+    const FVector2D ViewportSize = ResolveViewportSize(this);
+    CachedMenuViewportSize = ViewportSize;
+
+    if (PauseMenuPanelSlotRef != nullptr)
+    {
+        const float Width = FMath::Clamp(ViewportSize.X * 0.43f, 560.0f, 820.0f);
+        const float Height = FMath::Clamp(ViewportSize.Y * 0.84f, 500.0f, 900.0f);
+        PauseMenuPanelSlotRef->SetSize(FVector2D(Width, Height));
+        PauseMenuPanelSlotRef->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+        PauseMenuPanelSlotRef->SetAlignment(FVector2D(0.5f, 0.5f));
+        PauseMenuPanelSlotRef->SetPosition(FVector2D::ZeroVector);
+    }
+
+    if (StartMenuPanelSlotRef != nullptr)
+    {
+        const float Width = FMath::Clamp(ViewportSize.X * 0.40f, 520.0f, 800.0f);
+        const float Height = FMath::Clamp(ViewportSize.Y * 0.62f, 460.0f, 700.0f);
+        const float OffsetX = FMath::Clamp(ViewportSize.X * 0.20f, 190.0f, 390.0f);
+        const float OffsetY = FMath::Clamp(ViewportSize.Y * 0.02f, 8.0f, 36.0f);
+        StartMenuPanelSlotRef->SetSize(FVector2D(Width, Height));
+        StartMenuPanelSlotRef->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+        StartMenuPanelSlotRef->SetAlignment(FVector2D(0.5f, 0.5f));
+        StartMenuPanelSlotRef->SetPosition(FVector2D(OffsetX, OffsetY));
+    }
+
+    if (OptionsPanelSlotRef != nullptr)
+    {
+        const float Width = FMath::Clamp(ViewportSize.X * 0.50f, 660.0f, 980.0f);
+        const float Height = FMath::Clamp(ViewportSize.Y * 0.90f, 540.0f, 1020.0f);
+        OptionsPanelSlotRef->SetSize(FVector2D(Width, Height));
+        OptionsPanelSlotRef->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+        OptionsPanelSlotRef->SetAlignment(FVector2D(0.5f, 0.5f));
+        OptionsPanelSlotRef->SetPosition(FVector2D::ZeroVector);
+    }
+}
+
+void UNazareneHUDWidget::SetGameplayHUDVisible(bool bVisible)
+{
+    const ESlateVisibility TargetVisibility = bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
+
+    if (PlayerPanelRoot != nullptr)
+    {
+        PlayerPanelRoot->SetVisibility(TargetVisibility);
+    }
+
+    if (ObjectivePanelRoot != nullptr)
+    {
+        ObjectivePanelRoot->SetVisibility(TargetVisibility);
+    }
+
+    if (ControlsTextRoot != nullptr)
+    {
+        ControlsTextRoot->SetVisibility(TargetVisibility);
     }
 }
 
@@ -884,9 +1016,17 @@ void UNazareneHUDWidget::SetLoadingOverlayVisible(bool bVisible, const FString& 
 
 void UNazareneHUDWidget::SetStartMenuVisible(bool bVisible)
 {
+    RefreshResponsiveMenuLayout();
+    SetGameplayHUDVisible(!bVisible);
+
     if (StartMenuOverlay != nullptr)
     {
         StartMenuOverlay->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+    }
+
+    if (bVisible && MessageText != nullptr)
+    {
+        MessageText->SetVisibility(ESlateVisibility::Collapsed);
     }
 
     if (bVisible && PauseOverlay != nullptr)
@@ -912,6 +1052,8 @@ bool UNazareneHUDWidget::IsStartMenuVisible() const
 
 void UNazareneHUDWidget::SetPauseMenuVisible(bool bVisible)
 {
+    RefreshResponsiveMenuLayout();
+
     if (IsStartMenuVisible() && bVisible)
     {
         return;
@@ -1351,6 +1493,8 @@ void UNazareneHUDWidget::HandleContinuePilgrimagePressed()
 
 void UNazareneHUDWidget::HandleOptionsPressed()
 {
+    RefreshResponsiveMenuLayout();
+
     bOptionsOpenedFromStartMenu = IsStartMenuVisible();
     if (OptionsOverlay != nullptr)
     {
@@ -1369,6 +1513,18 @@ void UNazareneHUDWidget::HandleOptionsBackPressed()
     if (OptionsOverlay != nullptr)
     {
         OptionsOverlay->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    if (bOptionsOpenedFromStartMenu)
+    {
+        if (StartOptionsButton != nullptr)
+        {
+            StartOptionsButton->SetKeyboardFocus();
+        }
+    }
+    else if (PauseOptionsButton != nullptr)
+    {
+        PauseOptionsButton->SetKeyboardFocus();
     }
 }
 
@@ -1741,4 +1897,3 @@ void UNazareneHUDWidget::HandleSkillTreeClosePressed()
 {
     SetSkillTreeVisible(false);
 }
-

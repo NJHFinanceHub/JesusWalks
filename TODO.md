@@ -1,8 +1,8 @@
 # The Nazarene â€” Storefront-Ready Production Roadmap
 
-> **Last updated:** February 13, 2026
+> **Last updated:** February 14, 2026
 > **Engine:** Unreal Engine 5.7 C++ (`unreal/TheNazareneAAA`)
-> **Target:** Win64 Shipping build â€” 7-chapter campaign, production art/audio, polished UI
+> **Target:** Win64 Shipping build â€” 7-chapter campaign from Nativity to Crucifixion, production art/audio, polished UI
 > **Developer:** Solo
 
 ## Status Summary
@@ -37,18 +37,18 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 - [x] Author `ABP_Enemy` AnimBlueprint wired to `UNazareneEnemyAnimInstance` (11 states from `ENazareneEnemyState`)
 - [x] Add `GameplayAbilities` module to `Build.cs`; create stub `NazareneAttributeSet` and `NazareneAbilitySystemComponent` classes (GAS Phase 1 â€” non-breaking)
 - [x] Add gamepad bindings to Enhanced Input (left stick move, right stick look, face buttons for combat/miracles, triggers for block/heavy)
-- [ ] Run first PIE soak test (20 min on Galilee) to validate mesh fallback paths and identify crashes
+- [x] Run first PIE soak test (20 min on Galilee) to validate mesh fallback paths and identify crashes
 
 ## Week 2 â€” Environment Art + Audio Pipeline + First BT
 
 > Replace procedural BasicShapes geometry with authored environments. Stand up the audio pipeline.
 
-- [ ] Acquire modular Ancient/Mediterranean environment art kit; validate with `Tools/validate_asset_pipeline.py`
+- [x] Acquire modular Ancient/Mediterranean environment art kit; validate with `Tools/validate_asset_pipeline.py`
 - [x] Author Galilee Shores production sublevel (`/Game/Maps/Regions/Galilee/`); refactor `LoadRegion()` to use level streaming instead of `SpawnRegionEnvironment()`
 - [x] First lighting/post-processing pass on Galilee (directional light, skylight, volumetric fog, color grading)
 - [x] Import combat SFX (attack whoosh, impact, dodge, hurt grunt, parry clang, miracle shimmer); assign to player/enemy `UPROPERTY` audio slots
 - [x] Import `epic_biblical_theme.wav` as `S_Music_Galilee`; add `UAudioComponent` to `LoadRegion()` for region music playback
-- [ ] Author `BT_MeleeShield` behavior tree using existing blackboard keys (`TargetActor`, `TargetDistance`)
+- [x] Author `BT_MeleeShield` behavior tree using existing blackboard keys (`TargetActor`, `TargetDistance`)
 
 ## Week 3 â€” Gameplay Systems Port + UI Widgets
 
@@ -60,30 +60,31 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 - [x] Implement `UNazareneEnemyHealthBarWidget` (name + health + poise bars, lock-on show, auto-fade)
 - [x] Implement death/respawn overlay ("You Were Struck Down" + retry count + "Rise Again" button)
 - [x] Implement loading screen widget with randomized lore tips from `CHARACTER_LIBRARY.md`
-- [ ] Author remaining BT assets: `BT_Spear`, `BT_Ranged`, `BT_Demon`, `BT_Boss`
+- [x] Author remaining BT assets: `BT_Spear`, `BT_Ranged`, `BT_Demon`, `BT_Boss`
 
 ## Week 4 â€” Content Expansion (Chapters 5â€“7) + Region Art
 
 > Expand the campaign from 4 to 7 chapters per the Gospel narrative arc in `docs/PLOT.md`.
 
-- [ ] Migrate region definitions from hard-coded `BuildDefaultRegions()` to DataTable/DataAsset for all 7 chapters
-- [ ] Define Chapter 5 "Garden of Gethsemane" (olive grove, moonlit, betrayal/arrest theme), Chapter 6 "Via Dolorosa" (narrow streets, crowds, trial), Chapter 7 "The Empty Tomb" (cave, dawn, resurrection)
-- [ ] Author Decapolis Ruins production sublevel (ruined Greco-Roman architecture, overcast lighting)
-- [ ] Author Wilderness of Temptation production sublevel (desert canyons, harsh sun, heat haze)
-- [ ] Author Jerusalem Approach production sublevel (city walls, temple columns, golden hour)
-- [ ] Blockout sublevels for chapters 5â€“7 (geometry + lighting placeholder)
-- [ ] Implement `ANazareneNPC` actor with overlap interaction and dialogue text display; place 2â€“3 NPCs per region
+- [x] Migrate region definitions from hard-coded `BuildDefaultRegions()` to DataTable/DataAsset for all 7 chapters
+- [x] Define Chapter 5 "Journey to Jerusalem" (roadside villages, discipleship teachings), Chapter 6 "Passion Week" (upper room, Gethsemane, trial), Chapter 7 "Golgotha Crucifixion" (hilltop, solemn crucifixion and burial)
+- [x] Author Decapolis Ruins production sublevel (ruined Greco-Roman architecture, overcast lighting)
+- [x] Author Wilderness of Temptation production sublevel (desert canyons, harsh sun, heat haze)
+- [x] Author Jerusalem Approach production sublevel (city walls, temple columns, golden hour)
+- [x] Blockout sublevels for chapters 5â€“7 (geometry + lighting placeholder)
+- [x] Add chapter-title HUD labels and per-region reward items that persist into campaign inventory
+- [x] Implement `ANazareneNPC` actor with overlap interaction and dialogue text display; place 2â€“3 NPCs per region
 
 ## Week 5 â€” GAS Miracles + Niagara VFX + Boss Polish
 
 > Convert miracles to Gameplay Abilities. Add all visual effects. Polish boss encounters.
 
-- [ ] Convert Heal/Blessing/Radiance to `UGameplayAbility` subclasses with `UGameplayEffect` cooldowns and faith costs (GAS Phase 2)
+- [x] Convert Heal/Blessing/Radiance to `UGameplayAbility` subclasses with `UGameplayEffect` cooldowns and faith costs (GAS Phase 2)
 - [ ] Author miracle Niagara systems: `NS_Heal` (golden particles), `NS_Blessing` (radiant aura), `NS_Radiance` (AoE burst)
 - [ ] Author combat Niagara systems: `NS_LightAttackHit`, `NS_HeavyAttackHit`, `NS_DodgeTrail`, `NS_EnemyRedeemed`; assign to existing VFX `UPROPERTY` slots
 - [ ] Author ambient Niagara per region (dust motes, sand wisps, embers, light shafts, olive leaves, crowd dust, dawn rays)
 - [ ] Enhance boss fights: phase-specific attack patterns, arena hazard VFX, victory cutscene trigger
-- [ ] Add prayer site variety (visual themes per region) and rest-time features (Faith refill, skill tree access, lore text)
+- [x] Add prayer site variety (visual themes per region) and rest-time features (Faith refill, skill tree access, lore text)
 - [ ] Design unique encounter compositions per chapter (escalating archetype mix, ambush spawns, reinforcement waves)
 
 ## Week 6 â€” UI/UX Polish + Audio Completion + Accessibility

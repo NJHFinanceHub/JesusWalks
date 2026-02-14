@@ -2,11 +2,13 @@
 
 #include "NazareneAttributeSet.h"
 #include "NazarenePlayerCharacter.h"
+#include "GameplayTagsManager.h"
 
 UGA_NazareneHeal::UGA_NazareneHeal()
 {
     FaithCost = 18.0f;
     CooldownDuration = 6.5f;
+    CooldownTag = FGameplayTag::RequestGameplayTag(TEXT("Cooldown.Miracle.Heal"));
 }
 
 void UGA_NazareneHeal::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -44,8 +46,11 @@ void UGA_NazareneHeal::ActivateAbility(const FGameplayAbilitySpecHandle Handle, 
         return;
     }
 
-    // Deduct faith
-    Player->AddFaith(-HealFaithCost);
+    if (!CommitMiracle(ActorInfo))
+    {
+        CancelAbility(Handle, ActorInfo, ActivationInfo, true);
+        return;
+    }
 
     // Heal: directly set via the public setter pattern matching existing code
     const float NewHealth = FMath::Min(Player->GetMaxHealth(), Player->GetHealth() + HealAmt);

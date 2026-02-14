@@ -70,6 +70,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Campaign")
     void NotifyPlayerDefeated();
 
+    UFUNCTION(BlueprintCallable, Category = "Campaign")
+    void NotifyNPCDialogue(FName CharacterSlug);
+
     UFUNCTION(BlueprintPure, Category = "Audio")
     ENazareneMusicState GetMusicState() const { return MusicState; }
 
@@ -87,6 +90,13 @@ private:
     void BuildDefaultRegions();
     void LoadRegion(int32 TargetRegionIndex);
     void ClearRegionActors();
+    bool IsStartMenuVisible() const;
+    bool ShouldRunOpeningIntro() const;
+    void StartOpeningIntroSequence();
+    void CompleteOpeningIntroSequence();
+    void SetEnemyCombatEnabled(bool bEnabled);
+    ANazareneEnemyCharacter* SpawnConfiguredEnemy(const FNazareneEnemySpawnDefinition& Spec, const FNazareneRegionDefinition& Region, bool bIsWaveEnemy);
+    void SpawnIntroDeferredEnemies();
     void SpawnRegionEnvironment(const FNazareneRegionDefinition& Region);
     bool TryLoadRegionSublevel(const FNazareneRegionDefinition& Region);
     void UnloadRegionSublevel();
@@ -97,6 +107,9 @@ private:
     void OnBossRedeemed();
     bool ApplyRegionReward(const FNazareneRegionDefinition& Region);
     void QueueIntroStoryIfNeeded();
+    void InitializeNativityQuestState();
+    bool IsNativityQuestComplete() const;
+    FString BuildNativityObjectiveText() const;
     void AdvanceStoryLine();
     void UpdateChapterStageFromState();
     void EnsureRetryCounterForCurrentRegion();
@@ -212,12 +225,25 @@ private:
     bool bRegionCompleted = false;
     bool bPrayerSiteConsecrated = false;
     bool bSuppressRedeemedCallbacks = false;
+    bool bIntroSequencePendingStart = false;
+    bool bIntroSequenceActive = false;
+    bool bEnemyCombatSuppressed = false;
+    bool bNativityQuestActive = false;
     ENazareneChapterStage ChapterStage = ENazareneChapterStage::ConsecratePrayerSite;
     int32 StoryLineIndex = 0;
     ENazareneMusicState MusicState = ENazareneMusicState::Peace;
 
     UPROPERTY()
     TArray<FString> ActiveStoryLines;
+
+    UPROPERTY()
+    TArray<FName> NativityQuestRequiredSlugs;
+
+    UPROPERTY()
+    TSet<FName> NativityQuestSpokenSlugs;
+
+    UPROPERTY()
+    TArray<FNazareneEnemySpawnDefinition> IntroDeferredEnemySpawns;
 
     FTimerHandle StoryLineTimerHandle;
 
