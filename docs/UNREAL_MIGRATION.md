@@ -2,14 +2,14 @@
 
 ## Status (February 6, 2026)
 - Unreal Engine 5 C++ is the active development target.
-- Godot implementation is retained for feature parity reference and migration validation.
+- legacy prototype implementation is retained for feature parity reference and migration validation.
 - Delivery scope should now be planned from Unreal assets, systems, and tooling.
 - UMG HUD/menu stack, AI perception/controller scaffolding, animation runtime classes, and production pipeline docs are now in place.
 
 ## Source-of-truth locations
 - Unreal project: `unreal/TheNazareneAAA`
 - Active task list: `TODO.md`
-- Legacy Godot reference: `project.godot`, `scenes/`, `scripts/`
+- Legacy non-UE artifacts are retired from the active codebase.
 - Execution docs:
   - `docs/UNREAL_LEVEL_BOOTSTRAP.md`
   - `docs/UNREAL_GAMEPLAY_VALIDATION.md`
@@ -17,21 +17,21 @@
   - `docs/GAS_ADOPTION_EVALUATION.md`
   - `docs/NETWORKING_SCOPE.md`
 
-## Godot -> Unreal system mapping
-- `PlayerController.gd` -> `ANazarenePlayerCharacter`
+## Prior prototype -> Unreal system mapping
+- `Player character gameplay controller` -> `ANazarenePlayerCharacter`
   - Lock-on, stamina combat windows, dodge/parry/block, miracles, prayer interactions, save/load inputs.
-- `enemy_ai.gd` -> `ANazareneEnemyCharacter`
+- `Enemy combat/behavior logic` -> `ANazareneEnemyCharacter`
   - Archetypes (shield/spear/ranged/demon/boss), state transitions, parry/riposte, boss phase escalation.
-- `prayer_site.gd` -> `ANazarenePrayerSite`
+- `Prayer site interaction logic` -> `ANazarenePrayerSite`
   - Overlap prompts, rest interaction, respawn anchor behavior.
-- `travel_gate.gd` -> `ANazareneTravelGate`
+- `Travel gate progression logic` -> `ANazareneTravelGate`
   - Boss-gated region transition flow.
-- `campaign_manager.gd` + `game_session.gd` + `save_system.gd` ->
+- `Campaign/session/save orchestration` ->
   - `ANazareneCampaignGameMode`
   - `UNazareneGameInstance`
   - `UNazareneSaveSubsystem`
   - `UNazareneSaveGame`
-- `hud.gd` -> `ANazareneHUD`
+- `HUD and prompt presentation` -> `ANazareneHUD`
   - Runtime vitals/objective/context presentation.
 
 ## Unreal project structure
@@ -59,5 +59,5 @@
 4. Close out remaining content polish and art replacement tasks per region.
 
 ## Legacy documentation policy
-- `docs/PHASE1.md`, `docs/PHASE2.md`, `docs/PHASE3.md`, `docs/AAA_REVIEW.md`, and `docs/CODE_REVIEW_REPORT.md` are historical records of Godot work.
+- `docs/PHASE1.md`, `docs/PHASE2.md`, `docs/PHASE3.md`, `docs/AAA_REVIEW.md`, and `docs/CODE_REVIEW_REPORT.md` are historical records from the pre-UE5 phase.
 - Keep those documents for traceability, but plan and execute new work from Unreal docs and tasks.

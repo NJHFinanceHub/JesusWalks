@@ -1,7 +1,0 @@
-[gd_scene load_steps=2 format=3]
-
-[ext_resource type="Script" path="res://scripts/ui/credits.gd" id="1_z7f6a"]
-
-[node name="Credits" type="Control"]
-script = ExtResource("1_z7f6a")
-

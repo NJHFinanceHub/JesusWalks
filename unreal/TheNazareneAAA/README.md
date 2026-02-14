@@ -1,7 +1,7 @@
 # The Nazarene AAA (Unreal Engine)
 
 This is the primary runtime codebase for The Nazarene.
-The Godot project remains in the repository as legacy reference material for migration parity checks.
+This repository is now UE5-first; all active gameplay work must stay in UE5-compatible language/tooling.
 
 ## Build
 1. Install Unreal Engine 5.4+ and Visual Studio with C++ toolchain.

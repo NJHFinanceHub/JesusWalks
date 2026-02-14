@@ -2,7 +2,7 @@
 	"FileVersion": 3,
 	"EngineAssociation": "5.7",
 	"Category": "",
-	"Description": "The Nazarene AAA migration project from Godot prototype.",
+	"Description": "The Nazarene AAA migration project from pre-UE5 prototype.",
 	"Modules": [
 		{
 			"Name": "TheNazareneAAA",

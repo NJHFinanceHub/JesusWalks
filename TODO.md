@@ -7,10 +7,10 @@
 
 ## Status Summary
 
-The Unreal C++ codebase is **functionally complete** for core gameplay (combat, miracles, AI, campaign, save/load, HUD, settings) but runs entirely on placeholder geometry. The `Content/` directory is nearly empty â€” no skeletal meshes, no AnimBlueprints, no Behavior Tree assets, no Niagara VFX, no audio assets, and no authored environments. The Godot prototype (`project.godot`, `scripts/`) is legacy reference only.
+The Unreal C++ codebase is **functionally complete** for core gameplay (combat, miracles, AI, campaign, save/load, HUD, settings) but runs entirely on placeholder geometry. The `Content/` directory is nearly empty â€” no skeletal meshes, no AnimBlueprints, no Behavior Tree assets, no Niagara VFX, no audio assets, and no authored environments. All former non-UE gameplay logic has been migrated into UE5-compatible systems.
 
 ### Completed Baseline
-- Unreal C++ scaffold mirrors all major Godot gameplay systems
+- Unreal C++ scaffold mirrors all major prior gameplay systems
 - `ANazareneCampaignGameMode`, `ANazarenePlayerCharacter`, `ANazareneEnemyCharacter`
 - `ANazarenePrayerSite`, `ANazareneTravelGate`, `UNazareneSaveSubsystem`
 - `ANazareneHUD` with UMG pause/menu stack and save/load slot summaries
@@ -23,7 +23,7 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 - Packaging/profile pipeline docs (`docs/PACKAGING_PROFILE_PIPELINE.md`)
 - GAS evaluation completed (`docs/GAS_ADOPTION_EVALUATION.md`)
 - Networking scope defined (single-player only)
-- Godot codebase audited and 8 bugs fixed (Feb 13, 2026)
+- Pre-UE5 prototype audit completed and issues addressed (Feb 13, 2026)
 
 ---
 
@@ -52,10 +52,10 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 
 ## Week 3 â€” Gameplay Systems Port + UI Widgets
 
-> Port the Godot-only systems (skill tree, XP, damage numbers, health bars) to Unreal C++.
+> Complete migration of former prototype-only systems (skill tree, XP, damage numbers, health bars) into Unreal C++.
 
-- [x] Create `UNazareneSkillTree` class mirroring Godot `skill_tree.gd` (4 branches, 8 skills, unlock logic); add `UnlockedSkills`/`SkillPoints` to `FNazareneCampaignState` in `NazareneTypes.h`
-- [x] Implement XP/leveling: add `TotalXP`/`PlayerLevel` to campaign state; award XP in `HandleEnemyRedeemed()`; threshold formula from Godot `_xp_for_level()`
+- [x] Create `UNazareneSkillTree` class mirroring prior prototype skill tree logic (4 branches, 8 skills, unlock logic); add `UnlockedSkills`/`SkillPoints` to `FNazareneCampaignState` in `NazareneTypes.h`
+- [x] Implement XP/leveling: add `TotalXP`/`PlayerLevel` to campaign state; award XP in `HandleEnemyRedeemed()`; threshold formula migrated into UE5 leveling helpers
 - [x] Implement `UNazareneDamageNumberWidget` (Normal/Critical/Heal/PoiseBreak/Blocked types, world-to-screen projection, float + fade)
 - [x] Implement `UNazareneEnemyHealthBarWidget` (name + health + poise bars, lock-on show, auto-fade)
 - [x] Implement death/respawn overlay ("You Were Struck Down" + retry count + "Rise Again" button)
@@ -128,7 +128,7 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 
 | File | Purpose |
 |------|---------|
-| `NazareneSkillTree.h/.cpp` | Skill tree data and logic (port from Godot `skill_tree.gd`) |
+| `NazareneSkillTree.h/.cpp` | Skill tree data and logic implemented in UE5 runtime |
 | `NazareneAttributeSet.h/.cpp` | GAS attribute set for health/stamina/faith |
 | `NazareneAbilitySystemComponent.h/.cpp` | Player Ability System Component |
 | `GA_Heal.h/.cpp` | GAS miracle: Healing |
