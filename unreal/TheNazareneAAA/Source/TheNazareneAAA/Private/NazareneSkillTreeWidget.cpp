@@ -12,6 +12,7 @@
 #include "Components/VerticalBoxSlot.h"
 #include "NazarenePlayerCharacter.h"
 #include "NazareneSkillTree.h"
+#include "Styling/SlateTypes.h"
 
 namespace
 {
@@ -39,6 +40,39 @@ namespace
         {
             Slot->SetPadding(Padding);
         }
+    }
+
+    static FButtonStyle CreateSkillButtonStyle()
+    {
+        FButtonStyle Style;
+
+        // Normal: dark brown with muted gold border
+        FSlateBrush NormalBrush;
+        NormalBrush.DrawAs = ESlateBrushDrawType::RoundedBox;
+        NormalBrush.TintColor = FSlateColor(FLinearColor(0.12f, 0.10f, 0.06f, 1.0f));
+        NormalBrush.OutlineSettings.CornerRadii = FVector4(3.0f, 3.0f, 3.0f, 3.0f);
+        NormalBrush.OutlineSettings.RoundingType = ESlateBrushRoundingType::FixedRadius;
+        NormalBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.50f, 0.42f, 0.20f, 0.60f));
+        NormalBrush.OutlineSettings.Width = 1.0f;
+        Style.SetNormal(NormalBrush);
+
+        // Hovered: gold-brightened with glowing border
+        FSlateBrush HoveredBrush = NormalBrush;
+        HoveredBrush.TintColor = FSlateColor(FLinearColor(0.20f, 0.16f, 0.07f, 1.0f));
+        HoveredBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.78f, 0.68f, 0.38f, 0.90f));
+        HoveredBrush.OutlineSettings.Width = 1.5f;
+        Style.SetHovered(HoveredBrush);
+
+        // Pressed: darkened inset
+        FSlateBrush PressedBrush = NormalBrush;
+        PressedBrush.TintColor = FSlateColor(FLinearColor(0.06f, 0.05f, 0.03f, 1.0f));
+        PressedBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.35f, 0.30f, 0.15f, 0.70f));
+        Style.SetPressed(PressedBrush);
+
+        Style.SetNormalPadding(FMargin(8.0f, 6.0f));
+        Style.SetPressedPadding(FMargin(8.0f, 7.0f, 8.0f, 5.0f));
+
+        return Style;
     }
 }
 
@@ -167,6 +201,7 @@ void UNazareneSkillTreeWidget::CreateBranchColumn(UVerticalBox* ParentColumn, EN
         // Unlock button
         const FString ButtonName = FString::Printf(TEXT("SkillUnlockBtn_%s"), *SkillId.ToString());
         NodeWidgets.UnlockButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), *ButtonName);
+        NodeWidgets.UnlockButton->SetStyle(CreateSkillButtonStyle());
         AddToVertical(NodeContent, NodeWidgets.UnlockButton, FMargin(8.0f, 2.0f, 8.0f, 6.0f));
 
         const FString BtnLabelName = FString::Printf(TEXT("SkillUnlockLabel_%s"), *SkillId.ToString());

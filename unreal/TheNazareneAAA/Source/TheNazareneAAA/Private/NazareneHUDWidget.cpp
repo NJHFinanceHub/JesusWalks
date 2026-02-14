@@ -23,6 +23,8 @@
 #include "NazareneSaveSubsystem.h"
 #include "NazareneSettingsSubsystem.h"
 #include "NazareneSkillTreeWidget.h"
+#include "Components/SizeBox.h"
+#include "Styling/SlateTypes.h"
 
 namespace
 {
@@ -55,6 +57,41 @@ namespace
         }
     }
 
+    static FButtonStyle CreateThemedButtonStyle()
+    {
+        FButtonStyle Style;
+
+        // Normal state: dark warm brown with subtle gold border
+        FSlateBrush NormalBrush;
+        NormalBrush.DrawAs = ESlateBrushDrawType::RoundedBox;
+        NormalBrush.TintColor = FSlateColor(FLinearColor(0.10f, 0.08f, 0.05f, 1.0f));
+        NormalBrush.OutlineSettings.CornerRadii = FVector4(4.0f, 4.0f, 4.0f, 4.0f);
+        NormalBrush.OutlineSettings.RoundingType = ESlateBrushRoundingType::FixedRadius;
+        NormalBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.55f, 0.45f, 0.22f, 0.70f));
+        NormalBrush.OutlineSettings.Width = 1.5f;
+        Style.SetNormal(NormalBrush);
+
+        // Hovered state: gold-tinted brightening with glowing border
+        FSlateBrush HoveredBrush = NormalBrush;
+        HoveredBrush.TintColor = FSlateColor(FLinearColor(0.22f, 0.18f, 0.08f, 1.0f));
+        HoveredBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.78f, 0.68f, 0.38f, 0.95f));
+        HoveredBrush.OutlineSettings.Width = 2.0f;
+        Style.SetHovered(HoveredBrush);
+
+        // Pressed state: darkened inset with dimmer border
+        FSlateBrush PressedBrush = NormalBrush;
+        PressedBrush.TintColor = FSlateColor(FLinearColor(0.06f, 0.05f, 0.03f, 1.0f));
+        PressedBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.40f, 0.34f, 0.18f, 0.80f));
+        PressedBrush.OutlineSettings.Width = 1.0f;
+        Style.SetPressed(PressedBrush);
+
+        // Padding with 1px downshift on press for physical push feel
+        Style.SetNormalPadding(FMargin(16.0f, 10.0f));
+        Style.SetPressedPadding(FMargin(16.0f, 11.0f, 16.0f, 9.0f));
+
+        return Style;
+    }
+
     static UButton* CreateMenuButton(
         UWidgetTree* WidgetTree,
         UVerticalBox* Parent,
@@ -74,13 +111,29 @@ namespace
             return nullptr;
         }
 
+        // Apply themed biblical gold style
+        Button->SetStyle(CreateThemedButtonStyle());
+
         const FName LabelName(*FString::Printf(TEXT("%sLabel"), Name));
         OutLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), LabelName);
-        ConfigureText(OutLabel, Label, FLinearColor(0.95f, 0.90f, 0.82f), 16);
+        ConfigureText(OutLabel, Label, FLinearColor(0.95f, 0.90f, 0.82f), 20);
         OutLabel->SetJustification(ETextJustify::Center);
         Button->AddChild(OutLabel);
 
-        AddVerticalChild(Parent, Button, FMargin(0.0f, 4.0f));
+        // Wrap in SizeBox for 48px minimum click target
+        const FName SizeBoxName(*FString::Printf(TEXT("%sSizeBox"), Name));
+        USizeBox* SizeWrapper = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), SizeBoxName);
+        if (SizeWrapper != nullptr)
+        {
+            SizeWrapper->SetMinDesiredHeight(48.0f);
+            SizeWrapper->AddChild(Button);
+            AddVerticalChild(Parent, SizeWrapper, FMargin(12.0f, 8.0f, 12.0f, 8.0f));
+        }
+        else
+        {
+            AddVerticalChild(Parent, Button, FMargin(12.0f, 8.0f, 12.0f, 8.0f));
+        }
+
         return Button;
     }
 }
@@ -484,7 +537,21 @@ void UNazareneHUDWidget::NativeOnInitialized()
     UCanvasPanelSlot* OptionsPanelSlot = OptionsCanvas->AddChildToCanvas(OptionsPanel);
     if (OptionsPanelSlot != nullptr)
     {
-        OptionsPanelSlot->SetSize(FVector2D(720.0f, 960.0f));
+        FVector2D ViewportSize(1920.0f, 1080.0f);
+        if (APlayerController* PC = GetOwningPlayer())
+        {
+            int32 ViewportX = 0;
+            int32 ViewportY = 0;
+            PC->GetViewportSize(ViewportX, ViewportY);
+            if (ViewportX > 0 && ViewportY > 0)
+            {
+                ViewportSize = FVector2D(float(ViewportX), float(ViewportY));
+            }
+        }
+
+        const float ResponsiveWidth = FMath::Clamp(ViewportSize.X * 0.42f, 640.0f, 900.0f);
+        const float ResponsiveHeight = FMath::Clamp(ViewportSize.Y * 0.86f, 760.0f, 1080.0f);
+        OptionsPanelSlot->SetSize(FVector2D(ResponsiveWidth, ResponsiveHeight));
         OptionsPanelSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
         OptionsPanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
         OptionsPanelSlot->SetPosition(FVector2D::ZeroVector);
