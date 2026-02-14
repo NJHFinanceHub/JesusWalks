@@ -10,6 +10,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/ExponentialHeightFog.h"
+#include "Engine/LevelStreaming.h"
 #include "Engine/PointLight.h"
 #include "Engine/PostProcessVolume.h"
 #include "Engine/SkyLight.h"
@@ -21,6 +22,7 @@
 #include "Misc/FileHelper.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
+#include "Materials/MaterialInterface.h"
 #include "NazareneEnemyCharacter.h"
 #include "NazareneGameInstance.h"
 #include "NazareneNPC.h"
@@ -493,6 +495,41 @@ bool ANazareneCampaignGameMode::TryLoadRegionSublevel(const FNazareneRegionDefin
         return false;
     }
 
+    UWorld* World = GetWorld();
+    if (World == nullptr)
+    {
+        return false;
+    }
+
+    const FString CurrentWorldPackage = World->GetPackage()->GetName();
+    const FString TargetShortName = FPackageName::GetShortName(PackagePath);
+    const FString CurrentShortName = FPackageName::GetShortName(CurrentWorldPackage);
+    const FString PieSuffix = FString::Printf(TEXT("_%s"), *TargetShortName);
+    if (
+        CurrentWorldPackage.Equals(PackagePath, ESearchCase::IgnoreCase) ||
+        CurrentShortName.Equals(TargetShortName, ESearchCase::IgnoreCase) ||
+        CurrentShortName.EndsWith(PieSuffix, ESearchCase::IgnoreCase)
+    )
+    {
+        LoadedRegionLevelPackage = NAME_None;
+        return true;
+    }
+
+    for (ULevelStreaming* StreamingLevel : World->GetStreamingLevels())
+    {
+        if (StreamingLevel == nullptr)
+        {
+            continue;
+        }
+
+        const FName WorldAssetPackage = StreamingLevel->GetWorldAssetPackageFName();
+        if (WorldAssetPackage == Region.StreamedLevelPackage || WorldAssetPackage.ToString().Equals(PackagePath, ESearchCase::IgnoreCase))
+        {
+            LoadedRegionLevelPackage = WorldAssetPackage;
+            return true;
+        }
+    }
+
     FLatentActionInfo LatentInfo;
     LatentInfo.CallbackTarget = this;
     UGameplayStatics::LoadStreamLevel(this, Region.StreamedLevelPackage, true, true, LatentInfo);
@@ -504,6 +541,35 @@ void ANazareneCampaignGameMode::UnloadRegionSublevel()
 {
     if (LoadedRegionLevelPackage.IsNone())
     {
+        return;
+    }
+
+    UWorld* World = GetWorld();
+    if (World == nullptr)
+    {
+        LoadedRegionLevelPackage = NAME_None;
+        return;
+    }
+
+    bool bFoundStreamingLevel = false;
+    for (ULevelStreaming* StreamingLevel : World->GetStreamingLevels())
+    {
+        if (StreamingLevel == nullptr)
+        {
+            continue;
+        }
+
+        const FName PackageName = StreamingLevel->GetWorldAssetPackageFName();
+        if (PackageName == LoadedRegionLevelPackage || PackageName.ToString().Equals(LoadedRegionLevelPackage.ToString(), ESearchCase::IgnoreCase))
+        {
+            bFoundStreamingLevel = true;
+            break;
+        }
+    }
+
+    if (!bFoundStreamingLevel)
+    {
+        LoadedRegionLevelPackage = NAME_None;
         return;
     }
 
@@ -2119,15 +2185,23 @@ void ANazareneCampaignGameMode::SpawnMenuCamera()
         CameraCenter = Regions[RegionIndex].PrayerSiteLocation;
     }
 
+    SpawnMenuSetpiece(CameraCenter);
+
     MenuCamera = GetWorld()->SpawnActor<ANazareneMenuCameraActor>(
         ANazareneMenuCameraActor::StaticClass(),
-        CameraCenter + FVector(1800.0f, 0.0f, 400.0f),
+        CameraCenter + FVector(-220.0f, 0.0f, 110.0f),
         FRotator::ZeroRotator
     );
 
     if (MenuCamera != nullptr)
     {
         MenuCamera->OrbitCenter = CameraCenter;
+        MenuCamera->CameraMode = ENazareneMenuCameraMode::PanOut;
+        MenuCamera->PanStartOffset = FVector(-220.0f, 0.0f, 110.0f);
+        MenuCamera->PanEndOffset = FVector(1080.0f, 0.0f, 250.0f);
+        MenuCamera->PanLookAtOffset = FVector(420.0f, 0.0f, 110.0f);
+        MenuCamera->PanDuration = 18.0f;
+        MenuCamera->bLoopPan = true;
 
         APlayerController* PC = GetWorld()->GetFirstPlayerController();
         if (PC != nullptr)
@@ -2146,6 +2220,7 @@ void ANazareneCampaignGameMode::DestroyMenuCamera()
 
     MenuCamera->Destroy();
     MenuCamera = nullptr;
+    DestroyMenuSetpiece();
 
     APlayerController* PC = GetWorld()->GetFirstPlayerController();
     if (PC != nullptr && PlayerCharacter != nullptr)
@@ -2157,4 +2232,81 @@ void ANazareneCampaignGameMode::DestroyMenuCamera()
 void ANazareneCampaignGameMode::OnMenuDismissed()
 {
     DestroyMenuCamera();
+}
+
+void ANazareneCampaignGameMode::SpawnMenuSetpiece(const FVector& CameraCenter)
+{
+    DestroyMenuSetpiece();
+
+    UWorld* World = GetWorld();
+    if (World == nullptr)
+    {
+        return;
+    }
+
+    UStaticMesh* BlockMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/Art/Environment/Meshes/SM_BiblicalBlock.SM_BiblicalBlock"));
+    UStaticMesh* ColumnMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/Art/Environment/Meshes/SM_BiblicalColumn.SM_BiblicalColumn"));
+    UMaterialInterface* StoneMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone"));
+
+    if (BlockMesh == nullptr || ColumnMesh == nullptr)
+    {
+        return;
+    }
+
+    auto SpawnPiece = [this, World, StoneMaterial](UStaticMesh* Mesh, const FVector& Location, const FVector& Scale, const FRotator& Rotation) -> void
+    {
+        AStaticMeshActor* MeshActor = World->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Location, Rotation);
+        if (MeshActor == nullptr)
+        {
+            return;
+        }
+
+        MeshActor->SetMobility(EComponentMobility::Movable);
+        UStaticMeshComponent* MeshComponent = MeshActor->GetStaticMeshComponent();
+        if (MeshComponent == nullptr)
+        {
+            MeshActor->Destroy();
+            return;
+        }
+
+        MeshComponent->SetStaticMesh(Mesh);
+        MeshActor->SetActorScale3D(Scale);
+        if (StoneMaterial != nullptr)
+        {
+            MeshComponent->SetMaterial(0, StoneMaterial);
+        }
+
+        MenuSetpieceActors.Add(MeshActor);
+    };
+
+    const FVector TombBase = CameraCenter + FVector(430.0f, 0.0f, 0.0f);
+
+    // Floor slab and rear chamber wall.
+    SpawnPiece(BlockMesh, TombBase + FVector(0.0f, 0.0f, -70.0f), FVector(6.4f, 4.2f, 0.35f), FRotator::ZeroRotator);
+    SpawnPiece(BlockMesh, TombBase + FVector(-360.0f, 0.0f, 145.0f), FVector(0.35f, 4.0f, 2.5f), FRotator::ZeroRotator);
+
+    // Left and right side walls shaping the cave opening.
+    SpawnPiece(BlockMesh, TombBase + FVector(80.0f, -300.0f, 130.0f), FVector(4.3f, 0.35f, 2.2f), FRotator::ZeroRotator);
+    SpawnPiece(BlockMesh, TombBase + FVector(80.0f, 300.0f, 130.0f), FVector(4.3f, 0.35f, 2.2f), FRotator::ZeroRotator);
+
+    // Ceiling lintel.
+    SpawnPiece(BlockMesh, TombBase + FVector(110.0f, 0.0f, 285.0f), FVector(4.2f, 1.6f, 0.28f), FRotator::ZeroRotator);
+
+    // Rolled stone near the entrance.
+    SpawnPiece(ColumnMesh, TombBase + FVector(390.0f, 180.0f, 76.0f), FVector(1.45f, 1.45f, 0.62f), FRotator(90.0f, 8.0f, 0.0f));
+
+    // Outer path slab to support the pan-out framing.
+    SpawnPiece(BlockMesh, TombBase + FVector(760.0f, 0.0f, -80.0f), FVector(4.6f, 2.6f, 0.25f), FRotator::ZeroRotator);
+}
+
+void ANazareneCampaignGameMode::DestroyMenuSetpiece()
+{
+    for (AActor* Actor : MenuSetpieceActors)
+    {
+        if (IsValid(Actor))
+        {
+            Actor->Destroy();
+        }
+    }
+    MenuSetpieceActors.Empty();
 }

@@ -82,6 +82,8 @@ public:
 private:
     void SpawnMenuCamera();
     void DestroyMenuCamera();
+    void SpawnMenuSetpiece(const FVector& CameraCenter);
+    void DestroyMenuSetpiece();
     void BuildDefaultRegions();
     void LoadRegion(int32 TargetRegionIndex);
     void ClearRegionActors();
@@ -205,6 +207,9 @@ private:
 
     UPROPERTY()
     TObjectPtr<UAudioComponent> CrossfadeAudioComponent;
+
+    UPROPERTY()
+    TArray<TObjectPtr<AActor>> MenuSetpieceActors;
 
     float MusicCrossfadeDuration = 2.0f;
     float CrossfadeElapsed = 0.0f;

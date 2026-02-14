@@ -379,7 +379,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
     }
 
     StartMenuOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("StartMenuOverlay"));
-    StartMenuOverlay->SetBrushColor(FLinearColor(0.01f, 0.01f, 0.01f, 0.93f));
+    StartMenuOverlay->SetBrushColor(FLinearColor(0.02f, 0.02f, 0.01f, 0.42f));
     StartMenuOverlay->SetVisibility(ESlateVisibility::Collapsed);
     UCanvasPanelSlot* StartOverlaySlot = RootPanel->AddChildToCanvas(StartMenuOverlay);
     if (StartOverlaySlot != nullptr)
@@ -392,14 +392,14 @@ void UNazareneHUDWidget::NativeOnInitialized()
     StartMenuOverlay->SetContent(StartCanvas);
 
     UBorder* StartMenuPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("StartMenuPanel"));
-    StartMenuPanel->SetBrushColor(FLinearColor(0.10f, 0.09f, 0.07f, 0.98f));
+    StartMenuPanel->SetBrushColor(FLinearColor(0.08f, 0.07f, 0.05f, 0.90f));
     UCanvasPanelSlot* StartPanelSlot = StartCanvas->AddChildToCanvas(StartMenuPanel);
     if (StartPanelSlot != nullptr)
     {
-        StartPanelSlot->SetSize(FVector2D(620.0f, 520.0f));
-        StartPanelSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
-        StartPanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
-        StartPanelSlot->SetPosition(FVector2D::ZeroVector);
+        StartPanelSlot->SetSize(FVector2D(620.0f, 470.0f));
+        StartPanelSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+        StartPanelSlot->SetAlignment(FVector2D(0.0f, 1.0f));
+        StartPanelSlot->SetPosition(FVector2D(54.0f, -42.0f));
     }
 
     UVerticalBox* StartMenuContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("StartMenuContent"));
@@ -407,22 +407,28 @@ void UNazareneHUDWidget::NativeOnInitialized()
 
     UTextBlock* StartTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("StartTitle"));
     ConfigureText(StartTitle, TEXT("THE NAZARENE"), FLinearColor(0.98f, 0.92f, 0.80f), 30);
-    StartTitle->SetJustification(ETextJustify::Center);
-    AddVerticalChild(StartMenuContent, StartTitle, FMargin(16.0f, 24.0f, 16.0f, 8.0f));
+    StartTitle->SetJustification(ETextJustify::Left);
+    AddVerticalChild(StartMenuContent, StartTitle, FMargin(20.0f, 26.0f, 18.0f, 4.0f));
 
     UTextBlock* StartSubtitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("StartSubtitle"));
-    ConfigureText(StartSubtitle, TEXT("Rise and walk the opening pilgrimage."), FLinearColor(0.88f, 0.84f, 0.72f), 16);
-    StartSubtitle->SetJustification(ETextJustify::Center);
-    AddVerticalChild(StartMenuContent, StartSubtitle, FMargin(16.0f, 0.0f, 16.0f, 24.0f));
+    ConfigureText(StartSubtitle, TEXT("The stone is rolled away."), FLinearColor(0.92f, 0.86f, 0.66f), 18);
+    StartSubtitle->SetJustification(ETextJustify::Left);
+    AddVerticalChild(StartMenuContent, StartSubtitle, FMargin(20.0f, 0.0f, 18.0f, 4.0f));
+
+    UTextBlock* StartLoreLine = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("StartLoreLine"));
+    ConfigureText(StartLoreLine, TEXT("An empty tomb. Dawn over Jerusalem. Begin the pilgrimage."), FLinearColor(0.86f, 0.82f, 0.74f), 14);
+    StartLoreLine->SetAutoWrapText(true);
+    StartLoreLine->SetJustification(ETextJustify::Left);
+    AddVerticalChild(StartMenuContent, StartLoreLine, FMargin(20.0f, 0.0f, 20.0f, 18.0f));
 
     UTextBlock* StartButtonLabel = nullptr;
-    StartNewGameButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("StartPilgrimageButton"), TEXT("New Game"), StartButtonLabel);
+    StartNewGameButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("StartPilgrimageButton"), TEXT("Begin Pilgrimage"), StartButtonLabel);
     if (StartNewGameButton != nullptr)
     {
         StartNewGameButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleStartPilgrimagePressed);
     }
 
-    StartContinueButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("ContinuePilgrimageButton"), TEXT("Continue"), StartButtonLabel);
+    StartContinueButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("ContinuePilgrimageButton"), TEXT("Continue Journey"), StartButtonLabel);
     if (StartContinueButton != nullptr)
     {
         StartContinueButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleContinuePilgrimagePressed);

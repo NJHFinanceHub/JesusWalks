@@ -12,6 +12,7 @@ import unreal
 
 MAP_PATH = "/Game/Maps/Regions/Galilee/L_GalileeShores"
 SOAK_SECONDS = int(os.environ.get("GALILEE_SOAK_SECONDS", str(20 * 60)))
+TARGET_MINUTES = max(1, int((SOAK_SECONDS + 59) // 60))
 WARMUP_SECONDS = 5.0
 PIE_START_TIMEOUT_SECONDS = 20.0
 
@@ -77,10 +78,14 @@ def _tick(_delta_seconds: float) -> None:
 
         if phase == "soak":
             elapsed = now - state["pie_started_at"]
+            if not level_editor.is_in_play_in_editor():
+                _finish(False, f"Galilee soak failed: PIE exited unexpectedly at {elapsed:.1f} seconds.")
+                return
+
             minute = int(elapsed // 60)
             if minute != state["last_report_minute"]:
                 state["last_report_minute"] = minute
-                unreal.log(f"Galilee soak progress: minute {minute}/20, in_pie={level_editor.is_in_play_in_editor()}")
+                unreal.log(f"Galilee soak progress: minute {minute}/{TARGET_MINUTES}, in_pie=True")
 
             if elapsed >= SOAK_SECONDS:
                 unreal.log("Galilee soak: ending PIE")
@@ -91,7 +96,7 @@ def _tick(_delta_seconds: float) -> None:
 
         if phase == "cooldown":
             if now - state["phase_started_at"] >= 3.0:
-                _finish(True, "Galilee soak complete: 20-minute PIE run finished.")
+                _finish(True, f"Galilee soak complete: {SOAK_SECONDS}-second PIE run finished.")
             return
 
     except Exception as exc:

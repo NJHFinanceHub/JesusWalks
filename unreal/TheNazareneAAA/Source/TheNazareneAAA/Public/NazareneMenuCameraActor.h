@@ -6,6 +6,13 @@
 
 class UCameraComponent;
 
+UENUM(BlueprintType)
+enum class ENazareneMenuCameraMode : uint8
+{
+    Orbit = 0,
+    PanOut = 1
+};
+
 UCLASS()
 class THENAZARENEAAA_API ANazareneMenuCameraActor : public AActor
 {
@@ -30,9 +37,28 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu Camera")
     FVector OrbitCenter = FVector::ZeroVector;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu Camera")
+    ENazareneMenuCameraMode CameraMode = ENazareneMenuCameraMode::PanOut;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu Camera|Pan")
+    FVector PanStartOffset = FVector(-220.0f, 0.0f, 110.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu Camera|Pan")
+    FVector PanEndOffset = FVector(1080.0f, 0.0f, 250.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu Camera|Pan")
+    FVector PanLookAtOffset = FVector(380.0f, 0.0f, 110.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu Camera|Pan")
+    float PanDuration = 14.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Menu Camera|Pan")
+    bool bLoopPan = true;
+
 private:
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<UCameraComponent> MenuCamera;
 
     float OrbitAngle = 0.0f;
+    float PanAlpha = 0.0f;
 };

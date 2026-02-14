@@ -103,7 +103,9 @@ void UNazareneSkillTreeWidget::NativeOnInitialized()
         if (ColumnSlot != nullptr)
         {
             ColumnSlot->SetPadding(FMargin(6.0f, 0.0f, 6.0f, 0.0f));
-            ColumnSlot->SetSize(FSlateChildSize(1.0f));
+            FSlateChildSize FillSize(ESlateSizeRule::Fill);
+            FillSize.Value = 1.0f;
+            ColumnSlot->SetSize(FillSize);
         }
 
         UVerticalBox* ColumnContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), *FString::Printf(TEXT("BranchColumn_%d"), Index));
