@@ -5,7 +5,7 @@
 This document defines a storyline centered on the **known life of Jesus in the canonical Gospels** (Matthew, Mark, Luke, John). The game uses stylized action-RPG systems, but mission beats should track Gospel chronology and themes rather than fictional alternate-history arcs.
 
 ## Narrative guardrails
-- Keep the main campaign focused on Jesus’s earthly ministry: incarnation, ministry, passion, resurrection, and commission.
+- Keep the main campaign focused on Jesus’s earthly ministry from incarnation to crucifixion, ending at Golgotha with reverent tone.
 - Treat combat encounters as symbolic/spiritual resistance, not as historical claims that Jesus led military campaigns.
 - Prioritize teachings, mercy, healing, prayer, and sacrificial love as progression drivers.
 - Use non-Gospel material (Torah, Prophets, Epistles, Revelation) as theological context, visions, or epilogue—not as timeline replacements for Jesus’s life.
@@ -23,14 +23,17 @@ This document defines a storyline centered on the **known life of Jesus in the c
    - Intensifying teaching on discipleship, humility, prayer, and repentance.
 6. **Passion week** (Matthew 21–27; Mark 11–15; Luke 19–23; John 12–19)
    - Triumphal entry, Last Supper, Gethsemane, trial, crucifixion, and burial.
-7. **Resurrection and commission** (Matthew 28; Mark 16; Luke 24; John 20–21; Acts 1)
-   - Empty tomb, resurrection appearances, restoration of disciples, and mission to the nations.
+7. **Crucifixion and burial** (Matthew 27; Mark 15; Luke 23; John 19)
+   - Golgotha, the cross, and burial conclude the playable campaign with solemn reflection.
 
-## Prototype chapter mapping (current 4-region flow)
-- **Chapter 1 — Galilee Shores:** early public ministry, deliverance, and compassion.
-- **Chapter 2 — Decapolis Ruins:** mercy extending beyond familiar boundaries.
-- **Chapter 3 — Wilderness of Temptation:** fidelity to the Father under testing.
-- **Chapter 4 — Jerusalem Approach:** movement toward passion-week culmination.
+## Prototype chapter mapping (current 7-chapter flow target)
+- **Chapter 1 — Bethlehem Nativity:** annunciation context, birth of Christ, and early worship scenes.
+- **Chapter 2 — Jordan Baptism:** John the Baptist, repentance call, and public commissioning.
+- **Chapter 3 — Wilderness Testing:** obedience under temptation.
+- **Chapter 4 — Galilean Ministry:** disciples, teachings, healings, and compassion beats.
+- **Chapter 5 — Journey to Jerusalem:** discipleship, humility, and kingdom preparation.
+- **Chapter 6 — Passion Week:** supper, Gethsemane, betrayal, and trial.
+- **Chapter 7 — Golgotha:** crucifixion and burial as the campaign finale.
 
 ## Theological framing for gameplay systems
 - **Prayer mechanics:** model dependence on the Father.
@@ -39,4 +42,4 @@ This document defines a storyline centered on the **known life of Jesus in the c
 - **Endgame tone:** victory through sacrifice and resurrection hope, not domination.
 
 ## Ending promise
-The campaign should close with resurrection hope and commissioning: Jesus is risen, the kingdom is proclaimed, and players are invited into a life shaped by love, faithfulness, and service.
+The campaign should close at the crucifixion and burial with a reverent, prayerful epilogue that points players toward hope without turning the ending into a shooter-style victory beat.

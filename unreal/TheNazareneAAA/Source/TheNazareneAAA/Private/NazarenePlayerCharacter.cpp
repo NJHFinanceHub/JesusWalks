@@ -178,15 +178,15 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
     }
     if (!ProductionAnimBlueprint.ToSoftObjectPath().IsValid())
     {
+        // Keep the default C++ anim instance class unless an explicit override is configured.
         const FString ResolvedPlayerAnimBP = NazareneAssetResolver::ResolveObjectPath(
             TEXT("PlayerAnimBlueprint"),
-            TEXT("/Game/Art/Animation/ABP_BiblicalHero.ABP_BiblicalHero_C"),
-            {
-                TEXT("/Game/AnimationStarterPack/UE4ASP_HeroTPP_AnimBlueprint.UE4ASP_HeroTPP_AnimBlueprint_C"),
-                TEXT("/Game/Characters/MedievalOrientalArmour/Animations/ABP_MOH_Hero.ABP_MOH_Hero_C"),
-                TEXT("/Game/MedievalOrientalArmour/Animations/ABP_MOH_Hero.ABP_MOH_Hero_C")
-            });
-        ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(ResolvedPlayerAnimBP));
+            TEXT(""),
+            {});
+        if (!ResolvedPlayerAnimBP.IsEmpty())
+        {
+            ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(ResolvedPlayerAnimBP));
+        }
     }
 
     if (LightAttackSound == nullptr)
