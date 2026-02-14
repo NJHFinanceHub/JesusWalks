@@ -616,7 +616,76 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
     FLinearColor GroundTint = FLinearColor(0.35f, 0.28f, 0.19f);
     FLinearColor AccentTint = FLinearColor(0.72f, 0.63f, 0.47f);
     float HeightJitter = 80.0f;
-    const TCHAR* EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
+
+    const FString ResolvedBlockMeshPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnvMeshBlock"),
+        TEXT("/Game/Art/Environment/Meshes/SM_BiblicalBlock.SM_BiblicalBlock"),
+        {
+            TEXT("/Game/MiddleEasternTown/Meshes/SM_WallBlock_A.SM_WallBlock_A"),
+            TEXT("/Game/MiddleEasternTown/Meshes/SM_BuildingBlock_A.SM_BuildingBlock_A"),
+            TEXT("/Game/AncientMiddleEast/Meshes/SM_StoneWall_A.SM_StoneWall_A")
+        });
+
+    const FString ResolvedColumnMeshPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnvMeshColumn"),
+        TEXT("/Game/Art/Environment/Meshes/SM_BiblicalColumn.SM_BiblicalColumn"),
+        {
+            TEXT("/Game/MiddleEasternTown/Meshes/SM_Column_A.SM_Column_A"),
+            TEXT("/Game/AncientMiddleEast/Meshes/SM_Column_01.SM_Column_01")
+        });
+
+    const FString ResolvedTentMeshPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnvMeshTent"),
+        TEXT("/Game/Art/Environment/Meshes/SM_BiblicalTent.SM_BiblicalTent"),
+        {
+            TEXT("/Game/MiddleEasternTown/Meshes/SM_Awning_A.SM_Awning_A"),
+            TEXT("/Game/AncientMiddleEast/Meshes/SM_Tent_01.SM_Tent_01")
+        });
+
+    const FString ResolvedCanopyMeshPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnvMeshCanopy"),
+        TEXT("/Game/Art/Environment/Meshes/SM_BiblicalCanopy.SM_BiblicalCanopy"),
+        {
+            TEXT("/Game/MiddleEasternTown/Meshes/SM_Tree_Olive_A.SM_Tree_Olive_A"),
+            TEXT("/Game/AncientMiddleEast/Meshes/SM_Tree_Olive_01.SM_Tree_Olive_01")
+        });
+
+    const FString ResolvedGroundMeshPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnvMeshGround"),
+        TEXT("/Game/Art/Environment/Meshes/SM_BiblicalFloorPlane.SM_BiblicalFloorPlane"),
+        {
+            TEXT("/Game/MiddleEasternTown/Meshes/SM_GroundTile_A.SM_GroundTile_A"),
+            TEXT("/Game/AncientMiddleEast/Meshes/SM_GroundTile_01.SM_GroundTile_01")
+        });
+
+    const FString ResolvedStoneMaterialPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnvMaterialStone"),
+        TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone"),
+        {
+            TEXT("/Game/MiddleEasternTown/Materials/MI_Stone_A.MI_Stone_A"),
+            TEXT("/Game/AncientMiddleEast/Materials/MI_StoneWall.MI_StoneWall"),
+            TEXT("/Game/MiddleEasternTown/Materials/MI_WallStone_A.MI_WallStone_A")
+        });
+
+    const FString ResolvedOliveMaterialPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnvMaterialOlive"),
+        TEXT("/Game/Art/Materials/MI_Env_OliveLeaf.MI_Env_OliveLeaf"),
+        {
+            TEXT("/Game/MiddleEasternTown/Materials/MI_OliveLeaves_A.MI_OliveLeaves_A"),
+            TEXT("/Game/AncientMiddleEast/Materials/MI_OliveTreeLeaves.MI_OliveTreeLeaves"),
+            TEXT("/Game/MiddleEasternTown/Materials/MI_Foliage_A.MI_Foliage_A")
+        });
+
+    const FString ResolvedSandMaterialPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnvMaterialSand"),
+        TEXT("/Game/Art/Materials/MI_Env_Sand.MI_Env_Sand"),
+        {
+            TEXT("/Game/MiddleEasternTown/Materials/MI_Sand_A.MI_Sand_A"),
+            TEXT("/Game/AncientMiddleEast/Materials/MI_DesertSand.MI_DesertSand"),
+            TEXT("/Game/MiddleEasternTown/Materials/MI_Dirt_A.MI_Dirt_A")
+        });
+
+    FString EnvironmentMaterialPath = ResolvedStoneMaterialPath;
 
     if (Region.RegionId == GalileeId)
     {
@@ -625,7 +694,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.32f, 0.35f, 0.22f);
         AccentTint = FLinearColor(0.42f, 0.54f, 0.66f);
         HeightJitter = 120.0f;
-        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_OliveLeaf.MI_Env_OliveLeaf");
+        EnvironmentMaterialPath = ResolvedOliveMaterialPath;
     }
     else if (Region.RegionId == DecapolisId)
     {
@@ -634,7 +703,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.34f, 0.31f, 0.30f);
         AccentTint = FLinearColor(0.68f, 0.66f, 0.61f);
         HeightJitter = 160.0f;
-        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
+        EnvironmentMaterialPath = ResolvedStoneMaterialPath;
     }
     else if (Region.RegionId == WildernessId)
     {
@@ -643,7 +712,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.42f, 0.29f, 0.16f);
         AccentTint = FLinearColor(0.79f, 0.58f, 0.32f);
         HeightJitter = 210.0f;
-        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Sand.MI_Env_Sand");
+        EnvironmentMaterialPath = ResolvedSandMaterialPath;
     }
     else if (Region.RegionId == JerusalemId)
     {
@@ -652,7 +721,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.39f, 0.35f, 0.27f);
         AccentTint = FLinearColor(0.74f, 0.69f, 0.56f);
         HeightJitter = 140.0f;
-        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
+        EnvironmentMaterialPath = ResolvedStoneMaterialPath;
     }
     else if (Region.RegionId == GethsemaneId)
     {
@@ -661,7 +730,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.22f, 0.26f, 0.18f);
         AccentTint = FLinearColor(0.34f, 0.42f, 0.30f);
         HeightJitter = 90.0f;
-        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_OliveLeaf.MI_Env_OliveLeaf");
+        EnvironmentMaterialPath = ResolvedOliveMaterialPath;
     }
     else if (Region.RegionId == ViaDolorosaId)
     {
@@ -670,7 +739,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.44f, 0.34f, 0.26f);
         AccentTint = FLinearColor(0.62f, 0.52f, 0.40f);
         HeightJitter = 100.0f;
-        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
+        EnvironmentMaterialPath = ResolvedStoneMaterialPath;
     }
     else if (Region.RegionId == EmptyTombId)
     {
@@ -679,10 +748,10 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.46f, 0.42f, 0.38f);
         AccentTint = FLinearColor(0.82f, 0.80f, 0.74f);
         HeightJitter = 60.0f;
-        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
+        EnvironmentMaterialPath = ResolvedStoneMaterialPath;
     }
 
-    auto SpawnMeshActor = [this, EnvironmentMaterialPath](const TCHAR* MeshPath, const FVector& Location, const FRotator& Rotation, const FVector& Scale, const FLinearColor& Tint) -> AStaticMeshActor*
+    auto SpawnMeshActor = [this, EnvironmentMaterialPath, ResolvedBlockMeshPath, ResolvedColumnMeshPath, ResolvedTentMeshPath, ResolvedCanopyMeshPath, ResolvedGroundMeshPath](const TCHAR* MeshPath, const FVector& Location, const FRotator& Rotation, const FVector& Scale, const FLinearColor& Tint) -> AStaticMeshActor*
     {
         AStaticMeshActor* Actor = GetWorld()->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Location, Rotation);
         if (Actor == nullptr)
@@ -690,29 +759,29 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
             return nullptr;
         }
 
-        const TCHAR* ResolvedMeshPath = MeshPath;
+        FString ResolvedMeshPath(MeshPath);
         if (FCString::Strcmp(MeshPath, TEXT("/Engine/BasicShapes/Cube.Cube")) == 0)
         {
-            ResolvedMeshPath = TEXT("/Game/Art/Environment/Meshes/SM_BiblicalBlock.SM_BiblicalBlock");
+            ResolvedMeshPath = ResolvedBlockMeshPath;
         }
         else if (FCString::Strcmp(MeshPath, TEXT("/Engine/BasicShapes/Cylinder.Cylinder")) == 0)
         {
-            ResolvedMeshPath = TEXT("/Game/Art/Environment/Meshes/SM_BiblicalColumn.SM_BiblicalColumn");
+            ResolvedMeshPath = ResolvedColumnMeshPath;
         }
         else if (FCString::Strcmp(MeshPath, TEXT("/Engine/BasicShapes/Cone.Cone")) == 0)
         {
-            ResolvedMeshPath = TEXT("/Game/Art/Environment/Meshes/SM_BiblicalTent.SM_BiblicalTent");
+            ResolvedMeshPath = ResolvedTentMeshPath;
         }
         else if (FCString::Strcmp(MeshPath, TEXT("/Engine/BasicShapes/Sphere.Sphere")) == 0)
         {
-            ResolvedMeshPath = TEXT("/Game/Art/Environment/Meshes/SM_BiblicalCanopy.SM_BiblicalCanopy");
+            ResolvedMeshPath = ResolvedCanopyMeshPath;
         }
         else if (FCString::Strcmp(MeshPath, TEXT("/Engine/BasicShapes/Plane.Plane")) == 0)
         {
-            ResolvedMeshPath = TEXT("/Game/Art/Environment/Meshes/SM_BiblicalFloorPlane.SM_BiblicalFloorPlane");
+            ResolvedMeshPath = ResolvedGroundMeshPath;
         }
 
-        UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, ResolvedMeshPath);
+        UStaticMesh* Mesh = LoadObject<UStaticMesh>(nullptr, *ResolvedMeshPath);
         if (Mesh == nullptr)
         {
             Mesh = LoadObject<UStaticMesh>(nullptr, MeshPath);
@@ -723,7 +792,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         }
 
         Actor->GetStaticMeshComponent()->SetWorldScale3D(Scale);
-        UMaterialInterface* ShapeMaterial = LoadObject<UMaterialInterface>(nullptr, EnvironmentMaterialPath);
+        UMaterialInterface* ShapeMaterial = LoadObject<UMaterialInterface>(nullptr, *EnvironmentMaterialPath);
         if (ShapeMaterial == nullptr)
         {
             ShapeMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));

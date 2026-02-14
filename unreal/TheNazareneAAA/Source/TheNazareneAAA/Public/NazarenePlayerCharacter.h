@@ -62,6 +62,33 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float DodgeSpeed = 1120.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Camera")
+    float FreeCameraArmLength = 520.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Camera")
+    float LockOnCameraArmLength = 460.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Camera")
+    float SpeedFOVBoost = 4.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Camera")
+    float CombatFOVPenalty = 2.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Camera")
+    float CameraArmInterpSpeed = 5.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Camera")
+    float CameraFOVInterpSpeed = 6.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Camera")
+    float LockOnRotationInterpSpeed = 18.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float MoveInputDeadZone = 0.1f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float MoveInputSmoothingSpeed = 12.0f;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Animation")
     TSoftObjectPtr<USkeletalMesh> RetargetedSkeletalMesh;
 
@@ -319,6 +346,7 @@ private:
     void UpdateTimers(float DeltaSeconds);
     void RegenStamina(float DeltaSeconds);
     void UpdateMovementState(float DeltaSeconds);
+    void UpdateCameraState(float DeltaSeconds);
     void ResolvePendingAttack();
     ANazareneEnemyCharacter* FindAttackTarget(float MaxDistance, float ArcDegrees) const;
     void ValidateLockTarget();
@@ -526,6 +554,9 @@ private:
     FVector DodgeDirection = FVector::ZeroVector;
     float MoveForwardAxis = 0.0f;
     float MoveRightAxis = 0.0f;
+    float SmoothedMoveForwardAxis = 0.0f;
+    float SmoothedMoveRightAxis = 0.0f;
+    float BaseCameraFOV = 72.0f;
     float MouseSensitivityScale = 1.0f;
     bool bInvertLookY = false;
 };

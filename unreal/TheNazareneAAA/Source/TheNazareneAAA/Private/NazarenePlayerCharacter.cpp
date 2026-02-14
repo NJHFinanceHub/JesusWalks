@@ -142,7 +142,7 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
 
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
     CameraBoom->SetupAttachment(GetCapsuleComponent());
-    CameraBoom->TargetArmLength = 520.0f;
+    CameraBoom->TargetArmLength = FreeCameraArmLength;
     CameraBoom->SocketOffset = FVector(0.0f, 0.0f, 164.0f);
     CameraBoom->bUsePawnControlRotation = true;
     CameraBoom->bEnableCameraLag = true;
@@ -156,7 +156,7 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
     FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     FollowCamera->SetupAttachment(CameraBoom);
     FollowCamera->bUsePawnControlRotation = false;
-    FollowCamera->FieldOfView = 72.0f;
+    FollowCamera->FieldOfView = BaseCameraFOV;
 
     GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -92.0f));
     GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
@@ -331,6 +331,10 @@ void ANazarenePlayerCharacter::BeginPlay()
             ApplyUserLookAndCameraSettings(Data.MouseSensitivity, Data.bInvertLookY, Data.FieldOfView);
         }
     }
+
+    SmoothedMoveForwardAxis = MoveForwardAxis;
+    SmoothedMoveRightAxis = MoveRightAxis;
+    UpdateCameraState(0.0f);
 }
 
 void ANazarenePlayerCharacter::ConfigureProxyVisuals()
@@ -401,6 +405,7 @@ void ANazarenePlayerCharacter::Tick(float DeltaSeconds)
     RegenStamina(DeltaSeconds);
     ValidateLockTarget();
     UpdateMovementState(DeltaSeconds);
+    UpdateCameraState(DeltaSeconds);
 
     if (PendingAttack != ENazarenePlayerAttackType::None)
     {
@@ -788,10 +793,11 @@ void ANazarenePlayerCharacter::ApplyUserLookAndCameraSettings(float InMouseSensi
 {
     MouseSensitivityScale = FMath::Clamp(InMouseSensitivity, 0.2f, 3.0f);
     bInvertLookY = bInInvertLookY;
+    BaseCameraFOV = FMath::Clamp(InFieldOfView, 60.0f, 110.0f);
 
     if (FollowCamera != nullptr)
     {
-        FollowCamera->SetFieldOfView(FMath::Clamp(InFieldOfView, 60.0f, 110.0f));
+        FollowCamera->SetFieldOfView(BaseCameraFOV);
     }
 }
 
@@ -1224,12 +1230,14 @@ void ANazarenePlayerCharacter::ClearActiveNPC(ANazareneNPC* NPC)
 
 void ANazarenePlayerCharacter::MoveForward(float Value)
 {
-    MoveForwardAxis = Value;
+    const float ClampedValue = FMath::Clamp(Value, -1.0f, 1.0f);
+    MoveForwardAxis = (FMath::Abs(ClampedValue) >= MoveInputDeadZone) ? ClampedValue : 0.0f;
 }
 
 void ANazarenePlayerCharacter::MoveRight(float Value)
 {
-    MoveRightAxis = Value;
+    const float ClampedValue = FMath::Clamp(Value, -1.0f, 1.0f);
+    MoveRightAxis = (FMath::Abs(ClampedValue) >= MoveInputDeadZone) ? ClampedValue : 0.0f;
 }
 
 void ANazarenePlayerCharacter::Turn(float Value)
@@ -1414,7 +1422,7 @@ void ANazarenePlayerCharacter::TryDodge()
         const FRotator YawRotation(0.0f, C->GetControlRotation().Yaw, 0.0f);
         const FVector Forward = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
         const FVector Right = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-        const FVector InputDir = Forward * MoveForwardAxis + Right * MoveRightAxis;
+        const FVector InputDir = Forward * SmoothedMoveForwardAxis + Right * SmoothedMoveRightAxis;
         if (!InputDir.IsNearlyZero())
         {
             DodgeVector = InputDir.GetSafeNormal();
@@ -1805,6 +1813,10 @@ void ANazarenePlayerCharacter::UpdateMovementState(float DeltaSeconds)
 {
     bIsBlocking = bIsBlocking && DodgeTimer <= 0.0f && PendingAttack == ENazarenePlayerAttackType::None;
 
+    const float SmoothingSpeed = FMath::Max(0.0f, MoveInputSmoothingSpeed);
+    SmoothedMoveForwardAxis = FMath::FInterpTo(SmoothedMoveForwardAxis, MoveForwardAxis, DeltaSeconds, SmoothingSpeed);
+    SmoothedMoveRightAxis = FMath::FInterpTo(SmoothedMoveRightAxis, MoveRightAxis, DeltaSeconds, SmoothingSpeed);
+
     float MovementMultiplier = 1.0f;
     if (bIsBlocking)
     {
@@ -1830,27 +1842,68 @@ void ANazarenePlayerCharacter::UpdateMovementState(float DeltaSeconds)
         const FRotator YawRotation(0.0f, C->GetControlRotation().Yaw, 0.0f);
         const FVector Forward = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
         const FVector Right = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-        if (FMath::Abs(MoveForwardAxis) > KINDA_SMALL_NUMBER)
+        if (FMath::Abs(SmoothedMoveForwardAxis) > KINDA_SMALL_NUMBER)
         {
-            AddMovementInput(Forward, MoveForwardAxis);
+            AddMovementInput(Forward, SmoothedMoveForwardAxis);
         }
-        if (FMath::Abs(MoveRightAxis) > KINDA_SMALL_NUMBER)
+        if (FMath::Abs(SmoothedMoveRightAxis) > KINDA_SMALL_NUMBER)
         {
-            AddMovementInput(Right, MoveRightAxis);
+            AddMovementInput(Right, SmoothedMoveRightAxis);
         }
     }
 
-    if (LockTarget.IsValid() && !LockTarget->IsRedeemed())
+    const bool bHasValidLockTarget = LockTarget.IsValid() && !LockTarget->IsRedeemed();
+    GetCharacterMovement()->bOrientRotationToMovement = !bHasValidLockTarget;
+
+    if (bHasValidLockTarget)
     {
         FVector ToTarget = LockTarget->GetActorLocation() - GetActorLocation();
         ToTarget.Z = 0.0f;
         if (!ToTarget.IsNearlyZero())
         {
             const FRotator Desired = ToTarget.Rotation();
-            const FRotator NewRot = FMath::RInterpTo(GetActorRotation(), Desired, DeltaSeconds, 14.0f);
+            const FRotator NewRot = FMath::RInterpTo(GetActorRotation(), Desired, DeltaSeconds, LockOnRotationInterpSpeed);
             SetActorRotation(FRotator(0.0f, NewRot.Yaw, 0.0f));
         }
     }
+}
+
+void ANazarenePlayerCharacter::UpdateCameraState(float DeltaSeconds)
+{
+    if (CameraBoom == nullptr || FollowCamera == nullptr)
+    {
+        return;
+    }
+
+    const bool bHasValidLockTarget = LockTarget.IsValid() && !LockTarget->IsRedeemed();
+    const bool bCombatState = bHasValidLockTarget || bIsBlocking || PendingAttack != ENazarenePlayerAttackType::None || HurtTimer > 0.0f;
+    const float CurrentSpeed = GetVelocity().Size2D();
+    const float SpeedAlpha = FMath::Clamp(CurrentSpeed / FMath::Max(WalkSpeed, 1.0f), 0.0f, 1.35f);
+
+    const float TargetArmLength = bHasValidLockTarget ? LockOnCameraArmLength : FreeCameraArmLength;
+    const float TargetFOV = FMath::Clamp(
+        BaseCameraFOV + (SpeedAlpha * SpeedFOVBoost) - (bCombatState ? CombatFOVPenalty : 0.0f),
+        60.0f,
+        110.0f);
+
+    if (DeltaSeconds <= KINDA_SMALL_NUMBER)
+    {
+        CameraBoom->TargetArmLength = TargetArmLength;
+        FollowCamera->SetFieldOfView(TargetFOV);
+        return;
+    }
+
+    CameraBoom->TargetArmLength = FMath::FInterpTo(
+        CameraBoom->TargetArmLength,
+        TargetArmLength,
+        DeltaSeconds,
+        FMath::Max(0.01f, CameraArmInterpSpeed));
+
+    FollowCamera->SetFieldOfView(FMath::FInterpTo(
+        FollowCamera->FieldOfView,
+        TargetFOV,
+        DeltaSeconds,
+        FMath::Max(0.01f, CameraFOVInterpSpeed)));
 }
 
 void ANazarenePlayerCharacter::TriggerPresentation(USoundBase* Sound, UNiagaraSystem* Effect, const FVector& Location, float VolumeMultiplier) const

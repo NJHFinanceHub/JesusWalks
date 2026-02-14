@@ -171,6 +171,70 @@ def main() -> None:
     if not enemy_anim:
         enemy_anim = player_anim
 
+    env_block_mesh = _choose_best(
+        assets,
+        {"StaticMesh"},
+        include_terms=["block", "wall", "stone", "brick", "modular"],
+        exclude_terms=["weapon", "character", "skeletal", "vfx", "collision", "proxy"],
+        bonus_terms=["sm_", "architecture", "building", "ruin"],
+    )
+
+    env_column_mesh = _choose_best(
+        assets,
+        {"StaticMesh"},
+        include_terms=["column", "pillar", "roman", "greek", "temple"],
+        exclude_terms=["weapon", "character", "skeletal", "vfx", "collision", "proxy"],
+        bonus_terms=["sm_", "architecture", "ruin"],
+    )
+
+    env_tent_mesh = _choose_best(
+        assets,
+        {"StaticMesh"},
+        include_terms=["tent", "awning", "canopy", "cloth", "stall"],
+        exclude_terms=["weapon", "character", "skeletal", "vfx", "collision", "proxy"],
+        bonus_terms=["sm_", "market"],
+    )
+
+    env_canopy_mesh = _choose_best(
+        assets,
+        {"StaticMesh"},
+        include_terms=["olive", "tree", "palm", "foliage", "bush"],
+        exclude_terms=["weapon", "character", "skeletal", "vfx", "collision", "proxy"],
+        bonus_terms=["sm_", "environment"],
+    )
+
+    env_ground_mesh = _choose_best(
+        assets,
+        {"StaticMesh"},
+        include_terms=["ground", "floor", "tile", "terrain", "road"],
+        exclude_terms=["weapon", "character", "skeletal", "vfx", "collision", "proxy"],
+        bonus_terms=["sm_", "environment", "modular"],
+    )
+
+    env_material_stone = _choose_best(
+        assets,
+        {"Material", "MaterialInstanceConstant", "MaterialInstance"},
+        include_terms=["stone", "rock", "masonry", "wall", "ruin"],
+        exclude_terms=["character", "skin", "face", "hair", "ui", "vfx"],
+        bonus_terms=["mi_", "master", "tile"],
+    )
+
+    env_material_olive = _choose_best(
+        assets,
+        {"Material", "MaterialInstanceConstant", "MaterialInstance"},
+        include_terms=["olive", "leaf", "foliage", "tree", "forest"],
+        exclude_terms=["character", "skin", "face", "hair", "ui", "vfx"],
+        bonus_terms=["mi_", "master", "nature"],
+    )
+
+    env_material_sand = _choose_best(
+        assets,
+        {"Material", "MaterialInstanceConstant", "MaterialInstance"},
+        include_terms=["sand", "desert", "dirt", "soil", "dust"],
+        exclude_terms=["character", "skin", "face", "hair", "ui", "vfx"],
+        bonus_terms=["mi_", "master", "ground"],
+    )
+
     map_candidates = _choose_top_maps(assets, max_results=4)
     primary_map = _to_package_path(map_candidates[0]) if map_candidates else ""
     if primary_map.startswith("/Game/Maps/Regions/"):
@@ -181,6 +245,14 @@ def main() -> None:
         "EnemySkeletalMesh": enemy_mesh,
         "PlayerAnimBlueprint": _to_anim_class_path(player_anim),
         "EnemyAnimBlueprint": _to_anim_class_path(enemy_anim),
+        "EnvMeshBlock": env_block_mesh,
+        "EnvMeshColumn": env_column_mesh,
+        "EnvMeshTent": env_tent_mesh,
+        "EnvMeshCanopy": env_canopy_mesh,
+        "EnvMeshGround": env_ground_mesh,
+        "EnvMaterialStone": env_material_stone,
+        "EnvMaterialOlive": env_material_olive,
+        "EnvMaterialSand": env_material_sand,
         "GalileeMap": primary_map,
         "DecapolisMap": primary_map,
         "WildernessMap": primary_map,
