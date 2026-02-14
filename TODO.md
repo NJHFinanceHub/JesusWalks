@@ -79,12 +79,12 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 
 > Convert miracles to Gameplay Abilities. Add all visual effects. Polish boss encounters.
 
-- [ ] Convert Heal/Blessing/Radiance to `UGameplayAbility` subclasses with `UGameplayEffect` cooldowns and faith costs (GAS Phase 2)
+- [x] Convert Heal/Blessing/Radiance to `UGameplayAbility` subclasses with `UGameplayEffect` cooldowns and faith costs (GAS Phase 2)
 - [ ] Author miracle Niagara systems: `NS_Heal` (golden particles), `NS_Blessing` (radiant aura), `NS_Radiance` (AoE burst)
 - [ ] Author combat Niagara systems: `NS_LightAttackHit`, `NS_HeavyAttackHit`, `NS_DodgeTrail`, `NS_EnemyRedeemed`; assign to existing VFX `UPROPERTY` slots
 - [ ] Author ambient Niagara per region (dust motes, sand wisps, embers, light shafts, olive leaves, crowd dust, dawn rays)
 - [ ] Enhance boss fights: phase-specific attack patterns, arena hazard VFX, victory cutscene trigger
-- [ ] Add prayer site variety (visual themes per region) and rest-time features (Faith refill, skill tree access, lore text)
+- [x] Add prayer site variety (visual themes per region) and rest-time features (Faith refill, skill tree access, lore text)
 - [ ] Design unique encounter compositions per chapter (escalating archetype mix, ambush spawns, reinforcement waves)
 
 ## Week 6 â€” UI/UX Polish + Audio Completion + Accessibility

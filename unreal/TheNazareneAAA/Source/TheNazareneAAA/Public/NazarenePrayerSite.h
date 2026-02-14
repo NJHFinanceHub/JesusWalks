@@ -51,6 +51,9 @@ protected:
     virtual void BeginPlay() override;
 
 private:
+    void ApplyVisualTheme();
+
+private:
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<USphereComponent> InteractionSphere;
 

@@ -2,11 +2,13 @@
 
 #include "NazareneAttributeSet.h"
 #include "NazarenePlayerCharacter.h"
+#include "GameplayTagsManager.h"
 
 UGA_NazareneBlessing::UGA_NazareneBlessing()
 {
     FaithCost = 22.0f;
     CooldownDuration = 14.0f;
+    CooldownTag = FGameplayTag::RequestGameplayTag(TEXT("Cooldown.Miracle.Blessing"));
 }
 
 void UGA_NazareneBlessing::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -42,8 +44,11 @@ void UGA_NazareneBlessing::ActivateAbility(const FGameplayAbilitySpecHandle Hand
         return;
     }
 
-    // Deduct faith
-    Player->AddFaith(-BlessingFaithCost);
+    if (!CommitMiracle(ActorInfo))
+    {
+        CancelAbility(Handle, ActorInfo, ActivationInfo, true);
+        return;
+    }
 
     EndAbility(Handle, ActorInfo, ActivationInfo, false, false);
 }
