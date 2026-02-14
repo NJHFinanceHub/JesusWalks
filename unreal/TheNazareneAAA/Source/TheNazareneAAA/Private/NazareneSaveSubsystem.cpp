@@ -74,7 +74,14 @@ FString UNazareneSaveSubsystem::GetSlotSummary(int32 SlotId) const
         return FString::Printf(TEXT("Slot %d: Corrupted"), SlotId);
     }
 
-    return FString::Printf(TEXT("Slot %d: %s"), SlotId, *SaveGame->Timestamp);
+    const FNazareneCampaignState& Campaign = SaveGame->Payload.Campaign;
+    return FString::Printf(
+        TEXT("Slot %d: Lvl %d | Ch %d | %s"),
+        SlotId,
+        FMath::Max(Campaign.PlayerLevel, 1),
+        Campaign.RegionIndex + 1,
+        *SaveGame->Timestamp
+    );
 }
 
 bool UNazareneSaveSubsystem::SaveCheckpoint(const FNazareneSavePayload& Payload)

@@ -61,6 +61,38 @@ void UNazareneSettingsSubsystem::SetMasterVolume(float InValue)
     ApplySettings();
 }
 
+void UNazareneSettingsSubsystem::SetSubtitleTextScale(float InValue)
+{
+    CurrentSettings.SubtitleTextScale = InValue;
+    CurrentSettings = ClampSettings(CurrentSettings);
+    ApplySettings();
+}
+
+void UNazareneSettingsSubsystem::SetColorblindMode(ENazareneColorblindMode InMode)
+{
+    CurrentSettings.ColorblindMode = InMode;
+    ApplySettings();
+}
+
+void UNazareneSettingsSubsystem::SetHighContrastHUD(bool bInValue)
+{
+    CurrentSettings.bHighContrastHUD = bInValue;
+    ApplySettings();
+}
+
+void UNazareneSettingsSubsystem::SetScreenShakeReduction(bool bInValue)
+{
+    CurrentSettings.bScreenShakeReduction = bInValue;
+    ApplySettings();
+}
+
+void UNazareneSettingsSubsystem::SetHUDScale(float InValue)
+{
+    CurrentSettings.HUDScale = InValue;
+    CurrentSettings = ClampSettings(CurrentSettings);
+    ApplySettings();
+}
+
 bool UNazareneSettingsSubsystem::SaveSettings()
 {
     UNazareneSettingsSaveGame* SaveGame = Cast<UNazareneSettingsSaveGame>(UGameplayStatics::CreateSaveGameObject(UNazareneSettingsSaveGame::StaticClass()));
@@ -125,18 +157,20 @@ FNazarenePlayerSettings UNazareneSettingsSubsystem::ClampSettings(const FNazaren
     Clamped.DisplayGamma = FMath::Clamp(Clamped.DisplayGamma, 1.6f, 2.8f);
     Clamped.FrameRateLimit = FMath::Clamp(Clamped.FrameRateLimit, 30.0f, 240.0f);
     Clamped.MasterVolume = FMath::Clamp(Clamped.MasterVolume, 0.0f, 1.0f);
+    Clamped.SubtitleTextScale = FMath::Clamp(Clamped.SubtitleTextScale, 0.75f, 2.0f);
+    Clamped.HUDScale = FMath::Clamp(Clamped.HUDScale, 0.75f, 1.5f);
     return Clamped;
 }
 
 void UNazareneSettingsSubsystem::ApplySettingsToPlayerPawn() const
 {
-    const UGameInstance* GI = GetGameInstance();
-    if (GI == nullptr || GI->GetWorld() == nullptr)
+    const UGameInstance* GameInstance = GetGameInstance();
+    if (GameInstance == nullptr || GameInstance->GetWorld() == nullptr)
     {
         return;
     }
 
-    if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GI->GetWorld(), 0))
+    if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GameInstance->GetWorld(), 0))
     {
         if (ANazarenePlayerCharacter* PlayerCharacter = Cast<ANazarenePlayerCharacter>(PlayerController->GetPawn()))
         {
@@ -144,4 +178,3 @@ void UNazareneSettingsSubsystem::ApplySettingsToPlayerPawn() const
         }
     }
 }
-

@@ -7,6 +7,7 @@
 
 class ANazareneCampaignGameMode;
 class ANazareneEnemyCharacter;
+class ANazareneNPC;
 class ANazarenePrayerSite;
 class ANazareneTravelGate;
 class UInputAction;
@@ -19,6 +20,8 @@ class USkeletalMesh;
 class USoundBase;
 class UNiagaraSystem;
 class UEnhancedInputComponent;
+class UNazareneAbilitySystemComponent;
+class UNazareneAttributeSet;
 struct FInputActionValue;
 
 UENUM()
@@ -210,6 +213,36 @@ public:
     FString GetLockTargetName() const;
 
     UFUNCTION(BlueprintCallable, Category = "Player")
+    ANazareneEnemyCharacter* GetLockTargetActor() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    int32 GetTotalXP() const { return TotalXP; }
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    int32 GetPlayerLevel() const { return PlayerLevel; }
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    int32 GetSkillPoints() const { return UnspentSkillPoints; }
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    int32 GetXPToNextLevel() const;
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    const TArray<FName>& GetUnlockedSkills() const { return UnlockedSkills; }
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    void SetSkillTreeState(const TArray<FName>& Skills, int32 InSkillPoints, int32 InTotalXP, int32 InPlayerLevel);
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    bool AttemptUnlockSkill(FName SkillId);
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    void SetCampaignBaseVitals(float InMaxHealth, float InMaxStamina, bool bRestoreToFull);
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
+    void DisplayDamageNumber(const FVector& WorldLocation, float Amount, ENazareneDamageNumberType Type) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Player")
     FNazarenePlayerSnapshot BuildSnapshot() const;
 
     UFUNCTION(BlueprintCallable, Category = "Player")
@@ -229,6 +262,15 @@ public:
 
     void SetActiveTravelGate(ANazareneTravelGate* Gate);
     void ClearActiveTravelGate(ANazareneTravelGate* Gate);
+
+    void SetActiveNPC(ANazareneNPC* NPC);
+    void ClearActiveNPC(ANazareneNPC* NPC);
+
+    UFUNCTION(BlueprintCallable, Category = "Abilities")
+    UNazareneAbilitySystemComponent* GetNazareneAbilitySystemComponent() const { return AbilitySystemComponent; }
+
+    UFUNCTION(BlueprintCallable, Category = "Abilities")
+    UNazareneAttributeSet* GetNazareneAttributeSet() const { return AttributeSet; }
 
 private:
     void TriggerPresentation(USoundBase* Sound, UNiagaraSystem* Effect, const FVector& Location, float VolumeMultiplier = 1.0f) const;
@@ -271,6 +313,7 @@ private:
     void TryLoadSlot1();
     void TryLoadSlot2();
     void TryLoadSlot3();
+    void TryUnlockFirstAvailableSkill();
 
     void UpdateTimers(float DeltaSeconds);
     void RegenStamina(float DeltaSeconds);
@@ -283,6 +326,15 @@ private:
     bool ConsumeStamina(float Cost);
     void ApplyHealthDamage(float Amount);
     void HandleDefeat();
+    void ApplySkillModifiers();
+    static int32 XPForLevel(int32 LevelValue);
+
+private:
+    UPROPERTY(VisibleAnywhere, Category = "Abilities")
+    TObjectPtr<UNazareneAbilitySystemComponent> AbilitySystemComponent;
+
+    UPROPERTY(VisibleAnywhere, Category = "Abilities")
+    TObjectPtr<UNazareneAttributeSet> AttributeSet;
 
 private:
     UPROPERTY()
@@ -421,6 +473,9 @@ private:
     TWeakObjectPtr<ANazareneTravelGate> ActiveTravelGate;
 
     UPROPERTY()
+    TWeakObjectPtr<ANazareneNPC> ActiveNPC;
+
+    UPROPERTY()
     TWeakObjectPtr<ANazareneCampaignGameMode> CampaignGameMode;
 
     UPROPERTY()
@@ -431,6 +486,14 @@ private:
 
     UPROPERTY()
     float CurrentFaith = 0.0f;
+
+    float CampaignBaseMaxHealth = 120.0f;
+    float CampaignBaseMaxStamina = 100.0f;
+
+    TArray<FName> UnlockedSkills;
+    int32 TotalXP = 0;
+    int32 PlayerLevel = 1;
+    int32 UnspentSkillPoints = 0;
 
     UPROPERTY()
     FName LastRestSiteId = NAME_None;

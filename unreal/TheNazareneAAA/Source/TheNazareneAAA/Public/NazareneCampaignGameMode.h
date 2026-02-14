@@ -7,10 +7,15 @@
 
 class ANazareneEnemyCharacter;
 class ANazareneHUD;
+class ANazareneNPC;
 class ANazarenePlayerCharacter;
 class ANazareneTravelGate;
+class UAudioComponent;
+class UBehaviorTree;
 class UNazareneGameInstance;
+class UNazareneRegionDataAsset;
 class UNazareneSaveSubsystem;
+class USoundBase;
 
 UENUM()
 enum class ENazareneChapterStage : uint8
@@ -66,11 +71,16 @@ public:
     UFUNCTION(BlueprintPure, Category = "Audio")
     ENazareneMusicState GetMusicState() const { return MusicState; }
 
+    UPROPERTY(EditDefaultsOnly, Category = "Campaign")
+    TObjectPtr<UNazareneRegionDataAsset> RegionDataAsset;
+
 private:
     void BuildDefaultRegions();
     void LoadRegion(int32 TargetRegionIndex);
     void ClearRegionActors();
     void SpawnRegionEnvironment(const FNazareneRegionDefinition& Region);
+    bool TryLoadRegionSublevel(const FNazareneRegionDefinition& Region);
+    void UnloadRegionSublevel();
     void SpawnRegionActors(const FNazareneRegionDefinition& Region);
     void ApplySavePayload(const FNazareneSavePayload& Payload);
     FNazareneSavePayload BuildSavePayload() const;
@@ -87,9 +97,19 @@ private:
     void EnableTravelGate(bool bEnabled);
     void UpdateHUDForRegion(const FNazareneRegionDefinition& Region, bool bCompleted) const;
     void SetMusicState(ENazareneMusicState NewState, bool bAnnounceOnHUD = false);
+    USoundBase* ResolveRegionMusic(const FNazareneRegionDefinition& Region) const;
+    FString GetRandomLoreTip() const;
+    void ConfigureEnemyBehaviorTree(ANazareneEnemyCharacter* Enemy) const;
+    int32 XPForLevel(int32 LevelValue) const;
 
     UFUNCTION()
     void HandleEnemyRedeemed(ANazareneEnemyCharacter* Enemy, float FaithReward);
+
+    void SpawnWaveEnemies(const FNazareneEncounterWave& Wave);
+    void CheckDeferredWaves(ENazareneSpawnTrigger Trigger, int32 Param = 0);
+
+    UFUNCTION()
+    void HandleReinforcementWave(ANazareneEnemyCharacter* Boss, int32 WaveIndex);
 
 private:
     UPROPERTY()
@@ -111,10 +131,45 @@ private:
     TObjectPtr<ANazareneEnemyCharacter> BossEnemy;
 
     UPROPERTY()
+    TObjectPtr<UAudioComponent> RegionMusicComponent;
+
+    UPROPERTY()
     TMap<FName, TObjectPtr<ANazareneEnemyCharacter>> EnemyBySpawnId;
 
     UPROPERTY()
     TArray<TObjectPtr<AActor>> RegionActors;
+
+    UPROPERTY()
+    TArray<FNazareneEncounterWave> DeferredWaves;
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    TSoftObjectPtr<USoundBase> GalileeMusic;
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    TSoftObjectPtr<USoundBase> DecapolisMusic;
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    TSoftObjectPtr<USoundBase> WildernessMusic;
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    TSoftObjectPtr<USoundBase> JerusalemMusic;
+
+    UPROPERTY(EditAnywhere, Category = "AI")
+    TSoftObjectPtr<UBehaviorTree> BTMeleeShieldAsset;
+
+    UPROPERTY(EditAnywhere, Category = "AI")
+    TSoftObjectPtr<UBehaviorTree> BTSpearAsset;
+
+    UPROPERTY(EditAnywhere, Category = "AI")
+    TSoftObjectPtr<UBehaviorTree> BTRangedAsset;
+
+    UPROPERTY(EditAnywhere, Category = "AI")
+    TSoftObjectPtr<UBehaviorTree> BTDemonAsset;
+
+    UPROPERTY(EditAnywhere, Category = "AI")
+    TSoftObjectPtr<UBehaviorTree> BTBossAsset;
+
+    FName LoadedRegionLevelPackage = NAME_None;
 
     int32 RegionIndex = 0;
     bool bRegionCompleted = false;

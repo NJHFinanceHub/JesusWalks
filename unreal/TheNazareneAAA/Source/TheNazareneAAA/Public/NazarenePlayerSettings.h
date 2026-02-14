@@ -3,6 +3,15 @@
 #include "CoreMinimal.h"
 #include "NazarenePlayerSettings.generated.h"
 
+UENUM(BlueprintType)
+enum class ENazareneColorblindMode : uint8
+{
+    None = 0 UMETA(DisplayName = "None"),
+    Deuteranopia = 1 UMETA(DisplayName = "Deuteranopia"),
+    Protanopia = 2 UMETA(DisplayName = "Protanopia"),
+    Tritanopia = 3 UMETA(DisplayName = "Tritanopia")
+};
+
 USTRUCT(BlueprintType)
 struct FNazarenePlayerSettings
 {
@@ -25,4 +34,19 @@ struct FNazarenePlayerSettings
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
     float MasterVolume = 1.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accessibility")
+    float SubtitleTextScale = 1.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accessibility")
+    ENazareneColorblindMode ColorblindMode = ENazareneColorblindMode::None;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accessibility")
+    bool bHighContrastHUD = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accessibility")
+    bool bScreenShakeReduction = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accessibility")
+    float HUDScale = 1.0f;
 };

@@ -110,6 +110,19 @@ ANazareneEnemyCharacter::ANazareneEnemyCharacter()
     {
         ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(TEXT("/Game/Art/Animation/ABP_BiblicalEnemy.ABP_BiblicalEnemy_C")));
     }
+
+    if (AttackSound == nullptr)
+    {
+        AttackSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/S_AttackWhoosh.S_AttackWhoosh"));
+    }
+    if (HitReactSound == nullptr)
+    {
+        HitReactSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/S_Impact.S_Impact"));
+    }
+    if (RedeemedSound == nullptr)
+    {
+        RedeemedSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/S_MiracleShimmer.S_MiracleShimmer"));
+    }
 }
 
 void ANazareneEnemyCharacter::BeginPlay()
@@ -244,6 +257,7 @@ void ANazareneEnemyCharacter::Tick(float DeltaSeconds)
     }
 
     UpdateBossPhase();
+    ApplyPhaseSpecificBehavior(DeltaSeconds);
 
     ShotCooldown = FMath::Max(0.0f, ShotCooldown - DeltaSeconds);
     DashCooldown = FMath::Max(0.0f, DashCooldown - DeltaSeconds);
@@ -662,6 +676,10 @@ void ANazareneEnemyCharacter::ReceiveCombatHit(float Damage, float PoiseDamage, 
             StateTimer *= 0.68f;
         }
         CurrentPoise = MaxPoise;
+        if (Source != nullptr)
+        {
+            Source->DisplayDamageNumber(GetActorLocation() + FVector(0.0f, 0.0f, 150.0f), PoiseDamage, ENazareneDamageNumberType::PoiseBreak);
+        }
     }
 
     if (CurrentHealth <= 0.0f)
@@ -711,6 +729,9 @@ void ANazareneEnemyCharacter::ResetToSpawn()
     bAttackResolved = false;
     ShotCooldown = 0.0f;
     DashCooldown = 0.0f;
+    bPhase2WaveSpawned = false;
+    bPhase3WaveSpawned = false;
+    DoubleStrikeCooldown = 0.0f;
     SetActorHiddenInGame(false);
     SetActorEnableCollision(true);
     GetCharacterMovement()->SetMovementMode(MOVE_Walking);
@@ -754,6 +775,9 @@ void ANazareneEnemyCharacter::ApplySnapshot(const FNazareneEnemySnapshot& Snapsh
     bAttackResolved = false;
     ShotCooldown = 0.0f;
     DashCooldown = 0.0f;
+    bPhase2WaveSpawned = false;
+    bPhase3WaveSpawned = false;
+    DoubleStrikeCooldown = 0.0f;
 }
 
 void ANazareneEnemyCharacter::UpdateBossPhase()
@@ -778,6 +802,46 @@ void ANazareneEnemyCharacter::UpdateBossPhase()
     {
         BossPhase = NextPhase;
         OnPhaseChanged.Broadcast(this, BossPhase);
+        CheckReinforcementTrigger();
+    }
+}
+
+void ANazareneEnemyCharacter::CheckReinforcementTrigger()
+{
+    if (Archetype != ENazareneEnemyArchetype::Boss)
+    {
+        return;
+    }
+
+    if (BossPhase >= 2 && !bPhase2WaveSpawned)
+    {
+        bPhase2WaveSpawned = true;
+    }
+    if (BossPhase >= 3 && !bPhase3WaveSpawned)
+    {
+        bPhase3WaveSpawned = true;
+    }
+}
+
+void ANazareneEnemyCharacter::TriggerArenaHazard()
+{
+    if (Archetype != ENazareneEnemyArchetype::Boss)
+    {
+        return;
+    }
+    OnArenaHazardTriggered.Broadcast(this, GetActorLocation());
+}
+
+void ANazareneEnemyCharacter::ApplyPhaseSpecificBehavior(float DeltaSeconds)
+{
+    if (Archetype != ENazareneEnemyArchetype::Boss)
+    {
+        return;
+    }
+
+    if (DoubleStrikeCooldown > 0.0f)
+    {
+        DoubleStrikeCooldown -= DeltaSeconds;
     }
 }
 
@@ -825,7 +889,7 @@ void ANazareneEnemyCharacter::ProcessChaseBehavior(float DistanceToPlayer, float
         break;
 
     case ENazareneEnemyArchetype::Boss:
-        if (BossPhase >= 2 && DistanceToPlayer > AttackRange + 250.0f && ShotCooldown <= 0.0f && FMath::FRand() < 0.45f)
+        if (BossPhase >= 2 && DistanceToPlayer > AttackRange + 250.0f && ShotCooldown <= 0.0f && FMath::FRand() < Phase2CastFrequency)
         {
             BeginCastAttack();
         }
@@ -836,6 +900,19 @@ void ANazareneEnemyCharacter::ProcessChaseBehavior(float DistanceToPlayer, float
         else
         {
             MoveTowardTarget(DeltaSeconds, EffectiveMoveSpeed());
+        }
+        if (BossPhase >= 3 && DashCooldown <= 0.0f && TargetPlayer.IsValid())
+        {
+            const float DistToPlayer = FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation());
+            if (DistToPlayer > AttackRange * 1.5f && DistToPlayer < DetectionRange && FMath::FRand() < Phase3DashFrequency * DeltaSeconds)
+            {
+                FVector DashDir = TargetPlayer->GetActorLocation() - GetActorLocation();
+                DashDir.Z = 0.0f;
+                DashDir = DashDir.GetSafeNormal();
+                LaunchCharacter(DashDir * EffectiveMoveSpeed() * 2.2f, true, false);
+                DashCooldown = 2.8f;
+                TriggerArenaHazard();
+            }
         }
         break;
 
@@ -1069,6 +1146,7 @@ bool ANazareneEnemyCharacter::TryShieldBlock(ANazarenePlayerCharacter* Source, f
     CurrentPoise = FMath::Max(0.0f, CurrentPoise - PoiseDamage * 0.35f);
     CurrentState = ENazareneEnemyState::Blocking;
     StateTimer = 0.26f;
+    Source->DisplayDamageNumber(GetActorLocation() + FVector(0.0f, 0.0f, 130.0f), 0.0f, ENazareneDamageNumberType::Blocked);
     return true;
 }
 

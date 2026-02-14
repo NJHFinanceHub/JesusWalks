@@ -21,11 +21,15 @@
 #include "Materials/MaterialInterface.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "NazareneAbilitySystemComponent.h"
+#include "NazareneAttributeSet.h"
 #include "NazareneCampaignGameMode.h"
 #include "NazareneEnemyCharacter.h"
 #include "NazareneHUD.h"
+#include "NazareneNPC.h"
 #include "NazarenePlayerAnimInstance.h"
 #include "NazarenePrayerSite.h"
+#include "NazareneSkillTree.h"
 #include "NazareneSettingsSubsystem.h"
 #include "NazareneTravelGate.h"
 #include "Sound/SoundBase.h"
@@ -63,6 +67,9 @@ namespace
 ANazarenePlayerCharacter::ANazarenePlayerCharacter()
 {
     PrimaryActorTick.bCanEverTick = true;
+
+    AbilitySystemComponent = CreateDefaultSubobject<UNazareneAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+    AttributeSet = CreateDefaultSubobject<UNazareneAttributeSet>(TEXT("AttributeSet"));
 
     GetCapsuleComponent()->SetCapsuleHalfHeight(96.0f);
     GetCapsuleComponent()->SetCapsuleRadius(36.0f);
@@ -157,12 +164,36 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
         ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(TEXT("/Game/Art/Animation/ABP_BiblicalHero.ABP_BiblicalHero_C")));
     }
 
+    if (LightAttackSound == nullptr)
+    {
+        LightAttackSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/S_AttackWhoosh.S_AttackWhoosh"));
+    }
+    if (HeavyAttackSound == nullptr)
+    {
+        HeavyAttackSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/S_Impact.S_Impact"));
+    }
+    if (DodgeSound == nullptr)
+    {
+        DodgeSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/S_Dodge.S_Dodge"));
+    }
+    if (MiracleSound == nullptr)
+    {
+        MiracleSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/S_MiracleShimmer.S_MiracleShimmer"));
+    }
+    if (HurtSound == nullptr)
+    {
+        HurtSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/S_Hurt.S_Hurt"));
+    }
+
     bUseControllerRotationYaw = false;
     bUseControllerRotationPitch = false;
     bUseControllerRotationRoll = false;
     GetCharacterMovement()->bOrientRotationToMovement = true;
     GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
     GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+
+    CampaignBaseMaxHealth = MaxHealth;
+    CampaignBaseMaxStamina = MaxStamina;
 
     UnlockedMiracles.Add(FName(TEXT("heal")));
     InitializeEnhancedInputDefaults();
@@ -171,6 +202,11 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
 void ANazarenePlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (AbilitySystemComponent != nullptr)
+    {
+        AbilitySystemComponent->InitializeForActor(this, this);
+    }
 
     bool bAppliedCharacterMesh = false;
     if (ProductionSkeletalMesh.ToSoftObjectPath().IsValid())
@@ -209,9 +245,19 @@ void ANazarenePlayerCharacter::BeginPlay()
 
     SetProxyVisualsHidden(bAppliedCharacterMesh);
 
+    ApplySkillModifiers();
     CurrentHealth = MaxHealth;
     CurrentStamina = MaxStamina;
     CurrentFaith = StartingFaith;
+
+    if (AttributeSet != nullptr)
+    {
+        AttributeSet->SetMaxHealth(MaxHealth);
+        AttributeSet->SetHealth(CurrentHealth);
+        AttributeSet->SetMaxStamina(MaxStamina);
+        AttributeSet->SetStamina(CurrentStamina);
+        AttributeSet->SetFaith(CurrentFaith);
+    }
 
     CampaignGameMode = Cast<ANazareneCampaignGameMode>(GetWorld()->GetAuthGameMode());
 
@@ -468,18 +514,34 @@ void ANazarenePlayerCharacter::InitializeEnhancedInputDefaults()
     AddScaledMapping(RuntimeInputMappingContext, TurnInputAction, EKeys::MouseX, 1.0f);
     AddScaledMapping(RuntimeInputMappingContext, LookUpInputAction, EKeys::MouseY, -1.0f);
 
+    AddScaledMapping(RuntimeInputMappingContext, MoveForwardInputAction, EKeys::Gamepad_LeftY, 1.0f);
+    AddScaledMapping(RuntimeInputMappingContext, MoveRightInputAction, EKeys::Gamepad_LeftX, 1.0f);
+    AddScaledMapping(RuntimeInputMappingContext, TurnInputAction, EKeys::Gamepad_RightX, 1.8f);
+    AddScaledMapping(RuntimeInputMappingContext, LookUpInputAction, EKeys::Gamepad_RightY, -1.6f);
+
     RuntimeInputMappingContext->MapKey(InteractInputAction, EKeys::E);
+    RuntimeInputMappingContext->MapKey(InteractInputAction, EKeys::Gamepad_FaceButton_Bottom);
     RuntimeInputMappingContext->MapKey(LockOnInputAction, EKeys::Q);
+    RuntimeInputMappingContext->MapKey(LockOnInputAction, EKeys::Gamepad_RightThumbstick);
     RuntimeInputMappingContext->MapKey(PauseInputAction, EKeys::Escape);
+    RuntimeInputMappingContext->MapKey(PauseInputAction, EKeys::Gamepad_Special_Right);
     RuntimeInputMappingContext->MapKey(ToggleMouseCaptureInputAction, EKeys::Tab);
     RuntimeInputMappingContext->MapKey(BlockInputAction, EKeys::LeftShift);
+    RuntimeInputMappingContext->MapKey(BlockInputAction, EKeys::Gamepad_LeftTriggerAxis);
     RuntimeInputMappingContext->MapKey(LightAttackInputAction, EKeys::LeftMouseButton);
+    RuntimeInputMappingContext->MapKey(LightAttackInputAction, EKeys::Gamepad_FaceButton_Left);
     RuntimeInputMappingContext->MapKey(HeavyAttackInputAction, EKeys::RightMouseButton);
+    RuntimeInputMappingContext->MapKey(HeavyAttackInputAction, EKeys::Gamepad_RightTriggerAxis);
     RuntimeInputMappingContext->MapKey(DodgeInputAction, EKeys::SpaceBar);
+    RuntimeInputMappingContext->MapKey(DodgeInputAction, EKeys::Gamepad_FaceButton_Right);
     RuntimeInputMappingContext->MapKey(ParryInputAction, EKeys::F);
+    RuntimeInputMappingContext->MapKey(ParryInputAction, EKeys::Gamepad_RightShoulder);
     RuntimeInputMappingContext->MapKey(MiracleHealInputAction, EKeys::R);
+    RuntimeInputMappingContext->MapKey(MiracleHealInputAction, EKeys::Gamepad_LeftShoulder);
     RuntimeInputMappingContext->MapKey(MiracleBlessingInputAction, EKeys::One);
+    RuntimeInputMappingContext->MapKey(MiracleBlessingInputAction, EKeys::Gamepad_DPad_Up);
     RuntimeInputMappingContext->MapKey(MiracleRadianceInputAction, EKeys::Two);
+    RuntimeInputMappingContext->MapKey(MiracleRadianceInputAction, EKeys::Gamepad_FaceButton_Top);
 
     RuntimeInputMappingContext->MapKey(SaveSlot1InputAction, EKeys::F1);
     RuntimeInputMappingContext->MapKey(SaveSlot2InputAction, EKeys::F2);
@@ -624,6 +686,10 @@ void ANazarenePlayerCharacter::ReceiveEnemyAttack(ANazareneEnemyCharacter* Attac
 void ANazarenePlayerCharacter::AddFaith(float Amount)
 {
     CurrentFaith = FMath::Max(0.0f, CurrentFaith + Amount);
+    if (AttributeSet != nullptr)
+    {
+        AttributeSet->SetFaith(CurrentFaith);
+    }
 }
 
 void ANazarenePlayerCharacter::SetContextHint(const FString& InHint)
@@ -745,6 +811,155 @@ FString ANazarenePlayerCharacter::GetLockTargetName() const
     return LockTarget.IsValid() ? LockTarget->EnemyName : FString();
 }
 
+ANazareneEnemyCharacter* ANazarenePlayerCharacter::GetLockTargetActor() const
+{
+    return LockTarget.Get();
+}
+
+int32 ANazarenePlayerCharacter::XPForLevel(int32 LevelValue)
+{
+    const int32 SafeLevel = FMath::Max(LevelValue, 1);
+    return 45 + (SafeLevel - 1) * (SafeLevel - 1) * 28;
+}
+
+int32 ANazarenePlayerCharacter::GetXPToNextLevel() const
+{
+    return FMath::Max(XPForLevel(PlayerLevel + 1) - TotalXP, 0);
+}
+
+void ANazarenePlayerCharacter::SetSkillTreeState(const TArray<FName>& Skills, int32 InSkillPoints, int32 InTotalXP, int32 InPlayerLevel)
+{
+    UnlockedSkills = Skills;
+    UnspentSkillPoints = FMath::Max(0, InSkillPoints);
+    TotalXP = FMath::Max(0, InTotalXP);
+    PlayerLevel = FMath::Max(1, InPlayerLevel);
+    ApplySkillModifiers();
+}
+
+bool ANazarenePlayerCharacter::AttemptUnlockSkill(FName SkillId)
+{
+    if (!UNazareneSkillTree::CanUnlockSkill(SkillId, UnlockedSkills, TotalXP, UnspentSkillPoints))
+    {
+        SetContextHint(TEXT("Skill requirements not met."));
+        return false;
+    }
+
+    FNazareneSkillDefinition Definition;
+    if (!UNazareneSkillTree::GetSkillDefinition(SkillId, Definition))
+    {
+        SetContextHint(TEXT("Skill definition missing."));
+        return false;
+    }
+
+    UnlockedSkills.AddUnique(SkillId);
+    UnspentSkillPoints = FMath::Max(0, UnspentSkillPoints - FMath::Max(Definition.Cost, 1));
+    ApplySkillModifiers();
+    SetContextHint(FString::Printf(TEXT("Unlocked skill: %s"), *Definition.Name));
+    return true;
+}
+
+void ANazarenePlayerCharacter::SetCampaignBaseVitals(float InMaxHealth, float InMaxStamina, bool bRestoreToFull)
+{
+    CampaignBaseMaxHealth = FMath::Max(1.0f, InMaxHealth);
+    CampaignBaseMaxStamina = FMath::Max(1.0f, InMaxStamina);
+    ApplySkillModifiers();
+
+    if (bRestoreToFull)
+    {
+        CurrentHealth = MaxHealth;
+        CurrentStamina = MaxStamina;
+    }
+    else
+    {
+        CurrentHealth = FMath::Min(CurrentHealth, MaxHealth);
+        CurrentStamina = FMath::Min(CurrentStamina, MaxStamina);
+    }
+}
+
+void ANazarenePlayerCharacter::DisplayDamageNumber(const FVector& WorldLocation, float Amount, ENazareneDamageNumberType Type) const
+{
+    if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            HUD->ShowDamageNumber(WorldLocation, Amount, Type);
+        }
+    }
+}
+
+void ANazarenePlayerCharacter::ApplySkillModifiers()
+{
+    LightAttackDamage = 26.0f;
+    HeavyAttackDamage = 42.0f;
+    HeavyAttackPoiseDamage = 54.0f;
+    HeavyAttackRange = 340.0f;
+    WalkSpeed = 580.0f;
+    DodgeStaminaCost = 26.0f;
+    HealAmount = 45.0f;
+    RadianceDamage = 32.0f;
+    RadianceRadius = 600.0f;
+    StaminaRegen = 22.0f;
+
+    float SkillHealthBonus = 0.0f;
+    float SkillStaminaBonus = 0.0f;
+
+    if (UnlockedSkills.Contains(FName(TEXT("combat_smite"))))
+    {
+        LightAttackDamage *= 1.1f;
+        HeavyAttackDamage *= 1.1f;
+    }
+    if (UnlockedSkills.Contains(FName(TEXT("combat_crusader"))))
+    {
+        HeavyAttackPoiseDamage *= 1.12f;
+        HeavyAttackRange += 40.0f;
+    }
+    if (UnlockedSkills.Contains(FName(TEXT("movement_pilgrim_stride"))))
+    {
+        WalkSpeed *= 1.12f;
+    }
+    if (UnlockedSkills.Contains(FName(TEXT("movement_swift_vow"))))
+    {
+        DodgeStaminaCost *= 0.82f;
+    }
+    if (UnlockedSkills.Contains(FName(TEXT("miracles_abundance"))))
+    {
+        HealAmount *= 1.18f;
+    }
+    if (UnlockedSkills.Contains(FName(TEXT("miracles_radiance_lance"))))
+    {
+        RadianceDamage *= 1.2f;
+        RadianceRadius += 120.0f;
+    }
+    if (UnlockedSkills.Contains(FName(TEXT("defense_shepherd_guard"))))
+    {
+        SkillHealthBonus += 14.0f;
+    }
+    if (UnlockedSkills.Contains(FName(TEXT("defense_steadfast"))))
+    {
+        SkillStaminaBonus += 18.0f;
+        StaminaRegen *= 1.15f;
+    }
+
+    MaxHealth = CampaignBaseMaxHealth + SkillHealthBonus;
+    MaxStamina = CampaignBaseMaxStamina + SkillStaminaBonus;
+    CurrentHealth = FMath::Min(CurrentHealth, MaxHealth);
+    CurrentStamina = FMath::Min(CurrentStamina, MaxStamina);
+
+    if (GetCharacterMovement() != nullptr)
+    {
+        GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+    }
+
+    if (AttributeSet != nullptr)
+    {
+        AttributeSet->SetMaxHealth(MaxHealth);
+        AttributeSet->SetHealth(CurrentHealth);
+        AttributeSet->SetMaxStamina(MaxStamina);
+        AttributeSet->SetStamina(CurrentStamina);
+        AttributeSet->SetFaith(CurrentFaith);
+    }
+}
+
 FNazarenePlayerSnapshot ANazarenePlayerCharacter::BuildSnapshot() const
 {
     FNazarenePlayerSnapshot Snapshot;
@@ -780,6 +995,13 @@ void ANazarenePlayerCharacter::ApplySnapshot(const FNazarenePlayerSnapshot& Snap
     AttackActiveTimer = 0.0f;
     bAttackResolved = false;
     ClearLockTarget();
+
+    if (AttributeSet != nullptr)
+    {
+        AttributeSet->SetHealth(CurrentHealth);
+        AttributeSet->SetStamina(CurrentStamina);
+        AttributeSet->SetFaith(CurrentFaith);
+    }
 }
 
 bool ANazarenePlayerCharacter::SaveToSlot(int32 SlotId)
@@ -854,6 +1076,29 @@ void ANazarenePlayerCharacter::RestAtPrayerSite(ANazarenePrayerSite* Site)
     AttackActiveTimer = 0.0f;
     bAttackResolved = false;
     LastRestSiteId = Site->SiteId;
+
+    if (AttributeSet != nullptr)
+    {
+        AttributeSet->SetHealth(CurrentHealth);
+        AttributeSet->SetStamina(CurrentStamina);
+    }
+
+    // Faith refill at prayer site
+    const float FaithRefill = StartingFaith * Site->FaithRefillPercent;
+    CurrentFaith = FMath::Min(CurrentFaith + FaithRefill, StartingFaith * 2.0f);
+
+    // Show lore text if available
+    if (!Site->LoreText.IsEmpty())
+    {
+        if (APlayerController* PC = Cast<APlayerController>(GetController()))
+        {
+            if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+            {
+                HUD->ShowMessage(Site->LoreText, 6.0f);
+            }
+        }
+    }
+
     SetContextHint(Site->GetPromptMessage());
     if (CampaignGameMode.IsValid())
     {
@@ -905,6 +1150,19 @@ void ANazarenePlayerCharacter::ClearActiveTravelGate(ANazareneTravelGate* Gate)
     SetContextHint(TEXT(""));
 }
 
+void ANazarenePlayerCharacter::SetActiveNPC(ANazareneNPC* NPC)
+{
+    ActiveNPC = NPC;
+}
+
+void ANazarenePlayerCharacter::ClearActiveNPC(ANazareneNPC* NPC)
+{
+    if (ActiveNPC.Get() == NPC)
+    {
+        ActiveNPC.Reset();
+    }
+}
+
 void ANazarenePlayerCharacter::MoveForward(float Value)
 {
     MoveForwardAxis = Value;
@@ -931,6 +1189,12 @@ void ANazarenePlayerCharacter::Interact()
     if (ActivePrayerSite.IsValid())
     {
         RestAtPrayerSite(ActivePrayerSite.Get());
+        return;
+    }
+
+    if (ActiveNPC.IsValid())
+    {
+        ActiveNPC->AdvanceDialogue();
         return;
     }
 
@@ -1123,6 +1387,7 @@ void ANazarenePlayerCharacter::TryHealingMiracle()
     HealCooldownTimer = HealCooldown;
     AttackCooldown = FMath::Max(AttackCooldown, 0.35f);
     TriggerPresentation(MiracleSound, MiracleVFX, GetActorLocation());
+    DisplayDamageNumber(GetActorLocation() + FVector(0.0f, 0.0f, 130.0f), HealAmount, ENazareneDamageNumberType::Heal);
 }
 
 void ANazarenePlayerCharacter::TryBlessingMiracle()
@@ -1206,6 +1471,17 @@ void ANazarenePlayerCharacter::TryLoadSlot3()
     LoadFromSlot(3);
 }
 
+void ANazarenePlayerCharacter::TryUnlockFirstAvailableSkill()
+{
+    for (const FName SkillId : UNazareneSkillTree::GetAllSkillIds())
+    {
+        if (AttemptUnlockSkill(SkillId))
+        {
+            return;
+        }
+    }
+}
+
 void ANazarenePlayerCharacter::UpdateTimers(float DeltaSeconds)
 {
     AttackCooldown = FMath::Max(0.0f, AttackCooldown - DeltaSeconds);
@@ -1245,6 +1521,10 @@ void ANazarenePlayerCharacter::RegenStamina(float DeltaSeconds)
         RegenRate *= 1.35f;
     }
     CurrentStamina = FMath::Min(MaxStamina, CurrentStamina + RegenRate * DeltaSeconds);
+    if (AttributeSet != nullptr)
+    {
+        AttributeSet->SetStamina(CurrentStamina);
+    }
 }
 
 void ANazarenePlayerCharacter::ResolvePendingAttack()
@@ -1274,11 +1554,13 @@ void ANazarenePlayerCharacter::ResolvePendingAttack()
         if (Enemy->IsParried())
         {
             Enemy->ReceiveRiposte(HeavyAttackDamage * 1.08f, this);
+            DisplayDamageNumber(Enemy->GetActorLocation() + FVector(0.0f, 0.0f, 130.0f), HeavyAttackDamage * 1.08f, ENazareneDamageNumberType::Critical);
         }
         else
         {
             Enemy->ReceiveCombatHit(LightAttackDamage, LightAttackPoiseDamage, this);
             AddFaith(1.0f);
+            DisplayDamageNumber(Enemy->GetActorLocation() + FVector(0.0f, 0.0f, 130.0f), LightAttackDamage, ENazareneDamageNumberType::Normal);
         }
     }
     else
@@ -1286,11 +1568,13 @@ void ANazarenePlayerCharacter::ResolvePendingAttack()
         if (Enemy->IsParried())
         {
             Enemy->ReceiveRiposte(HeavyAttackDamage * 1.5f, this);
+            DisplayDamageNumber(Enemy->GetActorLocation() + FVector(0.0f, 0.0f, 130.0f), HeavyAttackDamage * 1.5f, ENazareneDamageNumberType::Critical);
         }
         else
         {
             Enemy->ReceiveCombatHit(HeavyAttackDamage, HeavyAttackPoiseDamage, this);
             AddFaith(1.5f);
+            DisplayDamageNumber(Enemy->GetActorLocation() + FVector(0.0f, 0.0f, 130.0f), HeavyAttackDamage, ENazareneDamageNumberType::Normal);
         }
     }
 }
@@ -1378,12 +1662,20 @@ bool ANazarenePlayerCharacter::ConsumeStamina(float Cost)
         return false;
     }
     CurrentStamina -= Cost;
+    if (AttributeSet != nullptr)
+    {
+        AttributeSet->SetStamina(CurrentStamina);
+    }
     return true;
 }
 
 void ANazarenePlayerCharacter::ApplyHealthDamage(float Amount)
 {
     CurrentHealth = FMath::Max(0.0f, CurrentHealth - Amount);
+    if (AttributeSet != nullptr)
+    {
+        AttributeSet->SetHealth(CurrentHealth);
+    }
     HurtTimer = 0.22f;
     TriggerPresentation(HurtSound, HurtVFX, GetActorLocation());
     if (CurrentHealth <= 0.01f)
@@ -1422,6 +1714,11 @@ void ANazarenePlayerCharacter::HandleDefeat()
         SetActorLocation(FVector(0.0f, 0.0f, 180.0f));
         CurrentHealth = MaxHealth;
         CurrentStamina = MaxStamina;
+        if (AttributeSet != nullptr)
+        {
+            AttributeSet->SetHealth(CurrentHealth);
+            AttributeSet->SetStamina(CurrentStamina);
+        }
     }
 }
 

@@ -107,6 +107,30 @@ bool ANazareneHUD::IsPauseMenuVisible() const
     return RuntimeWidget != nullptr && RuntimeWidget->IsPauseMenuVisible();
 }
 
+void ANazareneHUD::ShowDamageNumber(const FVector& WorldLocation, float Amount, ENazareneDamageNumberType Type)
+{
+    if (RuntimeWidget != nullptr)
+    {
+        RuntimeWidget->ShowDamageNumber(WorldLocation, Amount, Type);
+    }
+}
+
+void ANazareneHUD::ShowDeathOverlay(int32 RetryCount)
+{
+    if (RuntimeWidget != nullptr)
+    {
+        RuntimeWidget->ShowDeathOverlay(RetryCount);
+    }
+}
+
+void ANazareneHUD::SetLoadingOverlayVisible(bool bVisible, const FString& LoreTip)
+{
+    if (RuntimeWidget != nullptr)
+    {
+        RuntimeWidget->SetLoadingOverlayVisible(bVisible, LoreTip);
+    }
+}
+
 void ANazareneHUD::ApplyMenuInputMode(bool bMenuVisible)
 {
     APlayerController* PlayerController = GetOwningPlayerController();

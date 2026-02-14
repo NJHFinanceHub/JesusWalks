@@ -35,6 +35,21 @@ public:
     void SetMasterVolume(float InValue);
 
     UFUNCTION(BlueprintCallable, Category = "Settings")
+    void SetSubtitleTextScale(float InValue);
+
+    UFUNCTION(BlueprintCallable, Category = "Settings")
+    void SetColorblindMode(ENazareneColorblindMode InMode);
+
+    UFUNCTION(BlueprintCallable, Category = "Settings")
+    void SetHighContrastHUD(bool bInValue);
+
+    UFUNCTION(BlueprintCallable, Category = "Settings")
+    void SetScreenShakeReduction(bool bInValue);
+
+    UFUNCTION(BlueprintCallable, Category = "Settings")
+    void SetHUDScale(float InValue);
+
+    UFUNCTION(BlueprintCallable, Category = "Settings")
     bool SaveSettings();
 
     UFUNCTION(BlueprintCallable, Category = "Settings")

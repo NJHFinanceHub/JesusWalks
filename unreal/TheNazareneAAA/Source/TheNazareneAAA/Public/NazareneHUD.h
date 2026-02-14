@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
+#include "NazareneTypes.h"
 #include "NazareneHUD.generated.h"
 
 class UNazareneHUDWidget;
@@ -38,6 +39,15 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "HUD")
     bool IsPauseMenuVisible() const;
+
+    UFUNCTION(BlueprintCallable, Category = "HUD")
+    void ShowDamageNumber(const FVector& WorldLocation, float Amount, ENazareneDamageNumberType Type);
+
+    UFUNCTION(BlueprintCallable, Category = "HUD")
+    void ShowDeathOverlay(int32 RetryCount);
+
+    UFUNCTION(BlueprintCallable, Category = "HUD")
+    void SetLoadingOverlayVisible(bool bVisible, const FString& LoreTip);
 
 private:
     void ApplyMenuInputMode(bool bMenuVisible);

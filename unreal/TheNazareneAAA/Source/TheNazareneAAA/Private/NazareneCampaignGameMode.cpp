@@ -1,23 +1,32 @@
 #include "NazareneCampaignGameMode.h"
 
+#include "BehaviorTree/BehaviorTree.h"
+#include "Components/AudioComponent.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/ExponentialHeightFog.h"
+#include "Engine/PostProcessVolume.h"
 #include "Engine/SkyLight.h"
 #include "Engine/StaticMeshActor.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Misc/FileHelper.h"
+#include "Misc/PackageName.h"
+#include "Misc/Paths.h"
 #include "NazareneEnemyCharacter.h"
 #include "NazareneGameInstance.h"
+#include "NazareneNPC.h"
+#include "NazareneRegionDataAsset.h"
 #include "NazareneHUD.h"
 #include "NazarenePlayerCharacter.h"
 #include "NazarenePrayerSite.h"
 #include "NazareneSaveSubsystem.h"
 #include "NazareneTravelGate.h"
+#include "Sound/SoundBase.h"
 #include "TimerManager.h"
 
 ANazareneCampaignGameMode::ANazareneCampaignGameMode()
@@ -25,6 +34,17 @@ ANazareneCampaignGameMode::ANazareneCampaignGameMode()
     DefaultPawnClass = ANazarenePlayerCharacter::StaticClass();
     HUDClass = ANazareneHUD::StaticClass();
     PlayerControllerClass = APlayerController::StaticClass();
+
+    GalileeMusic = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Audio/Music/S_Music_Galilee.S_Music_Galilee")));
+    DecapolisMusic = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Audio/Music/S_Music_Decapolis.S_Music_Decapolis")));
+    WildernessMusic = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Audio/Music/S_Music_Wilderness.S_Music_Wilderness")));
+    JerusalemMusic = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Audio/Music/S_Music_Jerusalem.S_Music_Jerusalem")));
+
+    BTMeleeShieldAsset = TSoftObjectPtr<UBehaviorTree>(FSoftObjectPath(TEXT("/Game/AI/BehaviorTrees/BT_MeleeShield.BT_MeleeShield")));
+    BTSpearAsset = TSoftObjectPtr<UBehaviorTree>(FSoftObjectPath(TEXT("/Game/AI/BehaviorTrees/BT_Spear.BT_Spear")));
+    BTRangedAsset = TSoftObjectPtr<UBehaviorTree>(FSoftObjectPath(TEXT("/Game/AI/BehaviorTrees/BT_Ranged.BT_Ranged")));
+    BTDemonAsset = TSoftObjectPtr<UBehaviorTree>(FSoftObjectPath(TEXT("/Game/AI/BehaviorTrees/BT_Demon.BT_Demon")));
+    BTBossAsset = TSoftObjectPtr<UBehaviorTree>(FSoftObjectPath(TEXT("/Game/AI/BehaviorTrees/BT_Boss.BT_Boss")));
 }
 
 void ANazareneCampaignGameMode::BeginPlay()
@@ -69,11 +89,18 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         return;
     }
 
+    if (RegionDataAsset != nullptr)
+    {
+        Regions = RegionDataAsset->Regions;
+        return;
+    }
+
     FNazareneRegionDefinition Galilee;
     Galilee.RegionId = FName(TEXT("galilee"));
     Galilee.RegionName = TEXT("Galilee Shores");
     Galilee.Chapter = 1;
     Galilee.Objective = TEXT("Redeem the Legion Sovereign of Gerasa.");
+    Galilee.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Galilee/L_GalileeShores"));
     Galilee.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Galilee.PrayerSiteId = FName(TEXT("galilee_site_01"));
     Galilee.PrayerSiteName = TEXT("Prayer Site: Galilee Shores");
@@ -96,12 +123,19 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("galilee_demon_02")), TEXT("Unclean Spirit II"), ENazareneEnemyArchetype::Demon, FVector(-460.0f, -1180.0f, 100.0f) },
         { FName(TEXT("galilee_named_boss_01")), TEXT("Legion Sovereign of Gerasa"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2200.0f, 100.0f) }
     };
+    Galilee.LoreText = TEXT("By these shores the Teacher called his first followers, saying: Come, and I will make you fishers of men.");
+    Galilee.NPCs =
+    {
+        { TEXT("Peter"), TEXT("peter"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Peter"), { { TEXT("Follow me, and I will make you fishers of men."), 4.0f }, { TEXT("The nets are full, Lord."), 4.0f } } },
+        { TEXT("Mary"), TEXT("mary"), FVector(350.0f, 280.0f, 100.0f), TEXT("Press E to speak with Mary"), { { TEXT("He has done great things for us."), 4.0f } } }
+    };
 
     FNazareneRegionDefinition Decapolis;
     Decapolis.RegionId = FName(TEXT("decapolis"));
     Decapolis.RegionName = TEXT("Decapolis Ruins");
     Decapolis.Chapter = 2;
     Decapolis.Objective = TEXT("Redeem the Gadarene Warlord among the ruins.");
+    Decapolis.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Decapolis/L_DecapolisRuins"));
     Decapolis.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Decapolis.PrayerSiteId = FName(TEXT("decapolis_site_01"));
     Decapolis.PrayerSiteName = TEXT("Prayer Site: Decapolis Ruins");
@@ -124,12 +158,19 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("decapolis_demon_02")), TEXT("Unclean Spirit"), ENazareneEnemyArchetype::Demon, FVector(-350.0f, -1450.0f, 100.0f) },
         { FName(TEXT("decapolis_named_boss_01")), TEXT("Gadarene Warlord"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2300.0f, 100.0f) }
     };
+    Decapolis.LoreText = TEXT("Among the ruins of Gentile cities, mercy crossed every boundary.");
+    Decapolis.NPCs =
+    {
+        { TEXT("Andrew"), TEXT("andrew"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Andrew"), { { TEXT("We have found the Messiah."), 4.0f } } },
+        { TEXT("John the Baptist"), TEXT("john_baptist"), FVector(350.0f, 280.0f, 100.0f), TEXT("Press E to speak with John the Baptist"), { { TEXT("He must increase, but I must decrease."), 4.0f }, { TEXT("Behold, the Lamb of God."), 4.0f } } }
+    };
 
     FNazareneRegionDefinition Wilderness;
     Wilderness.RegionId = FName(TEXT("wilderness"));
     Wilderness.RegionName = TEXT("Wilderness of Temptation");
     Wilderness.Chapter = 3;
     Wilderness.Objective = TEXT("Resist the Adversary of the Desert.");
+    Wilderness.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Wilderness/L_WildernessTemptation"));
     Wilderness.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Wilderness.PrayerSiteId = FName(TEXT("wilderness_site_01"));
     Wilderness.PrayerSiteName = TEXT("Prayer Site: Wilderness Ridge");
@@ -150,12 +191,23 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("wilderness_demon_03")), TEXT("Tempter Spirit"), ENazareneEnemyArchetype::Demon, FVector(420.0f, -1900.0f, 100.0f) },
         { FName(TEXT("wilderness_named_boss_01")), TEXT("Adversary of the Desert"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2400.0f, 100.0f) }
     };
+    Wilderness.LoreText = TEXT("Forty days in solitude. Every temptation met with scripture and obedience.");
+    Wilderness.NPCs =
+    {
+        { TEXT("Moses"), TEXT("moses"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Moses"), { { TEXT("Be strong and courageous. The Lord your God goes with you."), 4.0f } } },
+        { TEXT("Elijah"), TEXT("elijah"), FVector(350.0f, 280.0f, 100.0f), TEXT("Press E to speak with Elijah"), { { TEXT("The Lord is God. The Lord is God."), 4.0f }, { TEXT("I alone am left, yet the Lord preserves."), 4.0f } } }
+    };
+    Wilderness.EncounterWaves =
+    {
+        { ENazareneSpawnTrigger::OnPrayerSiteConsecrated, 0, { { FName(TEXT("wilderness_wave_demon_01")), TEXT("Tempter Spirit"), ENazareneEnemyArchetype::Demon, FVector(600.0f, -800.0f, 100.0f) }, { FName(TEXT("wilderness_wave_demon_02")), TEXT("Tempter Spirit"), ENazareneEnemyArchetype::Demon, FVector(-600.0f, -800.0f, 100.0f) } }, 1.5f }
+    };
 
     FNazareneRegionDefinition Jerusalem;
     Jerusalem.RegionId = FName(TEXT("jerusalem"));
     Jerusalem.RegionName = TEXT("Jerusalem Approach");
     Jerusalem.Chapter = 4;
     Jerusalem.Objective = TEXT("Face the Temple Warden at the city's gate.");
+    Jerusalem.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Jerusalem/L_JerusalemApproach"));
     Jerusalem.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Jerusalem.PrayerSiteId = FName(TEXT("jerusalem_site_01"));
     Jerusalem.PrayerSiteName = TEXT("Prayer Site: Jerusalem Approach");
@@ -175,8 +227,136 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("jerusalem_demon_02")), TEXT("Unclean Spirit"), ENazareneEnemyArchetype::Demon, FVector(-350.0f, -1650.0f, 100.0f) },
         { FName(TEXT("jerusalem_named_boss_01")), TEXT("Temple Warden"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2450.0f, 100.0f) }
     };
+    Jerusalem.LoreText = TEXT("The city on the hill, where prophets are received and rejected alike.");
+    Jerusalem.NPCs =
+    {
+        { TEXT("Isaiah"), TEXT("isaiah"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Isaiah"), { { TEXT("Though your sins are like scarlet, they shall be white as snow."), 4.0f } } },
+        { TEXT("Jeremiah"), TEXT("jeremiah"), FVector(350.0f, 280.0f, 100.0f), TEXT("Press E to speak with Jeremiah"), { { TEXT("I will put my law within them and write it on their hearts."), 4.0f }, { TEXT("For I know the plans I have for you, declares the Lord."), 4.0f } } }
+    };
+    Jerusalem.EncounterWaves =
+    {
+        { ENazareneSpawnTrigger::OnPrayerSiteConsecrated, 0, { { FName(TEXT("jerusalem_wave_shield_01")), TEXT("Temple Guard"), ENazareneEnemyArchetype::MeleeShield, FVector(700.0f, -800.0f, 100.0f) }, { FName(TEXT("jerusalem_wave_shield_02")), TEXT("Temple Guard"), ENazareneEnemyArchetype::MeleeShield, FVector(-700.0f, -800.0f, 100.0f) } }, 1.5f }
+    };
 
-    Regions = { Galilee, Decapolis, Wilderness, Jerusalem };
+    // Update Jerusalem travel gate prompt for new chapter progression
+    Jerusalem.TravelGatePrompt = TEXT("Press E to travel to Gethsemane");
+
+    FNazareneRegionDefinition Gethsemane;
+    Gethsemane.RegionId = FName(TEXT("gethsemane"));
+    Gethsemane.RegionName = TEXT("Garden of Gethsemane");
+    Gethsemane.Chapter = 5;
+    Gethsemane.Objective = TEXT("Endure the hour of anguish in the garden.");
+    Gethsemane.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Gethsemane/L_GardenGethsemane"));
+    Gethsemane.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
+    Gethsemane.PrayerSiteId = FName(TEXT("gethsemane_site_01"));
+    Gethsemane.PrayerSiteName = TEXT("Prayer Site: Garden of Gethsemane");
+    Gethsemane.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
+    Gethsemane.TravelGatePrompt = TEXT("Press E to travel to Via Dolorosa");
+    Gethsemane.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
+    Gethsemane.BossSpawnId = FName(TEXT("gethsemane_named_boss_01"));
+    Gethsemane.RewardHealthBonus = 14.0f;
+    Gethsemane.RewardStaminaBonus = 10.0f;
+    Gethsemane.LoreText = TEXT("Not my will, but yours be done.");
+    Gethsemane.Enemies =
+    {
+        { FName(TEXT("gethsemane_shield_01")), TEXT("Temple Guard I"), ENazareneEnemyArchetype::MeleeShield, FVector(900.0f, 400.0f, 100.0f) },
+        { FName(TEXT("gethsemane_shield_02")), TEXT("Temple Guard II"), ENazareneEnemyArchetype::MeleeShield, FVector(-900.0f, 430.0f, 100.0f) },
+        { FName(TEXT("gethsemane_spear_01")), TEXT("Garden Sentinel I"), ENazareneEnemyArchetype::Spear, FVector(1200.0f, -300.0f, 100.0f) },
+        { FName(TEXT("gethsemane_spear_02")), TEXT("Garden Sentinel II"), ENazareneEnemyArchetype::Spear, FVector(-1200.0f, -350.0f, 100.0f) },
+        { FName(TEXT("gethsemane_ranged_01")), TEXT("Temple Archer"), ENazareneEnemyArchetype::Ranged, FVector(1300.0f, 900.0f, 100.0f) },
+        { FName(TEXT("gethsemane_ranged_02")), TEXT("Temple Archer"), ENazareneEnemyArchetype::Ranged, FVector(-1300.0f, 920.0f, 100.0f) },
+        { FName(TEXT("gethsemane_demon_01")), TEXT("Spirit of Anguish I"), ENazareneEnemyArchetype::Demon, FVector(400.0f, -1300.0f, 100.0f) },
+        { FName(TEXT("gethsemane_demon_02")), TEXT("Spirit of Anguish II"), ENazareneEnemyArchetype::Demon, FVector(-400.0f, -1350.0f, 100.0f) },
+        { FName(TEXT("gethsemane_demon_03")), TEXT("Spirit of Anguish III"), ENazareneEnemyArchetype::Demon, FVector(0.0f, -1700.0f, 100.0f) },
+        { FName(TEXT("gethsemane_named_boss_01")), TEXT("Warden of the Garden"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2400.0f, 100.0f) }
+    };
+    Gethsemane.NPCs =
+    {
+        { TEXT("Peter"), TEXT("peter"), FVector(-300.0f, 200.0f, 100.0f), TEXT("Press E to speak with Peter"), { { TEXT("Stay awake and pray, lest you fall into temptation."), 4.0f }, { TEXT("The spirit is willing, but the flesh is weak."), 4.0f } } },
+        { TEXT("James"), TEXT("james"), FVector(-500.0f, 300.0f, 100.0f), TEXT("Press E to speak with James"), { { TEXT("We will keep watch with you, Lord."), 4.0f } } },
+        { TEXT("John"), TEXT("john"), FVector(-400.0f, 400.0f, 100.0f), TEXT("Press E to speak with John"), { { TEXT("The hour has come. Be strong and courageous."), 4.0f } } }
+    };
+    Gethsemane.EncounterWaves =
+    {
+        { ENazareneSpawnTrigger::OnBossPhaseChange, 2, { { FName(TEXT("gethsemane_wave_demon_01")), TEXT("Spirit of Dread"), ENazareneEnemyArchetype::Demon, FVector(600.0f, -2000.0f, 100.0f) }, { FName(TEXT("gethsemane_wave_demon_02")), TEXT("Spirit of Dread"), ENazareneEnemyArchetype::Demon, FVector(-600.0f, -2000.0f, 100.0f) } }, 1.0f }
+    };
+
+    FNazareneRegionDefinition ViaDolorosa;
+    ViaDolorosa.RegionId = FName(TEXT("via_dolorosa"));
+    ViaDolorosa.RegionName = TEXT("Via Dolorosa");
+    ViaDolorosa.Chapter = 6;
+    ViaDolorosa.Objective = TEXT("Bear the weight of judgment on the road of sorrow.");
+    ViaDolorosa.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/ViaDolorosa/L_ViaDolorosa"));
+    ViaDolorosa.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
+    ViaDolorosa.PrayerSiteId = FName(TEXT("via_dolorosa_site_01"));
+    ViaDolorosa.PrayerSiteName = TEXT("Prayer Site: Via Dolorosa");
+    ViaDolorosa.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
+    ViaDolorosa.TravelGatePrompt = TEXT("Press E to travel to the Empty Tomb");
+    ViaDolorosa.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
+    ViaDolorosa.BossSpawnId = FName(TEXT("via_dolorosa_named_boss_01"));
+    ViaDolorosa.RewardHealthBonus = 16.0f;
+    ViaDolorosa.RewardStaminaBonus = 12.0f;
+    ViaDolorosa.LoreText = TEXT("He bore the cross for the joy set before him.");
+    ViaDolorosa.Enemies =
+    {
+        { FName(TEXT("via_dolorosa_shield_01")), TEXT("Roman Legionary I"), ENazareneEnemyArchetype::MeleeShield, FVector(800.0f, 350.0f, 100.0f) },
+        { FName(TEXT("via_dolorosa_shield_02")), TEXT("Roman Legionary II"), ENazareneEnemyArchetype::MeleeShield, FVector(-800.0f, 380.0f, 100.0f) },
+        { FName(TEXT("via_dolorosa_shield_03")), TEXT("Roman Legionary III"), ENazareneEnemyArchetype::MeleeShield, FVector(0.0f, 600.0f, 100.0f) },
+        { FName(TEXT("via_dolorosa_spear_01")), TEXT("Roman Centurion"), ENazareneEnemyArchetype::Spear, FVector(1100.0f, -250.0f, 100.0f) },
+        { FName(TEXT("via_dolorosa_spear_02")), TEXT("Roman Centurion"), ENazareneEnemyArchetype::Spear, FVector(-1100.0f, -280.0f, 100.0f) },
+        { FName(TEXT("via_dolorosa_ranged_01")), TEXT("Roman Marksman"), ENazareneEnemyArchetype::Ranged, FVector(1400.0f, 850.0f, 100.0f) },
+        { FName(TEXT("via_dolorosa_ranged_02")), TEXT("Roman Marksman"), ENazareneEnemyArchetype::Ranged, FVector(-1400.0f, 870.0f, 100.0f) },
+        { FName(TEXT("via_dolorosa_demon_01")), TEXT("Spirit of Condemnation"), ENazareneEnemyArchetype::Demon, FVector(350.0f, -1500.0f, 100.0f) },
+        { FName(TEXT("via_dolorosa_demon_02")), TEXT("Spirit of Condemnation"), ENazareneEnemyArchetype::Demon, FVector(-350.0f, -1550.0f, 100.0f) },
+        { FName(TEXT("via_dolorosa_named_boss_01")), TEXT("Centurion of Golgotha"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2500.0f, 100.0f) }
+    };
+    ViaDolorosa.NPCs =
+    {
+        { TEXT("Mary"), TEXT("mary"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Mary"), { { TEXT("My son... my son."), 4.0f }, { TEXT("A sword shall pierce your own soul also."), 4.0f } } },
+        { TEXT("Mary Magdalene"), TEXT("mary_magdalene"), FVector(350.0f, 280.0f, 100.0f), TEXT("Press E to speak with Mary Magdalene"), { { TEXT("We follow you to the end, Lord."), 4.0f } } }
+    };
+    ViaDolorosa.EncounterWaves =
+    {
+        { ENazareneSpawnTrigger::OnPrayerSiteConsecrated, 0, { { FName(TEXT("via_dolorosa_wave_shield_01")), TEXT("Roman Ambusher"), ENazareneEnemyArchetype::MeleeShield, FVector(700.0f, -800.0f, 100.0f) }, { FName(TEXT("via_dolorosa_wave_shield_02")), TEXT("Roman Ambusher"), ENazareneEnemyArchetype::MeleeShield, FVector(-700.0f, -800.0f, 100.0f) } }, 1.5f },
+        { ENazareneSpawnTrigger::OnBossPhaseChange, 2, { { FName(TEXT("via_dolorosa_wave_demon_01")), TEXT("Spirit of Despair"), ENazareneEnemyArchetype::Demon, FVector(500.0f, -2100.0f, 100.0f) }, { FName(TEXT("via_dolorosa_wave_ranged_01")), TEXT("Roman Marksman"), ENazareneEnemyArchetype::Ranged, FVector(-500.0f, -2100.0f, 100.0f) } }, 1.0f }
+    };
+
+    FNazareneRegionDefinition EmptyTomb;
+    EmptyTomb.RegionId = FName(TEXT("empty_tomb"));
+    EmptyTomb.RegionName = TEXT("The Empty Tomb");
+    EmptyTomb.Chapter = 7;
+    EmptyTomb.Objective = TEXT("Rise and proclaim the commission to the nations.");
+    EmptyTomb.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/EmptyTomb/L_EmptyTomb"));
+    EmptyTomb.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
+    EmptyTomb.PrayerSiteId = FName(TEXT("empty_tomb_site_01"));
+    EmptyTomb.PrayerSiteName = TEXT("Prayer Site: The Empty Tomb");
+    EmptyTomb.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
+    EmptyTomb.TravelGatePrompt = TEXT("Step into the light to conclude the pilgrimage");
+    EmptyTomb.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
+    EmptyTomb.BossSpawnId = FName(TEXT("empty_tomb_named_boss_01"));
+    EmptyTomb.LoreText = TEXT("He is not here. He is risen.");
+    EmptyTomb.Enemies =
+    {
+        { FName(TEXT("empty_tomb_shield_01")), TEXT("Shadow Guard I"), ENazareneEnemyArchetype::MeleeShield, FVector(900.0f, 400.0f, 100.0f) },
+        { FName(TEXT("empty_tomb_shield_02")), TEXT("Shadow Guard II"), ENazareneEnemyArchetype::MeleeShield, FVector(-900.0f, 430.0f, 100.0f) },
+        { FName(TEXT("empty_tomb_spear_01")), TEXT("Shadow Warden"), ENazareneEnemyArchetype::Spear, FVector(1200.0f, -300.0f, 100.0f) },
+        { FName(TEXT("empty_tomb_ranged_01")), TEXT("Shadow Archer"), ENazareneEnemyArchetype::Ranged, FVector(1400.0f, 900.0f, 100.0f) },
+        { FName(TEXT("empty_tomb_demon_01")), TEXT("Spirit of Death I"), ENazareneEnemyArchetype::Demon, FVector(400.0f, -1300.0f, 100.0f) },
+        { FName(TEXT("empty_tomb_demon_02")), TEXT("Spirit of Death II"), ENazareneEnemyArchetype::Demon, FVector(-400.0f, -1350.0f, 100.0f) },
+        { FName(TEXT("empty_tomb_demon_03")), TEXT("Spirit of Death III"), ENazareneEnemyArchetype::Demon, FVector(0.0f, -1700.0f, 100.0f) },
+        { FName(TEXT("empty_tomb_named_boss_01")), TEXT("Shadow of Death"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2500.0f, 100.0f) }
+    };
+    EmptyTomb.NPCs =
+    {
+        { TEXT("Mary Magdalene"), TEXT("mary_magdalene"), FVector(-300.0f, 250.0f, 100.0f), TEXT("Press E to speak with Mary Magdalene"), { { TEXT("I have seen the Lord!"), 4.0f }, { TEXT("He called my name, and I knew him."), 4.0f } } },
+        { TEXT("Peter"), TEXT("peter"), FVector(300.0f, 280.0f, 100.0f), TEXT("Press E to speak with Peter"), { { TEXT("He is risen, just as he said."), 4.0f }, { TEXT("Go and tell the others."), 4.0f } } }
+    };
+    EmptyTomb.EncounterWaves =
+    {
+        { ENazareneSpawnTrigger::OnBossPhaseChange, 3, { { FName(TEXT("empty_tomb_wave_demon_01")), TEXT("Final Spirit"), ENazareneEnemyArchetype::Demon, FVector(600.0f, -2100.0f, 100.0f) }, { FName(TEXT("empty_tomb_wave_demon_02")), TEXT("Final Spirit"), ENazareneEnemyArchetype::Demon, FVector(-600.0f, -2100.0f, 100.0f) } }, 0.5f }
+    };
+
+    Regions = { Galilee, Decapolis, Wilderness, Jerusalem, Gethsemane, ViaDolorosa, EmptyTomb };
 }
 
 void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
@@ -186,6 +366,15 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
         return;
     }
 
+    if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            HUD->SetLoadingOverlayVisible(true, GetRandomLoreTip());
+        }
+    }
+
+    UnloadRegionSublevel();
     ClearRegionActors();
     EnemyBySpawnId.Empty();
     BossEnemy = nullptr;
@@ -198,7 +387,11 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
     }
 
     const FNazareneRegionDefinition& Region = Regions[RegionIndex];
-    SpawnRegionEnvironment(Region);
+    const bool bLoadedStreamedLevel = TryLoadRegionSublevel(Region);
+    if (!bLoadedStreamedLevel)
+    {
+        SpawnRegionEnvironment(Region);
+    }
     SpawnRegionActors(Region);
     ActiveStoryLines.Empty();
     StoryLineIndex = 0;
@@ -226,9 +419,9 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
         if (Session)
         {
             const FNazareneCampaignState& State = Session->GetCampaignState();
-            PlayerCharacter->MaxHealth = 120.0f + State.MaxHealthBonus;
-            PlayerCharacter->MaxStamina = 100.0f + State.MaxStaminaBonus;
+            PlayerCharacter->SetCampaignBaseVitals(120.0f + State.MaxHealthBonus, 100.0f + State.MaxStaminaBonus, false);
             PlayerCharacter->SetUnlockedMiracles(State.UnlockedMiracles);
+            PlayerCharacter->SetSkillTreeState(State.UnlockedSkills, State.SkillPoints, State.TotalXP, State.PlayerLevel);
         }
     }
 
@@ -244,6 +437,28 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
     UpdateChapterStageFromState();
     UpdateHUDForRegion(Region, bRegionCompleted);
     SetMusicState(ENazareneMusicState::Peace, false);
+
+    if (RegionMusicComponent != nullptr)
+    {
+        RegionMusicComponent->Stop();
+        RegionMusicComponent = nullptr;
+    }
+    if (USoundBase* RegionMusic = ResolveRegionMusic(Region))
+    {
+        RegionMusicComponent = UGameplayStatics::CreateSound2D(this, RegionMusic, 0.75f, 1.0f, 0.0f, nullptr, true);
+        if (RegionMusicComponent != nullptr)
+        {
+            RegionMusicComponent->Play();
+        }
+    }
+
+    if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            HUD->SetLoadingOverlayVisible(false, TEXT(""));
+        }
+    }
 }
 
 void ANazareneCampaignGameMode::ClearRegionActors()
@@ -256,6 +471,40 @@ void ANazareneCampaignGameMode::ClearRegionActors()
         }
     }
     RegionActors.Empty();
+}
+
+bool ANazareneCampaignGameMode::TryLoadRegionSublevel(const FNazareneRegionDefinition& Region)
+{
+    if (Region.StreamedLevelPackage.IsNone())
+    {
+        return false;
+    }
+
+    const FString PackagePath = Region.StreamedLevelPackage.ToString();
+    if (!FPackageName::DoesPackageExist(PackagePath))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Region sublevel missing: %s"), *PackagePath);
+        return false;
+    }
+
+    FLatentActionInfo LatentInfo;
+    LatentInfo.CallbackTarget = this;
+    UGameplayStatics::LoadStreamLevel(this, Region.StreamedLevelPackage, true, true, LatentInfo);
+    LoadedRegionLevelPackage = Region.StreamedLevelPackage;
+    return true;
+}
+
+void ANazareneCampaignGameMode::UnloadRegionSublevel()
+{
+    if (LoadedRegionLevelPackage.IsNone())
+    {
+        return;
+    }
+
+    FLatentActionInfo LatentInfo;
+    LatentInfo.CallbackTarget = this;
+    UGameplayStatics::UnloadStreamLevel(this, LoadedRegionLevelPackage, LatentInfo, true);
+    LoadedRegionLevelPackage = NAME_None;
 }
 
 void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefinition& Region)
@@ -306,6 +555,33 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         GroundTint = FLinearColor(0.39f, 0.35f, 0.27f);
         AccentTint = FLinearColor(0.74f, 0.69f, 0.56f);
         HeightJitter = 140.0f;
+        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
+    }
+    else if (Region.RegionId == FName(TEXT("gethsemane")))
+    {
+        SunColor = FLinearColor(0.52f, 0.55f, 0.72f);
+        SunIntensity = 5.8f;
+        GroundTint = FLinearColor(0.22f, 0.26f, 0.18f);
+        AccentTint = FLinearColor(0.34f, 0.42f, 0.30f);
+        HeightJitter = 90.0f;
+        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_OliveLeaf.MI_Env_OliveLeaf");
+    }
+    else if (Region.RegionId == FName(TEXT("via_dolorosa")))
+    {
+        SunColor = FLinearColor(0.88f, 0.72f, 0.58f);
+        SunIntensity = 8.4f;
+        GroundTint = FLinearColor(0.44f, 0.34f, 0.26f);
+        AccentTint = FLinearColor(0.62f, 0.52f, 0.40f);
+        HeightJitter = 100.0f;
+        EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
+    }
+    else if (Region.RegionId == FName(TEXT("empty_tomb")))
+    {
+        SunColor = FLinearColor(1.0f, 1.0f, 0.96f);
+        SunIntensity = 13.0f;
+        GroundTint = FLinearColor(0.46f, 0.42f, 0.38f);
+        AccentTint = FLinearColor(0.82f, 0.80f, 0.74f);
+        HeightJitter = 60.0f;
         EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
     }
 
@@ -428,6 +704,22 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         HeightFog->GetComponent()->SetFogHeightFalloff(0.24f);
         HeightFog->GetComponent()->SetFogInscatteringColor(SunColor * 0.35f);
         RegionActors.Add(HeightFog);
+    }
+
+    APostProcessVolume* PostProcessVolume = GetWorld()->SpawnActor<APostProcessVolume>(APostProcessVolume::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
+    if (PostProcessVolume != nullptr)
+    {
+        PostProcessVolume->bUnbound = true;
+        PostProcessVolume->BlendWeight = 0.72f;
+        PostProcessVolume->Settings.bOverride_ColorSaturation = true;
+        PostProcessVolume->Settings.ColorSaturation = FVector4(0.96f, 0.94f, 0.92f, 1.0f);
+        PostProcessVolume->Settings.bOverride_ColorContrast = true;
+        PostProcessVolume->Settings.ColorContrast = FVector4(1.05f, 1.05f, 1.05f, 1.0f);
+        PostProcessVolume->Settings.bOverride_AutoExposureMethod = true;
+        PostProcessVolume->Settings.AutoExposureMethod = EAutoExposureMethod::AEM_Manual;
+        PostProcessVolume->Settings.bOverride_AutoExposureBias = true;
+        PostProcessVolume->Settings.AutoExposureBias = 0.25f;
+        RegionActors.Add(PostProcessVolume);
     }
 
     SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 0.0f, -60.0f), FRotator::ZeroRotator, FVector(128.0f, 128.0f, 1.2f), GroundTint);
@@ -568,6 +860,7 @@ void ANazareneCampaignGameMode::SpawnRegionActors(const FNazareneRegionDefinitio
         Enemy->EnemyName = Spec.EnemyName;
         Enemy->Archetype = Spec.Archetype;
         Enemy->ConfigureFromArchetype();
+        ConfigureEnemyBehaviorTree(Enemy);
         Enemy->OnRedeemed.AddDynamic(this, &ANazareneCampaignGameMode::HandleEnemyRedeemed);
 
         RegionActors.Add(Enemy);
@@ -575,6 +868,33 @@ void ANazareneCampaignGameMode::SpawnRegionActors(const FNazareneRegionDefinitio
         if (Spec.SpawnId == Region.BossSpawnId)
         {
             BossEnemy = Enemy;
+            BossEnemy->OnPhaseChanged.AddDynamic(this, &ANazareneCampaignGameMode::HandleReinforcementWave);
+        }
+    }
+
+    for (const FNazareneNPCSpawnDefinition& NPCSpec : Region.NPCs)
+    {
+        ANazareneNPC* NPC = GetWorld()->SpawnActor<ANazareneNPC>(ANazareneNPC::StaticClass(), NPCSpec.Location, FRotator::ZeroRotator);
+        if (NPC != nullptr)
+        {
+            NPC->NPCName = NPCSpec.NPCName;
+            NPC->CharacterSlug = NPCSpec.CharacterSlug;
+            NPC->IdleGreeting = NPCSpec.IdleGreeting;
+            NPC->DialogueLines = NPCSpec.DialogueLines;
+            RegionActors.Add(NPC);
+        }
+    }
+
+    DeferredWaves.Empty();
+    for (const FNazareneEncounterWave& Wave : Region.EncounterWaves)
+    {
+        if (Wave.Trigger == ENazareneSpawnTrigger::OnRegionLoad)
+        {
+            SpawnWaveEnemies(Wave);
+        }
+        else
+        {
+            DeferredWaves.Add(Wave);
         }
     }
 }
@@ -706,6 +1026,7 @@ void ANazareneCampaignGameMode::NotifyPrayerSiteRest(FName SiteId)
     UpdateHUDForRegion(Region, bRegionCompleted);
     SetMusicState(ENazareneMusicState::Tension, true);
     SaveCheckpoint();
+    CheckDeferredWaves(ENazareneSpawnTrigger::OnPrayerSiteConsecrated);
 }
 
 void ANazareneCampaignGameMode::NotifyPlayerDefeated()
@@ -724,6 +1045,7 @@ void ANazareneCampaignGameMode::NotifyPlayerDefeated()
         if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
         {
             HUD->ShowMessage(FString::Printf(TEXT("You were struck down. Attempt %d begins anew."), NextRetryCount + 1), 4.2f);
+            HUD->ShowDeathOverlay(NextRetryCount + 1);
         }
     }
 
@@ -754,6 +1076,14 @@ FNazareneSavePayload ANazareneCampaignGameMode::BuildSavePayload() const
 
     if (Session)
     {
+        if (PlayerCharacter != nullptr)
+        {
+            FNazareneCampaignState& MutableState = Session->GetMutableCampaignState();
+            MutableState.UnlockedSkills = PlayerCharacter->GetUnlockedSkills();
+            MutableState.SkillPoints = PlayerCharacter->GetSkillPoints();
+            MutableState.TotalXP = PlayerCharacter->GetTotalXP();
+            MutableState.PlayerLevel = PlayerCharacter->GetPlayerLevel();
+        }
         Payload.Campaign = Session->GetCampaignState();
     }
     Payload.Campaign.RegionIndex = RegionIndex;
@@ -774,9 +1104,9 @@ void ANazareneCampaignGameMode::ApplySavePayload(const FNazareneSavePayload& Pay
 
     if (PlayerCharacter != nullptr)
     {
-        PlayerCharacter->MaxHealth = 120.0f + Payload.Campaign.MaxHealthBonus;
-        PlayerCharacter->MaxStamina = 100.0f + Payload.Campaign.MaxStaminaBonus;
+        PlayerCharacter->SetCampaignBaseVitals(120.0f + Payload.Campaign.MaxHealthBonus, 100.0f + Payload.Campaign.MaxStaminaBonus, false);
         PlayerCharacter->SetUnlockedMiracles(Payload.Campaign.UnlockedMiracles);
+        PlayerCharacter->SetSkillTreeState(Payload.Campaign.UnlockedSkills, Payload.Campaign.SkillPoints, Payload.Campaign.TotalXP, Payload.Campaign.PlayerLevel);
         PlayerCharacter->ApplySnapshot(Payload.Player);
     }
 
@@ -834,6 +1164,52 @@ void ANazareneCampaignGameMode::HandleEnemyRedeemed(ANazareneEnemyCharacter* Ene
     {
         return;
     }
+
+    int32 XPReward = FMath::Max(0, FMath::RoundToInt(FaithReward * 4.0f));
+    bool bLeveledUp = false;
+    int32 NewLevel = 1;
+    int32 NewSkillPoints = 0;
+
+    if (Session != nullptr && XPReward > 0)
+    {
+        FNazareneCampaignState& State = Session->GetMutableCampaignState();
+        State.PlayerLevel = FMath::Max(State.PlayerLevel, 1);
+        State.TotalXP = FMath::Max(State.TotalXP, 0);
+        State.SkillPoints = FMath::Max(State.SkillPoints, 0);
+
+        State.TotalXP += XPReward;
+        while (State.TotalXP >= XPForLevel(State.PlayerLevel + 1))
+        {
+            ++State.PlayerLevel;
+            ++State.SkillPoints;
+            bLeveledUp = true;
+        }
+
+        NewLevel = State.PlayerLevel;
+        NewSkillPoints = State.SkillPoints;
+
+        if (PlayerCharacter != nullptr)
+        {
+            PlayerCharacter->SetSkillTreeState(State.UnlockedSkills, State.SkillPoints, State.TotalXP, State.PlayerLevel);
+        }
+    }
+
+    if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+    {
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            const FString EnemyLabel = Enemy != nullptr ? Enemy->EnemyName : TEXT("Enemy");
+            if (XPReward > 0)
+            {
+                HUD->ShowMessage(FString::Printf(TEXT("%s redeemed (+%d XP)"), *EnemyLabel, XPReward), 2.8f);
+            }
+            if (bLeveledUp)
+            {
+                HUD->ShowMessage(FString::Printf(TEXT("Level Up! Lvl %d | Skill Points %d"), NewLevel, NewSkillPoints), 3.8f);
+            }
+        }
+    }
+
     if (Enemy != BossEnemy)
     {
         return;
@@ -901,9 +1277,9 @@ bool ANazareneCampaignGameMode::ApplyRegionReward(const FNazareneRegionDefinitio
 
     if (PlayerCharacter != nullptr)
     {
-        PlayerCharacter->MaxHealth = 120.0f + State.MaxHealthBonus;
-        PlayerCharacter->MaxStamina = 100.0f + State.MaxStaminaBonus;
+        PlayerCharacter->SetCampaignBaseVitals(120.0f + State.MaxHealthBonus, 100.0f + State.MaxStaminaBonus, true);
         PlayerCharacter->SetUnlockedMiracles(State.UnlockedMiracles);
+        PlayerCharacter->SetSkillTreeState(State.UnlockedSkills, State.SkillPoints, State.TotalXP, State.PlayerLevel);
 
         FNazarenePlayerSnapshot Snapshot = PlayerCharacter->BuildSnapshot();
         Snapshot.Health = PlayerCharacter->MaxHealth;
@@ -1064,6 +1440,116 @@ void ANazareneCampaignGameMode::SetMusicState(ENazareneMusicState NewState, bool
     }
 }
 
+USoundBase* ANazareneCampaignGameMode::ResolveRegionMusic(const FNazareneRegionDefinition& Region) const
+{
+    TSoftObjectPtr<USoundBase> Candidate;
+    if (Region.RegionId == FName(TEXT("galilee")))
+    {
+        Candidate = GalileeMusic;
+    }
+    else if (Region.RegionId == FName(TEXT("decapolis")))
+    {
+        Candidate = DecapolisMusic;
+    }
+    else if (Region.RegionId == FName(TEXT("wilderness")))
+    {
+        Candidate = WildernessMusic;
+    }
+    else if (Region.RegionId == FName(TEXT("jerusalem")))
+    {
+        Candidate = JerusalemMusic;
+    }
+
+    return Candidate.ToSoftObjectPath().IsValid() ? Candidate.LoadSynchronous() : nullptr;
+}
+
+FString ANazareneCampaignGameMode::GetRandomLoreTip() const
+{
+    TArray<FString> Tips;
+    const FString CharacterLibraryPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("../../docs/CHARACTER_LIBRARY.md"));
+
+    FString FileContents;
+    if (FFileHelper::LoadFileToString(FileContents, *CharacterLibraryPath))
+    {
+        TArray<FString> Lines;
+        FileContents.ParseIntoArrayLines(Lines, true);
+        for (const FString& RawLine : Lines)
+        {
+            FString Line = RawLine;
+            Line.TrimStartAndEndInline();
+            if (Line.StartsWith(TEXT("## ")))
+            {
+                Line.RemoveFromStart(TEXT("## "));
+                if (!Line.IsEmpty())
+                {
+                    Tips.Add(FString::Printf(TEXT("Lore: %s"), *Line));
+                }
+            }
+            else if (Line.StartsWith(TEXT("- **")) && Tips.Num() < 64)
+            {
+                Tips.Add(Line);
+            }
+        }
+    }
+
+    if (Tips.Num() == 0)
+    {
+        Tips =
+        {
+            TEXT("Lore: The Sermon on the Mount reframed mercy as active strength."),
+            TEXT("Lore: Galilee settlements blended fishing life with Roman pressure."),
+            TEXT("Lore: Prayer sites in this campaign represent refuge and resolve."),
+            TEXT("Lore: Decapolis city culture mixed Hellenistic and local traditions.")
+        };
+    }
+
+    return Tips[FMath::RandRange(0, Tips.Num() - 1)];
+}
+
+void ANazareneCampaignGameMode::ConfigureEnemyBehaviorTree(ANazareneEnemyCharacter* Enemy) const
+{
+    if (Enemy == nullptr)
+    {
+        return;
+    }
+
+    TSoftObjectPtr<UBehaviorTree> Candidate;
+    switch (Enemy->Archetype)
+    {
+    case ENazareneEnemyArchetype::MeleeShield:
+        Candidate = BTMeleeShieldAsset;
+        break;
+    case ENazareneEnemyArchetype::Spear:
+        Candidate = BTSpearAsset;
+        break;
+    case ENazareneEnemyArchetype::Ranged:
+        Candidate = BTRangedAsset;
+        break;
+    case ENazareneEnemyArchetype::Demon:
+        Candidate = BTDemonAsset;
+        break;
+    case ENazareneEnemyArchetype::Boss:
+        Candidate = BTBossAsset;
+        break;
+    default:
+        break;
+    }
+
+    if (Candidate.ToSoftObjectPath().IsValid())
+    {
+        if (UBehaviorTree* BTAsset = Candidate.LoadSynchronous())
+        {
+            Enemy->BehaviorTreeAsset = BTAsset;
+        }
+    }
+}
+
+int32 ANazareneCampaignGameMode::XPForLevel(int32 LevelValue) const
+{
+    const int32 SafeLevel = FMath::Max(LevelValue, 1);
+    return 45 + (SafeLevel - 1) * (SafeLevel - 1) * 28;
+}
+
 void ANazareneCampaignGameMode::UpdateChapterStageFromState()
 {
     if (bRegionCompleted)
@@ -1116,4 +1602,60 @@ void ANazareneCampaignGameMode::SetCurrentRegionRetryCount(int32 RetryCount)
 
     EnsureRetryCounterForCurrentRegion();
     Session->GetMutableCampaignState().RegionRetryCounts[RegionIndex] = FMath::Max(0, RetryCount);
+}
+
+void ANazareneCampaignGameMode::SpawnWaveEnemies(const FNazareneEncounterWave& Wave)
+{
+    for (const FNazareneEnemySpawnDefinition& Spec : Wave.Enemies)
+    {
+        ANazareneEnemyCharacter* Enemy = GetWorld()->SpawnActor<ANazareneEnemyCharacter>(ANazareneEnemyCharacter::StaticClass(), Spec.Location, FRotator::ZeroRotator);
+        if (Enemy == nullptr)
+        {
+            continue;
+        }
+
+        Enemy->SpawnId = Spec.SpawnId;
+        Enemy->EnemyName = Spec.EnemyName;
+        Enemy->Archetype = Spec.Archetype;
+        Enemy->ConfigureFromArchetype();
+        ConfigureEnemyBehaviorTree(Enemy);
+        Enemy->OnRedeemed.AddDynamic(this, &ANazareneCampaignGameMode::HandleEnemyRedeemed);
+        RegionActors.Add(Enemy);
+        EnemyBySpawnId.Add(Spec.SpawnId, Enemy);
+    }
+}
+
+void ANazareneCampaignGameMode::CheckDeferredWaves(ENazareneSpawnTrigger Trigger, int32 Param)
+{
+    for (int32 Index = DeferredWaves.Num() - 1; Index >= 0; --Index)
+    {
+        const FNazareneEncounterWave& Wave = DeferredWaves[Index];
+        if (Wave.Trigger != Trigger)
+        {
+            continue;
+        }
+        if (Trigger == ENazareneSpawnTrigger::OnBossPhaseChange && Wave.TriggerParam != Param)
+        {
+            continue;
+        }
+
+        if (Wave.DelaySeconds > 0.0f)
+        {
+            FNazareneEncounterWave WaveCopy = Wave;
+            WaveCopy.DelaySeconds = 0.0f;
+            FTimerHandle TimerHandle;
+            GetWorldTimerManager().SetTimer(TimerHandle, [this, WaveCopy]() { SpawnWaveEnemies(WaveCopy); }, Wave.DelaySeconds, false);
+        }
+        else
+        {
+            SpawnWaveEnemies(Wave);
+        }
+
+        DeferredWaves.RemoveAt(Index);
+    }
+}
+
+void ANazareneCampaignGameMode::HandleReinforcementWave(ANazareneEnemyCharacter* Boss, int32 Phase)
+{
+    CheckDeferredWaves(ENazareneSpawnTrigger::OnBossPhaseChange, Phase);
 }

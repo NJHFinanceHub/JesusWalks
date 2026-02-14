@@ -9,10 +9,14 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
+#include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "NazareneCampaignGameMode.h"
+#include "NazareneDamageNumberWidget.h"
+#include "NazareneEnemyCharacter.h"
+#include "NazareneEnemyHealthBarWidget.h"
 #include "NazareneGameInstance.h"
 #include "NazareneHUD.h"
 #include "NazarenePlayerCharacter.h"
@@ -101,7 +105,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
     UCanvasPanelSlot* PlayerPanelSlot = RootPanel->AddChildToCanvas(PlayerPanel);
     if (PlayerPanelSlot != nullptr)
     {
-        PlayerPanelSlot->SetSize(FVector2D(470.0f, 260.0f));
+        PlayerPanelSlot->SetSize(FVector2D(470.0f, 380.0f));
         PlayerPanelSlot->SetPosition(FVector2D(24.0f, 18.0f));
     }
 
@@ -130,6 +134,14 @@ void UNazareneHUDWidget::NativeOnInitialized()
     StaminaBar->SetFillColorAndOpacity(FLinearColor(0.30f, 0.78f, 0.34f, 1.0f));
     AddVerticalChild(PlayerPanelContent, StaminaBar, FMargin(14.0f, 2.0f, 14.0f, 6.0f));
 
+    FaithBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("FaithBar"));
+    if (FaithBar != nullptr)
+    {
+        FaithBar->SetPercent(1.0f);
+        FaithBar->SetFillColorAndOpacity(FLinearColor(0.93f, 0.86f, 0.54f, 1.0f));
+        AddVerticalChild(PlayerPanelContent, FaithBar, FMargin(14.0f, 2.0f, 14.0f, 6.0f));
+    }
+
     FaithText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FaithText"));
     ConfigureText(FaithText, TEXT("Faith 0"), FLinearColor(0.93f, 0.86f, 0.54f), 15);
     AddVerticalChild(PlayerPanelContent, FaithText, FMargin(14.0f, 3.0f, 12.0f, 0.0f));
@@ -146,6 +158,30 @@ void UNazareneHUDWidget::NativeOnInitialized()
     ConfigureText(CombatStateText, TEXT("Cooldowns: Heal Ready | Blessing Locked | Radiance Locked"), FLinearColor(0.84f, 0.86f, 0.92f), 13);
     CombatStateText->SetAutoWrapText(true);
     AddVerticalChild(PlayerPanelContent, CombatStateText, FMargin(14.0f, 0.0f, 12.0f, 8.0f));
+
+    HealCooldownBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("HealCooldownBar"));
+    if (HealCooldownBar != nullptr)
+    {
+        HealCooldownBar->SetPercent(1.0f);
+        HealCooldownBar->SetFillColorAndOpacity(FLinearColor(0.2f, 0.8f, 0.3f, 0.9f));
+        AddVerticalChild(PlayerPanelContent, HealCooldownBar, FMargin(14.0f, 2.0f, 14.0f, 2.0f));
+    }
+
+    BlessingCooldownBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("BlessingCooldownBar"));
+    if (BlessingCooldownBar != nullptr)
+    {
+        BlessingCooldownBar->SetPercent(1.0f);
+        BlessingCooldownBar->SetFillColorAndOpacity(FLinearColor(0.9f, 0.8f, 0.3f, 0.9f));
+        AddVerticalChild(PlayerPanelContent, BlessingCooldownBar, FMargin(14.0f, 2.0f, 14.0f, 2.0f));
+    }
+
+    RadianceCooldownBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("RadianceCooldownBar"));
+    if (RadianceCooldownBar != nullptr)
+    {
+        RadianceCooldownBar->SetPercent(1.0f);
+        RadianceCooldownBar->SetFillColorAndOpacity(FLinearColor(0.9f, 0.6f, 0.2f, 0.9f));
+        AddVerticalChild(PlayerPanelContent, RadianceCooldownBar, FMargin(14.0f, 2.0f, 14.0f, 6.0f));
+    }
 
     UBorder* ObjectivePanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("ObjectivePanel"));
     ObjectivePanel->SetBrushColor(FLinearColor(0.07f, 0.07f, 0.06f, 0.74f));
@@ -384,7 +420,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
     UCanvasPanelSlot* OptionsPanelSlot = OptionsCanvas->AddChildToCanvas(OptionsPanel);
     if (OptionsPanelSlot != nullptr)
     {
-        OptionsPanelSlot->SetSize(FVector2D(720.0f, 660.0f));
+        OptionsPanelSlot->SetSize(FVector2D(720.0f, 960.0f));
         OptionsPanelSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
         OptionsPanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
         OptionsPanelSlot->SetPosition(FVector2D::ZeroVector);
@@ -448,6 +484,41 @@ void UNazareneHUDWidget::NativeOnInitialized()
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFrameLimitUpPressed);
     }
+
+    UTextBlock* AccessibilityHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("AccessibilityHeader"));
+    ConfigureText(AccessibilityHeader, TEXT("-- Accessibility --"), FLinearColor(0.94f, 0.88f, 0.74f), 16);
+    AccessibilityHeader->SetJustification(ETextJustify::Center);
+    AddVerticalChild(OptionsContent, AccessibilityHeader, FMargin(12.0f, 12.0f, 12.0f, 4.0f));
+
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SubtitleScaleDownButton"), TEXT("Subtitle Size -"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSubtitleScaleDownPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SubtitleScaleUpButton"), TEXT("Subtitle Size +"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSubtitleScaleUpPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("ColorblindToggleButton"), TEXT("Colorblind Mode"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleColorblindTogglePressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("HighContrastToggleButton"), TEXT("High Contrast HUD"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleHighContrastTogglePressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("ScreenShakeToggleButton"), TEXT("Screen Shake Reduction"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleScreenShakeTogglePressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("HUDScaleDownButton"), TEXT("HUD Scale -"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleHUDScaleDownPressed);
+    }
+    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("HUDScaleUpButton"), TEXT("HUD Scale +"), OptionsButtonLabel))
+    {
+        Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleHUDScaleUpPressed);
+    }
+
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("OptionsApplyButton"), TEXT("Apply And Save"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsApplyPressed);
@@ -457,6 +528,59 @@ void UNazareneHUDWidget::NativeOnInitialized()
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsBackPressed);
     }
 
+    DeathOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("DeathOverlay"));
+    DeathOverlay->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.86f));
+    DeathOverlay->SetVisibility(ESlateVisibility::Collapsed);
+    UCanvasPanelSlot* DeathOverlaySlot = RootPanel->AddChildToCanvas(DeathOverlay);
+    if (DeathOverlaySlot != nullptr)
+    {
+        DeathOverlaySlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+        DeathOverlaySlot->SetOffsets(FMargin(0.0f));
+    }
+
+    UVerticalBox* DeathContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("DeathContent"));
+    DeathOverlay->SetContent(DeathContent);
+
+    UTextBlock* DeathTitleText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("DeathTitleText"));
+    ConfigureText(DeathTitleText, TEXT("You Were Struck Down"), FLinearColor(0.95f, 0.34f, 0.24f), 34);
+    DeathTitleText->SetJustification(ETextJustify::Center);
+    AddVerticalChild(DeathContent, DeathTitleText, FMargin(16.0f, 220.0f, 16.0f, 12.0f));
+
+    DeathRetryText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("DeathRetryText"));
+    ConfigureText(DeathRetryText, TEXT("Attempt 1 begins."), FLinearColor(0.95f, 0.89f, 0.79f), 18);
+    DeathRetryText->SetJustification(ETextJustify::Center);
+    AddVerticalChild(DeathContent, DeathRetryText, FMargin(16.0f, 0.0f, 16.0f, 24.0f));
+
+    UTextBlock* RiseButtonLabel = nullptr;
+    if (UButton* RiseButton = CreateMenuButton(WidgetTree, DeathContent, TEXT("RiseAgainButton"), TEXT("Rise Again"), RiseButtonLabel))
+    {
+        RiseButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleRiseAgainPressed);
+    }
+
+    LoadingOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("LoadingOverlay"));
+    LoadingOverlay->SetBrushColor(FLinearColor(0.01f, 0.01f, 0.01f, 0.88f));
+    LoadingOverlay->SetVisibility(ESlateVisibility::Collapsed);
+    UCanvasPanelSlot* LoadingOverlaySlot = RootPanel->AddChildToCanvas(LoadingOverlay);
+    if (LoadingOverlaySlot != nullptr)
+    {
+        LoadingOverlaySlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+        LoadingOverlaySlot->SetOffsets(FMargin(0.0f));
+    }
+
+    UVerticalBox* LoadingContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("LoadingContent"));
+    LoadingOverlay->SetContent(LoadingContent);
+
+    UTextBlock* LoadingTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LoadingTitle"));
+    ConfigureText(LoadingTitle, TEXT("Loading Pilgrimage..."), FLinearColor(0.95f, 0.90f, 0.82f), 30);
+    LoadingTitle->SetJustification(ETextJustify::Center);
+    AddVerticalChild(LoadingContent, LoadingTitle, FMargin(20.0f, 220.0f, 20.0f, 18.0f));
+
+    LoadingTipText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LoadingTipText"));
+    ConfigureText(LoadingTipText, TEXT("Lore Tip"), FLinearColor(0.88f, 0.84f, 0.72f), 18);
+    LoadingTipText->SetJustification(ETextJustify::Center);
+    LoadingTipText->SetAutoWrapText(true);
+    AddVerticalChild(LoadingContent, LoadingTipText, FMargin(120.0f, 0.0f, 120.0f, 12.0f));
+
     RefreshSlotSummaries();
     RefreshOptionsSummary();
 }
@@ -465,8 +589,11 @@ void UNazareneHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
 {
     Super::NativeTick(MyGeometry, InDeltaTime);
 
-    const ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
+    CachedDeltaTime = InDeltaTime;
+
+    ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
     RefreshVitals(Player);
+    SyncEnemyHealthBars(Player);
 
     if (MessageTimer > 0.0f)
     {
@@ -479,6 +606,15 @@ void UNazareneHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
     else if (MessageText != nullptr)
     {
         MessageText->SetVisibility(ESlateVisibility::Collapsed);
+    }
+
+    for (int32 Index = DamageNumberWidgets.Num() - 1; Index >= 0; --Index)
+    {
+        UNazareneDamageNumberWidget* Widget = DamageNumberWidgets[Index];
+        if (Widget == nullptr || Widget->IsExpired())
+        {
+            DamageNumberWidgets.RemoveAtSwap(Index);
+        }
     }
 }
 
@@ -508,6 +644,51 @@ void UNazareneHUDWidget::ShowMessage(const FString& InMessage, float Duration)
         MessageText->SetVisibility(ESlateVisibility::Visible);
     }
     MessageTimer = FMath::Max(0.0f, Duration);
+}
+
+void UNazareneHUDWidget::ShowDamageNumber(const FVector& WorldLocation, float Amount, ENazareneDamageNumberType Type)
+{
+    APlayerController* PlayerController = GetOwningPlayer();
+    if (PlayerController == nullptr)
+    {
+        return;
+    }
+
+    UNazareneDamageNumberWidget* DamageWidget = CreateWidget<UNazareneDamageNumberWidget>(PlayerController, UNazareneDamageNumberWidget::StaticClass());
+    if (DamageWidget == nullptr)
+    {
+        return;
+    }
+
+    DamageWidget->AddToViewport(70);
+    DamageWidget->InitializeDamageNumber(PlayerController, WorldLocation, Amount, Type);
+    DamageNumberWidgets.Add(DamageWidget);
+}
+
+void UNazareneHUDWidget::ShowDeathOverlay(int32 RetryCount)
+{
+    if (DeathRetryText != nullptr)
+    {
+        DeathRetryText->SetText(FText::FromString(FString::Printf(TEXT("Attempt %d begins at the nearest prayer site."), FMath::Max(1, RetryCount))));
+    }
+
+    if (DeathOverlay != nullptr)
+    {
+        DeathOverlay->SetVisibility(ESlateVisibility::Visible);
+    }
+}
+
+void UNazareneHUDWidget::SetLoadingOverlayVisible(bool bVisible, const FString& LoreTip)
+{
+    if (LoadingTipText != nullptr && !LoreTip.IsEmpty())
+    {
+        LoadingTipText->SetText(FText::FromString(LoreTip));
+    }
+
+    if (LoadingOverlay != nullptr)
+    {
+        LoadingOverlay->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+    }
 }
 
 void UNazareneHUDWidget::SetStartMenuVisible(bool bVisible)
@@ -619,14 +800,23 @@ void UNazareneHUDWidget::RefreshOptionsSummary()
     }
 
     const FNazarenePlayerSettings& Settings = SettingsSubsystem->GetSettings();
+
+    const TCHAR* ColorblindModeNames[] = { TEXT("None"), TEXT("Deuteranopia"), TEXT("Protanopia"), TEXT("Tritanopia") };
+    const int32 ColorblindIndex = FMath::Clamp(static_cast<int32>(Settings.ColorblindMode), 0, 3);
+
     const FString Summary = FString::Printf(
-        TEXT("Mouse Sensitivity: %.2f\nInvert Look Y: %s\nField Of View: %.0f\nDisplay Gamma: %.2f\nMaster Volume: %.0f%%\nFrame Rate Limit: %.0f"),
+        TEXT("Mouse Sensitivity: %.2f\nInvert Look Y: %s\nField Of View: %.0f\nDisplay Gamma: %.2f\nMaster Volume: %.0f%%\nFrame Rate Limit: %.0f\nSubtitle Scale: %.2f\nColorblind Mode: %s\nHigh Contrast HUD: %s\nScreen Shake Reduction: %s\nHUD Scale: %.2f"),
         Settings.MouseSensitivity,
         Settings.bInvertLookY ? TEXT("Enabled") : TEXT("Disabled"),
         Settings.FieldOfView,
         Settings.DisplayGamma,
         Settings.MasterVolume * 100.0f,
-        Settings.FrameRateLimit
+        Settings.FrameRateLimit,
+        Settings.SubtitleTextScale,
+        ColorblindModeNames[ColorblindIndex],
+        Settings.bHighContrastHUD ? TEXT("Enabled") : TEXT("Disabled"),
+        Settings.bScreenShakeReduction ? TEXT("Enabled") : TEXT("Disabled"),
+        Settings.HUDScale
     );
     OptionsSummaryText->SetText(FText::FromString(Summary));
 }
@@ -658,14 +848,89 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
     {
         FaithText->SetText(FText::FromString(FString::Printf(TEXT("Faith %.0f"), Player->GetFaith())));
     }
-    if (HealthBar != nullptr)
+    // Smooth bar interpolation
+    const float TargetHealthPercent = FMath::Clamp(HealthRatio, 0.0f, 1.0f);
+    DisplayedHealthPercent = FMath::FInterpTo(DisplayedHealthPercent, TargetHealthPercent, CachedDeltaTime, BarLerpSpeed);
+    if (HealthBar)
     {
-        HealthBar->SetPercent(FMath::Clamp(HealthRatio, 0.0f, 1.0f));
+        HealthBar->SetPercent(DisplayedHealthPercent);
     }
-    if (StaminaBar != nullptr)
+
+    const float TargetStaminaPercent = FMath::Clamp(StaminaRatio, 0.0f, 1.0f);
+    DisplayedStaminaPercent = FMath::FInterpTo(DisplayedStaminaPercent, TargetStaminaPercent, CachedDeltaTime, BarLerpSpeed);
+    if (StaminaBar)
     {
-        StaminaBar->SetPercent(FMath::Clamp(StaminaRatio, 0.0f, 1.0f));
+        StaminaBar->SetPercent(DisplayedStaminaPercent);
     }
+
+    // Low-resource pulse effects
+    bHealthCritical = TargetHealthPercent <= 0.25f;
+    if (bHealthCritical)
+    {
+        HealthPulseTimer += CachedDeltaTime;
+        const float PulseAlpha = 0.5f + 0.5f * FMath::Sin(HealthPulseTimer * 6.0f);
+        if (HealthBar)
+        {
+            HealthBar->SetFillColorAndOpacity(FLinearColor(0.98f, 0.24f * PulseAlpha, 0.20f * PulseAlpha, 1.0f));
+        }
+    }
+    else
+    {
+        HealthPulseTimer = 0.0f;
+        if (HealthBar)
+        {
+            HealthBar->SetFillColorAndOpacity(FLinearColor(0.83f, 0.24f, 0.20f, 1.0f));
+        }
+    }
+
+    bStaminaCritical = TargetStaminaPercent <= 0.15f;
+    if (bStaminaCritical)
+    {
+        StaminaPulseTimer += CachedDeltaTime;
+        const float StaminaPulse = 0.5f + 0.5f * FMath::Sin(StaminaPulseTimer * 6.0f);
+        if (StaminaBar)
+        {
+            StaminaBar->SetFillColorAndOpacity(FLinearColor(0.22f, 0.68f * StaminaPulse, 0.24f * StaminaPulse, 1.0f));
+        }
+    }
+    else
+    {
+        StaminaPulseTimer = 0.0f;
+        if (StaminaBar)
+        {
+            StaminaBar->SetFillColorAndOpacity(FLinearColor(0.22f, 0.68f, 0.24f, 1.0f));
+        }
+    }
+
+    if (FaithBar != nullptr && Player != nullptr)
+    {
+        const float MaxFaith = Player->StartingFaith * 2.0f;
+        const float FaithPercent = MaxFaith > 0.0f ? FMath::Clamp(Player->GetFaith() / MaxFaith, 0.0f, 1.0f) : 0.0f;
+        FaithBar->SetPercent(FaithPercent);
+    }
+
+    if (Player != nullptr)
+    {
+        if (HealCooldownBar != nullptr)
+        {
+            const float HealRemaining = Player->GetHealCooldownRemaining();
+            const float HealMax = Player->HealCooldown;
+            HealCooldownBar->SetPercent(HealMax > 0.0f ? FMath::Clamp(1.0f - (HealRemaining / HealMax), 0.0f, 1.0f) : 1.0f);
+        }
+        if (BlessingCooldownBar != nullptr)
+        {
+            const float BlessingRemaining = Player->GetBlessingCooldownRemaining();
+            const float BlessingMax = Player->BlessingCooldown;
+            BlessingCooldownBar->SetPercent(BlessingMax > 0.0f ? FMath::Clamp(1.0f - (BlessingRemaining / BlessingMax), 0.0f, 1.0f) : 1.0f);
+        }
+        if (RadianceCooldownBar != nullptr)
+        {
+            const float RadianceRemaining = Player->GetRadianceCooldownRemaining();
+            const float RadianceMax = Player->RadianceCooldown;
+            RadianceCooldownBar->SetPercent(RadianceMax > 0.0f ? FMath::Clamp(1.0f - (RadianceRemaining / RadianceMax), 0.0f, 1.0f) : 1.0f);
+        }
+    }
+
     if (LockTargetText != nullptr)
     {
         const FString TargetName = Player->GetLockTargetName();
@@ -701,6 +966,91 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
             CriticalStateText->SetText(FText::FromString(CriticalState));
             CriticalStateText->SetColorAndOpacity(FSlateColor(CriticalColor));
             CriticalStateText->SetVisibility(ESlateVisibility::Visible);
+        }
+    }
+
+    if (CombatStateText != nullptr)
+    {
+        const FString BlessingState = Player->IsMiracleUnlocked(FName(TEXT("blessing")))
+            ? FString::Printf(TEXT("Blessing %.1fs"), Player->GetBlessingCooldownRemaining())
+            : TEXT("Blessing Locked");
+        const FString RadianceState = Player->IsMiracleUnlocked(FName(TEXT("radiance")))
+            ? FString::Printf(TEXT("Radiance %.1fs"), Player->GetRadianceCooldownRemaining())
+            : TEXT("Radiance Locked");
+
+        CombatStateText->SetText(
+            FText::FromString(
+                FString::Printf(
+                    TEXT("Lvl %d | XP %d (Next %d) | Skill Pts %d\nHeal %.1fs | %s | %s"),
+                    Player->GetPlayerLevel(),
+                    Player->GetTotalXP(),
+                    Player->GetXPToNextLevel(),
+                    Player->GetSkillPoints(),
+                    Player->GetHealCooldownRemaining(),
+                    *BlessingState,
+                    *RadianceState
+                )
+            )
+        );
+    }
+}
+
+void UNazareneHUDWidget::SyncEnemyHealthBars(ANazarenePlayerCharacter* Player)
+{
+    if (Player == nullptr || GetOwningPlayer() == nullptr || GetWorld() == nullptr)
+    {
+        return;
+    }
+
+    TArray<ANazareneEnemyCharacter*> Enemies;
+    for (TActorIterator<ANazareneEnemyCharacter> It(GetWorld()); It; ++It)
+    {
+        ANazareneEnemyCharacter* Enemy = *It;
+        if (Enemy != nullptr && !Enemy->IsRedeemed())
+        {
+            Enemies.Add(Enemy);
+        }
+    }
+
+    for (ANazareneEnemyCharacter* Enemy : Enemies)
+    {
+        bool bHasWidget = false;
+        for (UNazareneEnemyHealthBarWidget* HealthWidget : EnemyHealthBarWidgets)
+        {
+            if (HealthWidget != nullptr && HealthWidget->GetBoundEnemy() == Enemy)
+            {
+                bHasWidget = true;
+                break;
+            }
+        }
+
+        if (bHasWidget)
+        {
+            continue;
+        }
+
+        UNazareneEnemyHealthBarWidget* NewWidget = CreateWidget<UNazareneEnemyHealthBarWidget>(GetOwningPlayer(), UNazareneEnemyHealthBarWidget::StaticClass());
+        if (NewWidget == nullptr)
+        {
+            continue;
+        }
+
+        NewWidget->AddToViewport(30);
+        NewWidget->BindToEnemy(Enemy, Player);
+        EnemyHealthBarWidgets.Add(NewWidget);
+    }
+
+    for (int32 Index = EnemyHealthBarWidgets.Num() - 1; Index >= 0; --Index)
+    {
+        UNazareneEnemyHealthBarWidget* Widget = EnemyHealthBarWidgets[Index];
+        ANazareneEnemyCharacter* BoundEnemy = Widget != nullptr ? Widget->GetBoundEnemy() : nullptr;
+        if (Widget == nullptr || BoundEnemy == nullptr || BoundEnemy->IsRedeemed() || !Enemies.Contains(BoundEnemy))
+        {
+            if (Widget != nullptr)
+            {
+                Widget->RemoveFromParent();
+            }
+            EnemyHealthBarWidgets.RemoveAtSwap(Index);
         }
     }
 }
@@ -950,6 +1300,92 @@ void UNazareneHUDWidget::HandleFrameLimitUpPressed()
     }
 }
 
+void UNazareneHUDWidget::HandleSubtitleScaleDownPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetSubtitleTextScale(Settings->GetSettings().SubtitleTextScale - 0.25f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleSubtitleScaleUpPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetSubtitleTextScale(Settings->GetSettings().SubtitleTextScale + 0.25f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleColorblindTogglePressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            int32 Current = static_cast<int32>(Settings->GetSettings().ColorblindMode);
+            int32 Next = (Current + 1) % 4;
+            Settings->SetColorblindMode(static_cast<ENazareneColorblindMode>(Next));
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleHighContrastTogglePressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetHighContrastHUD(!Settings->GetSettings().bHighContrastHUD);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleScreenShakeTogglePressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetScreenShakeReduction(!Settings->GetSettings().bScreenShakeReduction);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleHUDScaleDownPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetHUDScale(Settings->GetSettings().HUDScale - 0.25f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
+void UNazareneHUDWidget::HandleHUDScaleUpPressed()
+{
+    if (UGameInstance* GameInstance = GetGameInstance())
+    {
+        if (UNazareneSettingsSubsystem* Settings = GameInstance->GetSubsystem<UNazareneSettingsSubsystem>())
+        {
+            Settings->SetHUDScale(Settings->GetSettings().HUDScale + 0.25f);
+            RefreshOptionsSummary();
+        }
+    }
+}
+
 void UNazareneHUDWidget::HandleQuitPressed()
 {
     APlayerController* PlayerController = GetOwningPlayer();
@@ -1044,6 +1480,14 @@ void UNazareneHUDWidget::HandleNewPilgrimagePressed()
 
         const FString LevelName = UGameplayStatics::GetCurrentLevelName(this, true);
         UGameplayStatics::OpenLevel(this, FName(*LevelName));
+    }
+}
+
+void UNazareneHUDWidget::HandleRiseAgainPressed()
+{
+    if (DeathOverlay != nullptr)
+    {
+        DeathOverlay->SetVisibility(ESlateVisibility::Collapsed);
     }
 }
 

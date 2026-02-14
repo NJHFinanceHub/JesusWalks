@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "NazareneTypes.generated.h"
 
+class USoundBase;
+
 UENUM(BlueprintType)
 enum class ENazareneEnemyArchetype : uint8
 {
@@ -27,6 +29,16 @@ enum class ENazareneEnemyState : uint8
     Staggered = 8,
     Parried = 9,
     Redeemed = 10
+};
+
+UENUM(BlueprintType)
+enum class ENazareneDamageNumberType : uint8
+{
+    Normal = 0,
+    Critical = 1,
+    Heal = 2,
+    PoiseBreak = 3,
+    Blocked = 4
 };
 
 USTRUCT(BlueprintType)
@@ -98,10 +110,25 @@ struct FNazareneCampaignState
     float MaxStaminaBonus = 0.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 TotalXP = 0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 PlayerLevel = 1;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 SkillPoints = 0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FName> UnlockedSkills;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<int32> RegionRetryCounts;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FName> Flags;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<uint8> ChapterStagePerRegion;
 };
 
 USTRUCT(BlueprintType)
@@ -138,6 +165,69 @@ struct FNazareneEnemySpawnDefinition
 };
 
 USTRUCT(BlueprintType)
+struct FNazareneNPCDialogueLine
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString Text;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    float DisplayDuration = 4.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TObjectPtr<USoundBase> VoiceClip;
+};
+
+USTRUCT(BlueprintType)
+struct FNazareneNPCSpawnDefinition
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString NPCName = TEXT("Villager");
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString CharacterSlug;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FVector Location = FVector::ZeroVector;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString IdleGreeting;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FNazareneNPCDialogueLine> DialogueLines;
+};
+
+UENUM(BlueprintType)
+enum class ENazareneSpawnTrigger : uint8
+{
+    OnRegionLoad = 0,
+    OnPrayerSiteConsecrated = 1,
+    OnBossPhaseChange = 2,
+    OnAreaEnter = 3
+};
+
+USTRUCT(BlueprintType)
+struct FNazareneEncounterWave
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    ENazareneSpawnTrigger Trigger = ENazareneSpawnTrigger::OnRegionLoad;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 TriggerParam = 0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FNazareneEnemySpawnDefinition> Enemies;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    float DelaySeconds = 0.0f;
+};
+
+USTRUCT(BlueprintType)
 struct FNazareneRegionDefinition
 {
     GENERATED_BODY()
@@ -153,6 +243,9 @@ struct FNazareneRegionDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString Objective = TEXT("Redeem the guardian.");
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FName StreamedLevelPackage = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FVector PlayerSpawn = FVector(0.0f, 0.0f, 200.0f);
@@ -186,5 +279,14 @@ struct FNazareneRegionDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     float RewardStaminaBonus = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString LoreText;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FNazareneNPCSpawnDefinition> NPCs;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FNazareneEncounterWave> EncounterWaves;
 };
 

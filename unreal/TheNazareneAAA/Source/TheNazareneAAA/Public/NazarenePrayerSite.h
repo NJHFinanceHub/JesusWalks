@@ -6,10 +6,10 @@
 #include "NazarenePrayerSite.generated.h"
 
 class ANazarenePlayerCharacter;
+class UPointLightComponent;
 class UPrimitiveComponent;
 class USphereComponent;
 class UStaticMeshComponent;
-class UPointLightComponent;
 struct FHitResult;
 
 UCLASS()
@@ -31,6 +31,15 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Prayer Site")
     float InteractionRadius = 220.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Prayer Site")
+    FString LoreText;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Prayer Site")
+    float FaithRefillPercent = 0.5f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Prayer Site")
+    FString VisualTheme = TEXT("Default");
 
     UFUNCTION(BlueprintCallable, Category = "Prayer Site")
     FVector GetRespawnLocation() const;

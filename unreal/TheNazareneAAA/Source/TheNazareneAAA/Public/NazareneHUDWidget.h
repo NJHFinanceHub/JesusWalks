@@ -2,12 +2,17 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "NazareneTypes.h"
 #include "NazareneHUDWidget.generated.h"
 
+class ANazareneEnemyCharacter;
 class ANazarenePlayerCharacter;
+class UButton;
 class UBorder;
 class UProgressBar;
 class UTextBlock;
+class UNazareneDamageNumberWidget;
+class UNazareneEnemyHealthBarWidget;
 
 UCLASS()
 class THENAZARENEAAA_API UNazareneHUDWidget : public UUserWidget
@@ -26,9 +31,13 @@ public:
     void SetPauseMenuVisible(bool bVisible);
     bool IsPauseMenuVisible() const;
     void RefreshSlotSummaries();
+    void ShowDamageNumber(const FVector& WorldLocation, float Amount, ENazareneDamageNumberType Type);
+    void ShowDeathOverlay(int32 RetryCount);
+    void SetLoadingOverlayVisible(bool bVisible, const FString& LoreTip);
 
 private:
     void RefreshVitals(const ANazarenePlayerCharacter* Player);
+    void SyncEnemyHealthBars(ANazarenePlayerCharacter* Player);
 
     UFUNCTION()
     void HandleResumePressed();
@@ -82,6 +91,27 @@ private:
     void HandleFrameLimitUpPressed();
 
     UFUNCTION()
+    void HandleSubtitleScaleDownPressed();
+
+    UFUNCTION()
+    void HandleSubtitleScaleUpPressed();
+
+    UFUNCTION()
+    void HandleColorblindTogglePressed();
+
+    UFUNCTION()
+    void HandleHighContrastTogglePressed();
+
+    UFUNCTION()
+    void HandleScreenShakeTogglePressed();
+
+    UFUNCTION()
+    void HandleHUDScaleDownPressed();
+
+    UFUNCTION()
+    void HandleHUDScaleUpPressed();
+
+    UFUNCTION()
     void HandleQuitPressed();
 
     UFUNCTION()
@@ -105,6 +135,9 @@ private:
     UFUNCTION()
     void HandleNewPilgrimagePressed();
 
+    UFUNCTION()
+    void HandleRiseAgainPressed();
+
 private:
     void RefreshOptionsSummary();
 
@@ -125,6 +158,9 @@ private:
 
     UPROPERTY()
     TObjectPtr<UTextBlock> CriticalStateText;
+
+    UPROPERTY()
+    TObjectPtr<UTextBlock> CombatStateText;
 
     UPROPERTY()
     TObjectPtr<UProgressBar> HealthBar;
@@ -162,8 +198,59 @@ private:
     UPROPERTY()
     TObjectPtr<UTextBlock> OptionsSummaryText;
 
+    UPROPERTY()
+    TObjectPtr<UBorder> DeathOverlay;
+
+    UPROPERTY()
+    TObjectPtr<UTextBlock> DeathRetryText;
+
+    UPROPERTY()
+    TObjectPtr<UBorder> LoadingOverlay;
+
+    UPROPERTY()
+    TObjectPtr<UTextBlock> LoadingTipText;
+
+    UPROPERTY()
+    TObjectPtr<ANazarenePlayerCharacter> CachedPlayerForWidgets;
+
+    UPROPERTY()
+    TArray<TObjectPtr<UNazareneDamageNumberWidget>> DamageNumberWidgets;
+
+    UPROPERTY()
+    TArray<TObjectPtr<UNazareneEnemyHealthBarWidget>> EnemyHealthBarWidgets;
+
     FString CachedRegionName = TEXT("Chapter 1: Galilee Shores");
     FString CachedObjective = TEXT("Redeem the guardian.");
     float MessageTimer = 0.0f;
     bool bOptionsOpenedFromStartMenu = true;
+
+    float DisplayedHealthPercent = 1.0f;
+    float DisplayedStaminaPercent = 1.0f;
+    float BarLerpSpeed = 4.5f;
+    float CachedDeltaTime = 0.0f;
+    float HealthPulseTimer = 0.0f;
+    float StaminaPulseTimer = 0.0f;
+    bool bHealthCritical = false;
+    bool bStaminaCritical = false;
+
+    UPROPERTY()
+    TObjectPtr<UProgressBar> FaithBar;
+
+    UPROPERTY()
+    TObjectPtr<UProgressBar> HealCooldownBar;
+
+    UPROPERTY()
+    TObjectPtr<UProgressBar> BlessingCooldownBar;
+
+    UPROPERTY()
+    TObjectPtr<UProgressBar> RadianceCooldownBar;
+
+    UPROPERTY()
+    TObjectPtr<UTextBlock> HealCooldownLabel;
+
+    UPROPERTY()
+    TObjectPtr<UTextBlock> BlessingCooldownLabel;
+
+    UPROPERTY()
+    TObjectPtr<UTextBlock> RadianceCooldownLabel;
 };

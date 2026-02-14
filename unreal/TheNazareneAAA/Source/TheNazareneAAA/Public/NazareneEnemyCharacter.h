@@ -15,6 +15,7 @@ class UStaticMeshComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FNazareneEnemyRedeemedSignature, ANazareneEnemyCharacter*, Enemy, float, FaithReward);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FNazareneEnemyPhaseChangedSignature, ANazareneEnemyCharacter*, Enemy, int32, Phase);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FNazareneBossHazardSignature, ANazareneEnemyCharacter*, Boss, FVector, HazardCenter);
 
 UCLASS()
 class THENAZARENEAAA_API ANazareneEnemyCharacter : public ACharacter
@@ -144,6 +145,21 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FNazareneEnemyPhaseChangedSignature OnPhaseChanged;
 
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+    FNazareneBossHazardSignature OnArenaHazardTriggered;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss")
+    float Phase2CastFrequency = 0.45f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss")
+    float Phase3DashFrequency = 0.35f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss")
+    float Phase3AttackSpeedMultiplier = 1.25f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss")
+    bool bPhase3DoubleStrike = true;
+
     UFUNCTION(BlueprintCallable, Category = "Enemy")
     void ConfigureFromArchetype();
 
@@ -190,6 +206,9 @@ private:
     void ApplyProxyArchetypeVisualStyle();
     void TriggerPresentation(USoundBase* Sound, UNiagaraSystem* Effect, const FVector& Location, float VolumeMultiplier = 1.0f) const;
     void UpdateBossPhase();
+    void CheckReinforcementTrigger();
+    void TriggerArenaHazard();
+    void ApplyPhaseSpecificBehavior(float DeltaSeconds);
     void ProcessChaseBehavior(float DistanceToPlayer, float DeltaSeconds);
     void BeginMeleeAttack();
     void BeginCastAttack();
@@ -248,5 +267,8 @@ private:
     float ShotCooldown = 0.0f;
     float DashCooldown = 0.0f;
     int32 StrafeDirectionSign = 1;
+    bool bPhase2WaveSpawned = false;
+    bool bPhase3WaveSpawned = false;
+    float DoubleStrikeCooldown = 0.0f;
 };
 
