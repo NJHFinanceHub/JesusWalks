@@ -15,7 +15,7 @@ Today the project has strong baseline pillars (combat loop, save/load, HUD/menu,
    - Save payload + subsystem model via `UNazareneSaveSubsystem` and `UNazareneSaveGame`.
 
 2. **A migration target has been established clearly**
-   - Root README and migration docs consistently identify Unreal as the authoritative runtime and Godot as legacy parity reference.
+   - Root README and migration docs consistently identify Unreal as the authoritative runtime and legacy prototype as legacy parity reference.
 
 3. **Tooling direction has started**
    - There are reproducibility helpers (`Tools/create_campaign_level.py`, `Tools/create_opening_chapter_layout.py`) and an asset validation utility (`Tools/validate_asset_pipeline.py`).

@@ -5,7 +5,7 @@
 - Co-op is explicitly out-of-scope for current parity and production milestones.
 
 ## Rationale
-1. Current migration focus is parity with Godot single-player combat/campaign loop.
+1. Current migration focus is parity with legacy prototype single-player combat/campaign loop.
 2. Co-op would require broad architecture changes across combat, AI authority, save flow, and UI ownership.
 3. Single-player scope allows higher confidence in performance tuning and packaging readiness.
 

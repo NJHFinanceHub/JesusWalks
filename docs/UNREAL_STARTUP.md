@@ -1,6 +1,6 @@
 # Unreal Engine Transition: Startup Plan
 
-This document defines the immediate, concrete next steps to begin transitioning the current Godot prototype into an Unreal Engine production pipeline. It focuses on the *minimum upfront foundation* needed to safely scale into full AAA production, co-op abilities, host migration, and Steam launch readiness.
+This document defines the immediate, concrete next steps to begin transitioning the current pre-UE5 prototype into an Unreal Engine production pipeline. It focuses on the *minimum upfront foundation* needed to safely scale into full AAA production, co-op abilities, host migration, and Steam launch readiness.
 
 ## 1) Project & Repository Setup (Week 0)
 - **Create the Unreal Engine project** (UE 5.3+ recommended) in a new repo directory (e.g., `Unreal/`)
@@ -13,13 +13,13 @@ This document defines the immediate, concrete next steps to begin transitioning 
   - Establish UE C++ style + Blueprint guidelines in `Docs/Engineering/CodeStyle.md`
 
 ## 2) Core Systems Parity Plan (Week 1-2)
-Rebuild core gameplay from the Godot vertical slice before expanding scope:
+Rebuild core gameplay from the legacy prototype vertical slice before expanding scope:
 - Third-person movement + camera orbit + lock-on
 - Stamina combat loop (timing windows)
 - Prayer Site rest/reset and save slot flow
 - Enemy archetypes: shield, spear, ranged, demon, boss
 
-Output: a UE prototype scene mirroring `scenes/GalileeRegion.tscn` behavior.
+Output: a UE prototype level mirroring the targeted vertical-slice gameplay behavior.
 
 ## 3) Co-op & GAS Foundation (Week 2-4)
 - **Gameplay Ability System (GAS)**
@@ -73,4 +73,4 @@ Suggested early roles to define for AAA scale:
   - `Networking/HostMigration.md`
   - `Abilities/AbilityTags.md`
   - `Pipeline/AssetRules.md`
-- Track parity with the Godot vertical slice as a checklist
+- Track parity with the legacy prototype vertical slice as a checklist
