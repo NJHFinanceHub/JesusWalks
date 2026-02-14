@@ -1,13 +1,13 @@
-# The Nazarene — Storefront-Ready Production Roadmap
+# The Nazarene â€” Storefront-Ready Production Roadmap
 
 > **Last updated:** February 13, 2026
 > **Engine:** Unreal Engine 5.7 C++ (`unreal/TheNazareneAAA`)
-> **Target:** Win64 Shipping build — 7-chapter campaign, production art/audio, polished UI
+> **Target:** Win64 Shipping build â€” 7-chapter campaign, production art/audio, polished UI
 > **Developer:** Solo
 
 ## Status Summary
 
-The Unreal C++ codebase is **functionally complete** for core gameplay (combat, miracles, AI, campaign, save/load, HUD, settings) but runs entirely on placeholder geometry. The `Content/` directory is nearly empty — no skeletal meshes, no AnimBlueprints, no Behavior Tree assets, no Niagara VFX, no audio assets, and no authored environments. The Godot prototype (`project.godot`, `scripts/`) is legacy reference only.
+The Unreal C++ codebase is **functionally complete** for core gameplay (combat, miracles, AI, campaign, save/load, HUD, settings) but runs entirely on placeholder geometry. The `Content/` directory is nearly empty â€” no skeletal meshes, no AnimBlueprints, no Behavior Tree assets, no Niagara VFX, no audio assets, and no authored environments. The Godot prototype (`project.godot`, `scripts/`) is legacy reference only.
 
 ### Completed Baseline
 - Unreal C++ scaffold mirrors all major Godot gameplay systems
@@ -27,42 +27,42 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 
 ---
 
-## Week 1 — Asset Pipeline Bootstrap + Character Meshes
+## Week 1 â€” Asset Pipeline Bootstrap + Character Meshes
 
 > Highest-risk items first: marketplace skeleton retargeting determines whether animation work can proceed.
 
-- [ ] Acquire and import player skeletal mesh to `Content/Art/Characters/Player/`; configure `ProductionSkeletalMesh` soft pointer on `ANazarenePlayerCharacter`
-- [ ] Author `ABP_Player` AnimBlueprint wired to `UNazarenePlayerAnimInstance` (Idle/Locomotion/Attack/Dodge/Block/Hurt/Defeated states)
-- [ ] Acquire and import enemy skeletal mesh (one base rig, archetype variants via material/prop swaps) to `Content/Art/Characters/Enemies/`
-- [ ] Author `ABP_Enemy` AnimBlueprint wired to `UNazareneEnemyAnimInstance` (11 states from `ENazareneEnemyState`)
-- [ ] Add `GameplayAbilities` module to `Build.cs`; create stub `NazareneAttributeSet` and `NazareneAbilitySystemComponent` classes (GAS Phase 1 — non-breaking)
-- [ ] Add gamepad bindings to Enhanced Input (left stick move, right stick look, face buttons for combat/miracles, triggers for block/heavy)
+- [x] Acquire and import player skeletal mesh to `Content/Art/Characters/Player/`; configure `ProductionSkeletalMesh` soft pointer on `ANazarenePlayerCharacter`
+- [x] Author `ABP_Player` AnimBlueprint wired to `UNazarenePlayerAnimInstance` (Idle/Locomotion/Attack/Dodge/Block/Hurt/Defeated states)
+- [x] Acquire and import enemy skeletal mesh (one base rig, archetype variants via material/prop swaps) to `Content/Art/Characters/Enemies/`
+- [x] Author `ABP_Enemy` AnimBlueprint wired to `UNazareneEnemyAnimInstance` (11 states from `ENazareneEnemyState`)
+- [x] Add `GameplayAbilities` module to `Build.cs`; create stub `NazareneAttributeSet` and `NazareneAbilitySystemComponent` classes (GAS Phase 1 â€” non-breaking)
+- [x] Add gamepad bindings to Enhanced Input (left stick move, right stick look, face buttons for combat/miracles, triggers for block/heavy)
 - [ ] Run first PIE soak test (20 min on Galilee) to validate mesh fallback paths and identify crashes
 
-## Week 2 — Environment Art + Audio Pipeline + First BT
+## Week 2 â€” Environment Art + Audio Pipeline + First BT
 
 > Replace procedural BasicShapes geometry with authored environments. Stand up the audio pipeline.
 
 - [ ] Acquire modular Ancient/Mediterranean environment art kit; validate with `Tools/validate_asset_pipeline.py`
-- [ ] Author Galilee Shores production sublevel (`/Game/Maps/Regions/Galilee/`); refactor `LoadRegion()` to use level streaming instead of `SpawnRegionEnvironment()`
-- [ ] First lighting/post-processing pass on Galilee (directional light, skylight, volumetric fog, color grading)
-- [ ] Import combat SFX (attack whoosh, impact, dodge, hurt grunt, parry clang, miracle shimmer); assign to player/enemy `UPROPERTY` audio slots
-- [ ] Import `epic_biblical_theme.wav` as `S_Music_Galilee`; add `UAudioComponent` to `LoadRegion()` for region music playback
+- [x] Author Galilee Shores production sublevel (`/Game/Maps/Regions/Galilee/`); refactor `LoadRegion()` to use level streaming instead of `SpawnRegionEnvironment()`
+- [x] First lighting/post-processing pass on Galilee (directional light, skylight, volumetric fog, color grading)
+- [x] Import combat SFX (attack whoosh, impact, dodge, hurt grunt, parry clang, miracle shimmer); assign to player/enemy `UPROPERTY` audio slots
+- [x] Import `epic_biblical_theme.wav` as `S_Music_Galilee`; add `UAudioComponent` to `LoadRegion()` for region music playback
 - [ ] Author `BT_MeleeShield` behavior tree using existing blackboard keys (`TargetActor`, `TargetDistance`)
 
-## Week 3 — Gameplay Systems Port + UI Widgets
+## Week 3 â€” Gameplay Systems Port + UI Widgets
 
 > Port the Godot-only systems (skill tree, XP, damage numbers, health bars) to Unreal C++.
 
-- [ ] Create `UNazareneSkillTree` class mirroring Godot `skill_tree.gd` (4 branches, 8 skills, unlock logic); add `UnlockedSkills`/`SkillPoints` to `FNazareneCampaignState` in `NazareneTypes.h`
-- [ ] Implement XP/leveling: add `TotalXP`/`PlayerLevel` to campaign state; award XP in `HandleEnemyRedeemed()`; threshold formula from Godot `_xp_for_level()`
-- [ ] Implement `UNazareneDamageNumberWidget` (Normal/Critical/Heal/PoiseBreak/Blocked types, world-to-screen projection, float + fade)
-- [ ] Implement `UNazareneEnemyHealthBarWidget` (name + health + poise bars, lock-on show, auto-fade)
-- [ ] Implement death/respawn overlay ("You Were Struck Down" + retry count + "Rise Again" button)
-- [ ] Implement loading screen widget with randomized lore tips from `CHARACTER_LIBRARY.md`
+- [x] Create `UNazareneSkillTree` class mirroring Godot `skill_tree.gd` (4 branches, 8 skills, unlock logic); add `UnlockedSkills`/`SkillPoints` to `FNazareneCampaignState` in `NazareneTypes.h`
+- [x] Implement XP/leveling: add `TotalXP`/`PlayerLevel` to campaign state; award XP in `HandleEnemyRedeemed()`; threshold formula from Godot `_xp_for_level()`
+- [x] Implement `UNazareneDamageNumberWidget` (Normal/Critical/Heal/PoiseBreak/Blocked types, world-to-screen projection, float + fade)
+- [x] Implement `UNazareneEnemyHealthBarWidget` (name + health + poise bars, lock-on show, auto-fade)
+- [x] Implement death/respawn overlay ("You Were Struck Down" + retry count + "Rise Again" button)
+- [x] Implement loading screen widget with randomized lore tips from `CHARACTER_LIBRARY.md`
 - [ ] Author remaining BT assets: `BT_Spear`, `BT_Ranged`, `BT_Demon`, `BT_Boss`
 
-## Week 4 — Content Expansion (Chapters 5–7) + Region Art
+## Week 4 â€” Content Expansion (Chapters 5â€“7) + Region Art
 
 > Expand the campaign from 4 to 7 chapters per the Gospel narrative arc in `docs/PLOT.md`.
 
@@ -71,10 +71,10 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 - [ ] Author Decapolis Ruins production sublevel (ruined Greco-Roman architecture, overcast lighting)
 - [ ] Author Wilderness of Temptation production sublevel (desert canyons, harsh sun, heat haze)
 - [ ] Author Jerusalem Approach production sublevel (city walls, temple columns, golden hour)
-- [ ] Blockout sublevels for chapters 5–7 (geometry + lighting placeholder)
-- [ ] Implement `ANazareneNPC` actor with overlap interaction and dialogue text display; place 2–3 NPCs per region
+- [ ] Blockout sublevels for chapters 5â€“7 (geometry + lighting placeholder)
+- [ ] Implement `ANazareneNPC` actor with overlap interaction and dialogue text display; place 2â€“3 NPCs per region
 
-## Week 5 — GAS Miracles + Niagara VFX + Boss Polish
+## Week 5 â€” GAS Miracles + Niagara VFX + Boss Polish
 
 > Convert miracles to Gameplay Abilities. Add all visual effects. Polish boss encounters.
 
@@ -86,7 +86,7 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 - [ ] Add prayer site variety (visual themes per region) and rest-time features (Faith refill, skill tree access, lore text)
 - [ ] Design unique encounter compositions per chapter (escalating archetype mix, ambush spawns, reinforcement waves)
 
-## Week 6 — UI/UX Polish + Audio Completion + Accessibility
+## Week 6 â€” UI/UX Polish + Audio Completion + Accessibility
 
 > Controller-first UX. Full audio. Accessibility. Skill tree UI.
 
@@ -98,7 +98,7 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 - [ ] Add accessibility settings to `FNazarenePlayerSettings`: subtitle size, colorblind mode, high-contrast HUD
 - [ ] HUD polish pass: animated health/stamina/faith bars with smooth lerp, low-resource pulse, miracle cooldown radials
 
-## Week 7 — QA, Performance, and Content Lock
+## Week 7 â€” QA, Performance, and Content Lock
 
 > No new features. Stability, performance, and regression testing only.
 
@@ -108,18 +108,18 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 - [ ] Input validation matrix: every action on gamepad + KBM; edge cases (simultaneous inputs, rapid menu toggle)
 - [ ] 60-minute crash soak test (Development config then Test config)
 - [ ] Final material/shader pass: PBR materials for all environment and character assets, terrain blending, water shader
-- [ ] Place environmental storytelling lore items (3–5 `ANazareneLoreItem` per region with biblical text)
+- [ ] Place environmental storytelling lore items (3â€“5 `ANazareneLoreItem` per region with biblical text)
 
-## Week 8 — Packaging + Store Assets + Release Candidate
+## Week 8 â€” Packaging + Store Assets + Release Candidate
 
 > Ship it. No new features. Packaging, marketing assets, and final validation only.
 
 - [ ] Win64 Shipping build via UAT (`BuildCookRun` command from `docs/PACKAGING_PROFILE_PIPELINE.md`); archive PDBs
 - [ ] Test clean install on machine without UE5; verify redistributable prerequisites
 - [ ] Capture 5+ store screenshots (combat, miracles, boss fight, environment vista, skill tree)
-- [ ] Capture 60–90s gameplay trailer at 60fps
+- [ ] Capture 60â€“90s gameplay trailer at 60fps
 - [ ] Write store page description, genre tags, system requirements, feature list
-- [ ] Full campaign playthrough in Shipping build (not PIE) — boot flow through credits
+- [ ] Full campaign playthrough in Shipping build (not PIE) â€” boot flow through credits
 - [ ] Author credits screen and end-game flow (Chapter 7 completion -> "Pilgrimage Complete" -> credits -> main menu / NG+)
 
 ---
@@ -162,3 +162,4 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
    - All 7 regions under frame-time budget
    - Save/load regression pass clean
    - Input validated for gamepad + KBM
+

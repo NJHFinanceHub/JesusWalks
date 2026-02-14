@@ -7,6 +7,7 @@
 
 class ANazareneEnemyCharacter;
 class ANazareneHUD;
+class ANazareneMenuCameraActor;
 class ANazareneNPC;
 class ANazarenePlayerCharacter;
 class ANazareneTravelGate;
@@ -46,6 +47,7 @@ public:
     ANazareneCampaignGameMode();
 
     virtual void BeginPlay() override;
+    virtual void Tick(float DeltaSeconds) override;
 
     UFUNCTION(BlueprintCallable, Category = "Campaign")
     void RequestTravel(int32 TargetRegionIndex);
@@ -74,7 +76,12 @@ public:
     UPROPERTY(EditDefaultsOnly, Category = "Campaign")
     TObjectPtr<UNazareneRegionDataAsset> RegionDataAsset;
 
+    UFUNCTION(BlueprintCallable, Category = "Campaign")
+    void OnMenuDismissed();
+
 private:
+    void SpawnMenuCamera();
+    void DestroyMenuCamera();
     void BuildDefaultRegions();
     void LoadRegion(int32 TargetRegionIndex);
     void ClearRegionActors();
@@ -154,6 +161,15 @@ private:
     UPROPERTY(EditAnywhere, Category = "Audio")
     TSoftObjectPtr<USoundBase> JerusalemMusic;
 
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    TSoftObjectPtr<USoundBase> GethsemaneMusic;
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    TSoftObjectPtr<USoundBase> ViaDolorosaMusic;
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    TSoftObjectPtr<USoundBase> EmptyTombMusic;
+
     UPROPERTY(EditAnywhere, Category = "AI")
     TSoftObjectPtr<UBehaviorTree> BTMeleeShieldAsset;
 
@@ -183,4 +199,18 @@ private:
     TArray<FString> ActiveStoryLines;
 
     FTimerHandle StoryLineTimerHandle;
+
+    UPROPERTY()
+    TObjectPtr<ANazareneMenuCameraActor> MenuCamera;
+
+    UPROPERTY()
+    TObjectPtr<UAudioComponent> CrossfadeAudioComponent;
+
+    float MusicCrossfadeDuration = 2.0f;
+    float CrossfadeElapsed = 0.0f;
+    bool bCrossfading = false;
+    float CrossfadeStartVolume = 1.0f;
+
+    void CrossfadeToMusic(USoundBase* NewMusic);
+    void TickCrossfade(float DeltaSeconds);
 };

@@ -49,6 +49,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "HUD")
     void SetLoadingOverlayVisible(bool bVisible, const FString& LoreTip);
 
+    UFUNCTION(BlueprintCallable, Category = "HUD")
+    void SetSkillTreeVisible(bool bVisible);
+
+    UFUNCTION(BlueprintCallable, Category = "HUD")
+    bool ToggleSkillTree();
+
 private:
     void ApplyMenuInputMode(bool bMenuVisible);
 

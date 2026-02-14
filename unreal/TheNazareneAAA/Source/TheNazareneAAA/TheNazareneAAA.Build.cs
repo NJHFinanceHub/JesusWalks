@@ -16,6 +16,8 @@ public class TheNazareneAAA : ModuleRules
                 "EnhancedInput",
                 "UMG",
                 "AIModule",
+                "GameplayAbilities",
+                "GameplayTags",
                 "GameplayTasks",
                 "Niagara"
             }

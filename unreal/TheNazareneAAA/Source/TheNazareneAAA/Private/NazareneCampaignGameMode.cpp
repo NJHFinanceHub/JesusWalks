@@ -1,19 +1,23 @@
 #include "NazareneCampaignGameMode.h"
 
 #include "BehaviorTree/BehaviorTree.h"
+#include "Camera/CameraComponent.h"
 #include "Components/AudioComponent.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/ExponentialHeightFog.h"
+#include "Engine/PointLight.h"
 #include "Engine/PostProcessVolume.h"
 #include "Engine/SkyLight.h"
 #include "Engine/StaticMeshActor.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "NazareneMenuCameraActor.h"
 #include "Misc/FileHelper.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
@@ -31,6 +35,8 @@
 
 ANazareneCampaignGameMode::ANazareneCampaignGameMode()
 {
+    PrimaryActorTick.bCanEverTick = true;
+
     DefaultPawnClass = ANazarenePlayerCharacter::StaticClass();
     HUDClass = ANazareneHUD::StaticClass();
     PlayerControllerClass = APlayerController::StaticClass();
@@ -39,6 +45,9 @@ ANazareneCampaignGameMode::ANazareneCampaignGameMode()
     DecapolisMusic = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Audio/Music/S_Music_Decapolis.S_Music_Decapolis")));
     WildernessMusic = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Audio/Music/S_Music_Wilderness.S_Music_Wilderness")));
     JerusalemMusic = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Audio/Music/S_Music_Jerusalem.S_Music_Jerusalem")));
+    GethsemaneMusic = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Audio/Music/S_Music_Gethsemane.S_Music_Gethsemane")));
+    ViaDolorosaMusic = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Audio/Music/S_Music_ViaDolorosa.S_Music_ViaDolorosa")));
+    EmptyTombMusic = TSoftObjectPtr<USoundBase>(FSoftObjectPath(TEXT("/Game/Audio/Music/S_Music_EmptyTomb.S_Music_EmptyTomb")));
 
     BTMeleeShieldAsset = TSoftObjectPtr<UBehaviorTree>(FSoftObjectPath(TEXT("/Game/AI/BehaviorTrees/BT_MeleeShield.BT_MeleeShield")));
     BTSpearAsset = TSoftObjectPtr<UBehaviorTree>(FSoftObjectPath(TEXT("/Game/AI/BehaviorTrees/BT_Spear.BT_Spear")));
@@ -80,6 +89,15 @@ void ANazareneCampaignGameMode::BeginPlay()
 
     SaveCheckpoint();
     QueueIntroStoryIfNeeded();
+
+    // Task 7: Spawn orbiting menu camera while the start menu is visible
+    SpawnMenuCamera();
+}
+
+void ANazareneCampaignGameMode::Tick(float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+    TickCrossfade(DeltaSeconds);
 }
 
 void ANazareneCampaignGameMode::BuildDefaultRegions()
@@ -438,19 +456,7 @@ void ANazareneCampaignGameMode::LoadRegion(int32 TargetRegionIndex)
     UpdateHUDForRegion(Region, bRegionCompleted);
     SetMusicState(ENazareneMusicState::Peace, false);
 
-    if (RegionMusicComponent != nullptr)
-    {
-        RegionMusicComponent->Stop();
-        RegionMusicComponent = nullptr;
-    }
-    if (USoundBase* RegionMusic = ResolveRegionMusic(Region))
-    {
-        RegionMusicComponent = UGameplayStatics::CreateSound2D(this, RegionMusic, 0.75f, 1.0f, 0.0f, nullptr, true);
-        if (RegionMusicComponent != nullptr)
-        {
-            RegionMusicComponent->Play();
-        }
-    }
+    CrossfadeToMusic(ResolveRegionMusic(Region));
 
     if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
     {
@@ -513,6 +519,9 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
     const FName DecapolisId(TEXT("decapolis"));
     const FName WildernessId(TEXT("wilderness"));
     const FName JerusalemId(TEXT("jerusalem"));
+    const FName GethsemaneId(TEXT("gethsemane"));
+    const FName ViaDolorosaId(TEXT("via_dolorosa"));
+    const FName EmptyTombId(TEXT("empty_tomb"));
 
     FLinearColor SunColor = FLinearColor(1.0f, 0.95f, 0.82f);
     float SunIntensity = 10.0f;
@@ -557,7 +566,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         HeightJitter = 140.0f;
         EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
     }
-    else if (Region.RegionId == FName(TEXT("gethsemane")))
+    else if (Region.RegionId == GethsemaneId)
     {
         SunColor = FLinearColor(0.52f, 0.55f, 0.72f);
         SunIntensity = 5.8f;
@@ -566,7 +575,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         HeightJitter = 90.0f;
         EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_OliveLeaf.MI_Env_OliveLeaf");
     }
-    else if (Region.RegionId == FName(TEXT("via_dolorosa")))
+    else if (Region.RegionId == ViaDolorosaId)
     {
         SunColor = FLinearColor(0.88f, 0.72f, 0.58f);
         SunIntensity = 8.4f;
@@ -575,7 +584,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         HeightJitter = 100.0f;
         EnvironmentMaterialPath = TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone");
     }
-    else if (Region.RegionId == FName(TEXT("empty_tomb")))
+    else if (Region.RegionId == EmptyTombId)
     {
         SunColor = FLinearColor(1.0f, 1.0f, 0.96f);
         SunIntensity = 13.0f;
@@ -651,6 +660,20 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         return Actor;
     };
 
+    // Task 6: Helper lambda for spawning point lights in any region
+    auto SpawnPointLight = [&](const FVector& Location, FLinearColor Color, float Intensity, float Radius) -> APointLight*
+    {
+        APointLight* Light = GetWorld()->SpawnActor<APointLight>(APointLight::StaticClass(), FTransform(FRotator::ZeroRotator, Location));
+        if (Light && Light->PointLightComponent)
+        {
+            Light->PointLightComponent->SetLightColor(Color);
+            Light->PointLightComponent->SetIntensity(Intensity);
+            Light->PointLightComponent->SetAttenuationRadius(Radius);
+        }
+        RegionActors.Add(Light);
+        return Light;
+    };
+
     auto SpawnPathSegment = [&SpawnMeshActor, &GroundTint](float Y, float HalfWidthScale, float ThicknessScale, float Elevation)
     {
         SpawnMeshActor(
@@ -722,7 +745,19 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         RegionActors.Add(PostProcessVolume);
     }
 
-    SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 0.0f, -60.0f), FRotator::ZeroRotator, FVector(128.0f, 128.0f, 1.2f), GroundTint);
+    // Task 6: Expanded 3x3 ground plane grid for all regions
+    for (int32 GridX = -1; GridX <= 1; ++GridX)
+    {
+        for (int32 GridY = -1; GridY <= 1; ++GridY)
+        {
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"),
+                FVector(float(GridX) * 3200.0f, float(GridY) * 3200.0f, -60.0f),
+                FRotator::ZeroRotator,
+                FVector(128.0f, 128.0f, 1.2f),
+                GroundTint);
+        }
+    }
+
     for (int32 Segment = 0; Segment < 9; ++Segment)
     {
         const float Y = 340.0f - float(Segment) * 520.0f;
@@ -769,6 +804,10 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(X, Y, Z), FRotator(0.0f, float(Index) * 9.0f, 0.0f), Scale, GroundTint * 0.92f);
     }
 
+    // -----------------------------------------------------------------------
+    // Per-region environment details (Tasks 5 + 6)
+    // -----------------------------------------------------------------------
+
     if (Region.RegionId == GalileeId)
     {
         for (int32 Index = 0; Index < 7; ++Index)
@@ -781,6 +820,23 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
             const FVector Root(-1850.0f + float(Index) * 410.0f, 1080.0f + float((Index % 2) * 340.0f), 0.0f);
             SpawnOliveTree(Root, FLinearColor(0.31f, 0.23f, 0.16f), FLinearColor(0.24f, 0.37f, 0.20f), 0.72f);
         }
+        // Task 6: Galilee point lights
+        SpawnPointLight(Region.PrayerSiteLocation + FVector(0.0f, 0.0f, 250.0f), FLinearColor(1.0f, 0.90f, 0.65f), 600.0f, 900.0f);
+        SpawnPointLight(BossArenaLocation + FVector(0.0f, 0.0f, 300.0f), FLinearColor(0.45f, 0.55f, 0.82f), 400.0f, 800.0f);
+        SpawnPointLight(FVector(-350.0f, 250.0f, 260.0f), FLinearColor(1.0f, 0.95f, 0.85f), 350.0f, 700.0f);
+        SpawnPointLight(FVector(350.0f, 280.0f, 260.0f), FLinearColor(1.0f, 0.95f, 0.85f), 350.0f, 700.0f);
+        // Task 6: Galilee pottery objects (small cubes with sand tint)
+        const FLinearColor PotteryTint(0.62f, 0.50f, 0.34f);
+        const FVector PotteryPositions[] = {
+            FVector(-600.0f, 350.0f, 10.0f), FVector(-420.0f, 520.0f, 10.0f), FVector(580.0f, 400.0f, 10.0f),
+            FVector(320.0f, 600.0f, 10.0f), FVector(-150.0f, 800.0f, 10.0f), FVector(200.0f, 900.0f, 10.0f),
+            FVector(-800.0f, 750.0f, 10.0f), FVector(700.0f, 700.0f, 10.0f), FVector(-100.0f, 1100.0f, 10.0f),
+            FVector(450.0f, 1200.0f, 10.0f)
+        };
+        for (const FVector& Pos : PotteryPositions)
+        {
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), Pos, FRotator(0.0f, FMath::FRandRange(0.0f, 360.0f), 0.0f), FVector(0.25f, 0.25f, 0.35f), PotteryTint);
+        }
     }
     else if (Region.RegionId == DecapolisId)
     {
@@ -792,6 +848,15 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         }
         SpawnColonnade(560.0f, 6, 250.0f, 700.0f, 3.2f, 0.28f);
         SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 540.0f, 380.0f), FRotator::ZeroRotator, FVector(8.0f, 0.55f, 0.22f), AccentTint * 0.92f);
+        // Task 6: Decapolis point lights (torch-like orange at columns)
+        SpawnPointLight(FVector(-700.0f, 560.0f, 320.0f), FLinearColor(1.0f, 0.68f, 0.28f), 500.0f, 900.0f);
+        SpawnPointLight(FVector(700.0f, 560.0f, 320.0f), FLinearColor(1.0f, 0.68f, 0.28f), 500.0f, 900.0f);
+        SpawnPointLight(FVector(-700.0f, 1060.0f, 320.0f), FLinearColor(1.0f, 0.70f, 0.30f), 500.0f, 900.0f);
+        SpawnPointLight(FVector(700.0f, 1060.0f, 320.0f), FLinearColor(1.0f, 0.70f, 0.30f), 500.0f, 900.0f);
+        SpawnPointLight(FVector(-700.0f, 1560.0f, 320.0f), FLinearColor(1.0f, 0.65f, 0.26f), 450.0f, 850.0f);
+        SpawnPointLight(FVector(700.0f, 1560.0f, 320.0f), FLinearColor(1.0f, 0.65f, 0.26f), 450.0f, 850.0f);
+        // Task 6: Decapolis additional colonnade formation (8 columns flanking the path)
+        SpawnColonnade(1600.0f, 4, 300.0f, 450.0f, 3.0f, 0.26f);
     }
     else if (Region.RegionId == WildernessId)
     {
@@ -810,6 +875,18 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
             SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(X - 210.0f, Y, 70.0f), FRotator::ZeroRotator, FVector(0.06f, 0.06f, 0.9f), AccentTint * 0.8f);
             SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(X + 210.0f, Y, 70.0f), FRotator::ZeroRotator, FVector(0.06f, 0.06f, 0.9f), AccentTint * 0.8f);
         }
+        // Task 6: Wilderness dim red/orange point lights
+        SpawnPointLight(FVector(-800.0f, -200.0f, 200.0f), FLinearColor(0.92f, 0.42f, 0.18f), 280.0f, 700.0f);
+        SpawnPointLight(FVector(800.0f, -600.0f, 200.0f), FLinearColor(0.88f, 0.38f, 0.15f), 260.0f, 700.0f);
+        SpawnPointLight(FVector(0.0f, 600.0f, 200.0f), FLinearColor(0.85f, 0.40f, 0.20f), 300.0f, 750.0f);
+        SpawnPointLight(BossArenaLocation + FVector(0.0f, 0.0f, 280.0f), FLinearColor(0.95f, 0.35f, 0.12f), 350.0f, 800.0f);
+        // Task 6: Wilderness rock formations (irregular cubes with stone material)
+        const FLinearColor RockTint(0.52f, 0.44f, 0.36f);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(-1800.0f, 200.0f, 40.0f), FRotator(0.0f, 22.0f, 8.0f), FVector(2.8f, 1.6f, 2.0f), RockTint);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(1600.0f, -400.0f, 60.0f), FRotator(0.0f, -15.0f, 5.0f), FVector(2.2f, 1.8f, 2.4f), RockTint * 0.92f);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(-500.0f, -1800.0f, 30.0f), FRotator(0.0f, 40.0f, 0.0f), FVector(3.0f, 2.0f, 1.6f), RockTint * 1.05f);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(1200.0f, 400.0f, 50.0f), FRotator(0.0f, -35.0f, 4.0f), FVector(1.8f, 2.4f, 1.9f), RockTint);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(-1400.0f, -1200.0f, 20.0f), FRotator(0.0f, 55.0f, 0.0f), FVector(2.5f, 1.4f, 2.2f), RockTint * 0.88f);
     }
     else if (Region.RegionId == JerusalemId)
     {
@@ -825,6 +902,275 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         SpawnColonnade(420.0f, 7, 210.0f, 560.0f, 3.8f, 0.3f);
         SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 420.0f, 440.0f), FRotator::ZeroRotator, FVector(8.0f, 0.48f, 0.24f), AccentTint * 0.96f);
         SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 360.0f, 180.0f), FRotator::ZeroRotator, FVector(2.5f, 0.8f, 3.8f), AccentTint * 0.86f);
+        // Task 6: Jerusalem warm lantern point lights
+        SpawnPointLight(FVector(-560.0f, 420.0f, 380.0f), FLinearColor(1.0f, 0.88f, 0.52f), 400.0f, 800.0f);
+        SpawnPointLight(FVector(560.0f, 420.0f, 380.0f), FLinearColor(1.0f, 0.88f, 0.52f), 400.0f, 800.0f);
+        SpawnPointLight(FVector(-560.0f, 840.0f, 380.0f), FLinearColor(1.0f, 0.85f, 0.50f), 380.0f, 780.0f);
+        SpawnPointLight(FVector(560.0f, 840.0f, 380.0f), FLinearColor(1.0f, 0.85f, 0.50f), 380.0f, 780.0f);
+        SpawnPointLight(FVector(0.0f, 0.0f, 280.0f), FLinearColor(1.0f, 0.90f, 0.55f), 450.0f, 900.0f);
+        SpawnPointLight(FVector(-560.0f, 1260.0f, 380.0f), FLinearColor(1.0f, 0.82f, 0.48f), 360.0f, 760.0f);
+        SpawnPointLight(FVector(560.0f, 1260.0f, 380.0f), FLinearColor(1.0f, 0.82f, 0.48f), 360.0f, 760.0f);
+        SpawnPointLight(BossArenaLocation + FVector(0.0f, 0.0f, 300.0f), FLinearColor(1.0f, 0.90f, 0.56f), 500.0f, 950.0f);
+        // Task 6: Jerusalem market stalls (cube + cone pairs)
+        const FLinearColor StallWood(0.48f, 0.36f, 0.22f);
+        const FLinearColor StallFabric(0.72f, 0.58f, 0.38f);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(-800.0f, 700.0f, 60.0f), FRotator::ZeroRotator, FVector(1.2f, 0.8f, 0.9f), StallWood);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cone.Cone"), FVector(-800.0f, 700.0f, 180.0f), FRotator::ZeroRotator, FVector(1.0f, 1.0f, 0.6f), StallFabric);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(800.0f, 750.0f, 60.0f), FRotator::ZeroRotator, FVector(1.2f, 0.8f, 0.9f), StallWood);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cone.Cone"), FVector(800.0f, 750.0f, 180.0f), FRotator::ZeroRotator, FVector(1.0f, 1.0f, 0.6f), StallFabric);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(-800.0f, 1200.0f, 60.0f), FRotator::ZeroRotator, FVector(1.0f, 0.7f, 0.8f), StallWood);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cone.Cone"), FVector(-800.0f, 1200.0f, 160.0f), FRotator::ZeroRotator, FVector(0.9f, 0.9f, 0.55f), StallFabric);
+        // Task 6: Jerusalem grand entrance archway
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(-380.0f, 1800.0f, 180.0f), FRotator::ZeroRotator, FVector(0.4f, 0.4f, 4.0f), AccentTint * 1.06f);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(380.0f, 1800.0f, 180.0f), FRotator::ZeroRotator, FVector(0.4f, 0.4f, 4.0f), AccentTint * 1.06f);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, 1800.0f, 520.0f), FRotator::ZeroRotator, FVector(5.2f, 0.6f, 0.5f), AccentTint);
+    }
+    // -----------------------------------------------------------------------
+    // Task 5: Chapter 5 - Gethsemane (olive grove at night)
+    // -----------------------------------------------------------------------
+    else if (Region.RegionId == GethsemaneId)
+    {
+        // Override post-process for heavier nighttime blue tint / lower exposure
+        if (PostProcessVolume != nullptr)
+        {
+            PostProcessVolume->BlendWeight = 0.85f;
+            PostProcessVolume->Settings.ColorSaturation = FVector4(0.82f, 0.86f, 1.06f, 1.0f);
+            PostProcessVolume->Settings.AutoExposureBias = -0.35f;
+        }
+
+        // Override fog for moonlit atmosphere
+        if (HeightFog != nullptr)
+        {
+            HeightFog->GetComponent()->SetFogDensity(0.022f);
+            HeightFog->GetComponent()->SetFogInscatteringColor(FLinearColor(0.18f, 0.20f, 0.36f));
+        }
+
+        // 28 olive trees arranged in organic clusters
+        const FLinearColor OliveTrunk(0.26f, 0.20f, 0.14f);
+        const FLinearColor OliveLeaf(0.16f, 0.28f, 0.14f);
+
+        // Cluster 1: northwest grove
+        const FVector Cluster1[] = {
+            FVector(-1200.0f, 400.0f, 0.0f), FVector(-1050.0f, 550.0f, 0.0f), FVector(-1350.0f, 280.0f, 0.0f),
+            FVector(-1180.0f, 700.0f, 0.0f), FVector(-1400.0f, 600.0f, 0.0f), FVector(-1000.0f, 350.0f, 0.0f),
+            FVector(-1280.0f, 800.0f, 0.0f)
+        };
+        for (const FVector& Root : Cluster1)
+        {
+            SpawnOliveTree(Root, OliveTrunk, OliveLeaf, 0.80f + FMath::FRandRange(-0.08f, 0.08f));
+        }
+
+        // Cluster 2: northeast grove
+        const FVector Cluster2[] = {
+            FVector(1100.0f, 350.0f, 0.0f), FVector(1250.0f, 500.0f, 0.0f), FVector(950.0f, 600.0f, 0.0f),
+            FVector(1300.0f, 300.0f, 0.0f), FVector(1150.0f, 720.0f, 0.0f), FVector(1050.0f, 200.0f, 0.0f),
+            FVector(1350.0f, 650.0f, 0.0f)
+        };
+        for (const FVector& Root : Cluster2)
+        {
+            SpawnOliveTree(Root, OliveTrunk, OliveLeaf * 0.92f, 0.76f + FMath::FRandRange(-0.06f, 0.06f));
+        }
+
+        // Cluster 3: south perimeter
+        const FVector Cluster3[] = {
+            FVector(-600.0f, -800.0f, 0.0f), FVector(-200.0f, -950.0f, 0.0f), FVector(250.0f, -880.0f, 0.0f),
+            FVector(650.0f, -750.0f, 0.0f), FVector(-400.0f, -1100.0f, 0.0f), FVector(100.0f, -1050.0f, 0.0f),
+            FVector(500.0f, -1000.0f, 0.0f)
+        };
+        for (const FVector& Root : Cluster3)
+        {
+            SpawnOliveTree(Root, OliveTrunk * 0.95f, OliveLeaf * 0.88f, 0.72f + FMath::FRandRange(-0.05f, 0.05f));
+        }
+
+        // Scattered singles (7 more to reach ~28)
+        const FVector Singles[] = {
+            FVector(-500.0f, 1000.0f, 0.0f), FVector(500.0f, 1100.0f, 0.0f), FVector(-800.0f, -200.0f, 0.0f),
+            FVector(850.0f, -300.0f, 0.0f), FVector(0.0f, 1400.0f, 0.0f), FVector(-300.0f, 1500.0f, 0.0f),
+            FVector(400.0f, 1350.0f, 0.0f)
+        };
+        for (const FVector& Root : Singles)
+        {
+            SpawnOliveTree(Root, OliveTrunk, OliveLeaf * 0.96f, 0.68f);
+        }
+
+        // Stone wall perimeter (14 cube segments in loose rectangle)
+        const FLinearColor WallTint(0.38f, 0.35f, 0.30f);
+        const FVector WallSegments[] = {
+            FVector(-1600.0f, -400.0f, 30.0f), FVector(-1600.0f, 100.0f, 30.0f), FVector(-1600.0f, 600.0f, 30.0f),
+            FVector(-1600.0f, 1100.0f, 30.0f), FVector(-1100.0f, 1500.0f, 30.0f), FVector(-400.0f, 1500.0f, 30.0f),
+            FVector(300.0f, 1500.0f, 30.0f), FVector(1000.0f, 1500.0f, 30.0f), FVector(1600.0f, 1100.0f, 30.0f),
+            FVector(1600.0f, 600.0f, 30.0f), FVector(1600.0f, 100.0f, 30.0f), FVector(1600.0f, -400.0f, 30.0f),
+            FVector(800.0f, -1300.0f, 30.0f), FVector(-800.0f, -1300.0f, 30.0f)
+        };
+        for (const FVector& WallPos : WallSegments)
+        {
+            const float WallYaw = FMath::Atan2(WallPos.Y, WallPos.X) * (180.0f / PI);
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), WallPos, FRotator(0.0f, WallYaw, 0.0f), FVector(3.0f, 0.5f, 1.2f), WallTint);
+        }
+
+        // Circular clearing around the prayer site (4 floor planes)
+        const FLinearColor ClearingTint = GroundTint * 1.15f;
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Plane.Plane"), Region.PrayerSiteLocation + FVector(-120.0f, -120.0f, 2.0f), FRotator::ZeroRotator, FVector(3.0f, 3.0f, 1.0f), ClearingTint);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Plane.Plane"), Region.PrayerSiteLocation + FVector(120.0f, -120.0f, 2.0f), FRotator::ZeroRotator, FVector(3.0f, 3.0f, 1.0f), ClearingTint);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Plane.Plane"), Region.PrayerSiteLocation + FVector(-120.0f, 120.0f, 2.0f), FRotator::ZeroRotator, FVector(3.0f, 3.0f, 1.0f), ClearingTint);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Plane.Plane"), Region.PrayerSiteLocation + FVector(120.0f, 120.0f, 2.0f), FRotator::ZeroRotator, FVector(3.0f, 3.0f, 1.0f), ClearingTint);
+
+        // 8 warm amber point lights scattered among trees for moonlit candle effect
+        SpawnPointLight(FVector(-1100.0f, 480.0f, 160.0f), FLinearColor(1.0f, 0.82f, 0.46f), 200.0f, 800.0f);
+        SpawnPointLight(FVector(1150.0f, 420.0f, 160.0f), FLinearColor(1.0f, 0.80f, 0.44f), 200.0f, 800.0f);
+        SpawnPointLight(FVector(-300.0f, -900.0f, 140.0f), FLinearColor(1.0f, 0.85f, 0.50f), 180.0f, 750.0f);
+        SpawnPointLight(FVector(400.0f, -850.0f, 140.0f), FLinearColor(1.0f, 0.84f, 0.48f), 180.0f, 750.0f);
+        SpawnPointLight(FVector(-600.0f, 1000.0f, 150.0f), FLinearColor(1.0f, 0.78f, 0.42f), 190.0f, 780.0f);
+        SpawnPointLight(FVector(550.0f, 1100.0f, 150.0f), FLinearColor(1.0f, 0.82f, 0.45f), 190.0f, 780.0f);
+        SpawnPointLight(Region.PrayerSiteLocation + FVector(150.0f, 0.0f, 180.0f), FLinearColor(1.0f, 0.88f, 0.52f), 220.0f, 850.0f);
+        SpawnPointLight(Region.PrayerSiteLocation + FVector(-150.0f, 0.0f, 180.0f), FLinearColor(1.0f, 0.86f, 0.50f), 220.0f, 850.0f);
+    }
+    // -----------------------------------------------------------------------
+    // Task 5: Chapter 6 - Via Dolorosa (narrow street / corridor)
+    // -----------------------------------------------------------------------
+    else if (Region.RegionId == ViaDolorosaId)
+    {
+        // Override fog for heavy dusty atmosphere
+        if (HeightFog != nullptr)
+        {
+            HeightFog->GetComponent()->SetFogDensity(0.028f);
+            HeightFog->GetComponent()->SetFogHeightFalloff(0.18f);
+            HeightFog->GetComponent()->SetFogInscatteringColor(FLinearColor(0.52f, 0.38f, 0.26f));
+        }
+
+        // Two long rows of tall building walls (corridor, 800 units apart)
+        const FLinearColor WallTint(0.52f, 0.44f, 0.36f);
+        for (int32 Seg = 0; Seg < 8; ++Seg)
+        {
+            const float Y = 800.0f - float(Seg) * 600.0f;
+            // Left wall
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(-400.0f, Y, 200.0f), FRotator::ZeroRotator, FVector(2.0f, 8.0f, 3.0f), WallTint);
+            // Right wall
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(400.0f, Y, 200.0f), FRotator::ZeroRotator, FVector(2.0f, 8.0f, 3.0f), WallTint * 0.94f);
+        }
+
+        // 5 archway gates (two columns + lintel) along the path
+        const FLinearColor ArchTint = AccentTint * 1.08f;
+        const float ArchY[] = { 400.0f, -200.0f, -800.0f, -1400.0f, -2000.0f };
+        for (int32 Arch = 0; Arch < 5; ++Arch)
+        {
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(-300.0f, ArchY[Arch], 180.0f), FRotator::ZeroRotator, FVector(0.35f, 0.35f, 3.6f), ArchTint);
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"), FVector(300.0f, ArchY[Arch], 180.0f), FRotator::ZeroRotator, FVector(0.35f, 0.35f, 3.6f), ArchTint);
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(0.0f, ArchY[Arch], 480.0f), FRotator::ZeroRotator, FVector(4.2f, 0.5f, 0.4f), ArchTint * 0.92f);
+            // Orange point light at each archway
+            SpawnPointLight(FVector(0.0f, ArchY[Arch], 350.0f), FLinearColor(1.0f, 0.72f, 0.32f), 400.0f, 850.0f);
+        }
+
+        // Market stall obstacles along the sides (small cube + tent/cone pairs)
+        const FLinearColor StallWood(0.44f, 0.32f, 0.20f);
+        const FLinearColor StallFabric(0.68f, 0.52f, 0.34f);
+        const FVector StallPositions[] = {
+            FVector(-300.0f, 100.0f, 40.0f), FVector(280.0f, -500.0f, 40.0f),
+            FVector(-280.0f, -1100.0f, 40.0f), FVector(300.0f, -1700.0f, 40.0f),
+            FVector(-260.0f, -2300.0f, 40.0f), FVector(280.0f, 700.0f, 40.0f)
+        };
+        for (const FVector& StallPos : StallPositions)
+        {
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), StallPos, FRotator::ZeroRotator, FVector(0.8f, 0.6f, 0.7f), StallWood);
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cone.Cone"), StallPos + FVector(0.0f, 0.0f, 110.0f), FRotator::ZeroRotator, FVector(0.7f, 0.7f, 0.5f), StallFabric);
+        }
+
+        // Staircases: 4 sets of stacked thin cubes creating elevation changes
+        const FLinearColor StairTint = GroundTint * 1.1f;
+        auto SpawnStaircase = [&SpawnMeshActor, &StairTint](const FVector& Base, int32 Steps)
+        {
+            for (int32 Step = 0; Step < Steps; ++Step)
+            {
+                SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"),
+                    Base + FVector(0.0f, float(Step) * 40.0f, float(Step) * 20.0f),
+                    FRotator::ZeroRotator,
+                    FVector(3.0f, 0.4f, 0.15f),
+                    StairTint);
+            }
+        };
+        SpawnStaircase(FVector(0.0f, -300.0f, -30.0f), 5);
+        SpawnStaircase(FVector(0.0f, -1000.0f, -30.0f), 4);
+        SpawnStaircase(FVector(0.0f, -1600.0f, -30.0f), 6);
+        SpawnStaircase(FVector(0.0f, -2200.0f, -30.0f), 4);
+
+        // Boss arena widening at the end (open square)
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(-700.0f, -2500.0f, 200.0f), FRotator::ZeroRotator, FVector(1.0f, 5.0f, 3.0f), WallTint * 0.88f);
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(700.0f, -2500.0f, 200.0f), FRotator::ZeroRotator, FVector(1.0f, 5.0f, 3.0f), WallTint * 0.88f);
+    }
+    // -----------------------------------------------------------------------
+    // Task 5: Chapter 7 - Empty Tomb (cave / garden)
+    // -----------------------------------------------------------------------
+    else if (Region.RegionId == EmptyTombId)
+    {
+        // Override post-process for bright golden dawn
+        if (PostProcessVolume != nullptr)
+        {
+            PostProcessVolume->BlendWeight = 0.60f;
+            PostProcessVolume->Settings.ColorSaturation = FVector4(1.02f, 1.0f, 0.94f, 1.0f);
+            PostProcessVolume->Settings.AutoExposureBias = 0.60f;
+        }
+
+        // Minimal fog for open feeling
+        if (HeightFog != nullptr)
+        {
+            HeightFog->GetComponent()->SetFogDensity(0.006f);
+            HeightFog->GetComponent()->SetFogHeightFalloff(0.32f);
+            HeightFog->GetComponent()->SetFogInscatteringColor(FLinearColor(0.92f, 0.88f, 0.72f));
+        }
+
+        // Tomb entrance: large semicircle of cube meshes forming cave mouth
+        const FLinearColor CaveTint(0.40f, 0.36f, 0.32f);
+        for (int32 Index = 0; Index < 9; ++Index)
+        {
+            const float AngleDeg = 180.0f + float(Index) * (180.0f / 8.0f);
+            const float Rad = FMath::DegreesToRadians(AngleDeg);
+            const FVector CavePos(
+                FMath::Cos(Rad) * 600.0f,
+                -1800.0f + FMath::Sin(Rad) * 600.0f,
+                60.0f + FMath::Abs(FMath::Sin(Rad)) * 200.0f
+            );
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), CavePos, FRotator(0.0f, AngleDeg, 0.0f),
+                FVector(2.0f, 1.5f, 2.0f + FMath::Abs(FMath::Sin(Rad)) * 1.5f), CaveTint);
+        }
+
+        // Prominent tomb stone (large cube "rolled aside" near cave entrance)
+        SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"), FVector(500.0f, -1800.0f, 30.0f), FRotator(0.0f, 25.0f, 12.0f), FVector(2.2f, 2.2f, 2.0f), CaveTint * 0.85f);
+
+        // Stone path leading from spawn to tomb
+        const FLinearColor PathTint = GroundTint * 1.2f;
+        for (int32 Seg = 0; Seg < 12; ++Seg)
+        {
+            const float Y = 200.0f - float(Seg) * 180.0f;
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Cube.Cube"),
+                FVector(FMath::Sin(float(Seg) * 0.4f) * 60.0f, Y, -45.0f),
+                FRotator::ZeroRotator,
+                FVector(2.5f, 1.5f, 0.15f),
+                PathTint);
+        }
+
+        // Garden elements: small sphere meshes (flowers/bushes) in clusters
+        const FLinearColor FlowerTint1(0.78f, 0.42f, 0.58f);
+        const FLinearColor FlowerTint2(0.92f, 0.88f, 0.52f);
+        const FLinearColor BushTint(0.28f, 0.48f, 0.26f);
+        const FVector GardenPositions[] = {
+            FVector(-400.0f, -600.0f, 10.0f), FVector(-600.0f, -400.0f, 10.0f), FVector(350.0f, -500.0f, 10.0f),
+            FVector(600.0f, -350.0f, 10.0f), FVector(-500.0f, 200.0f, 10.0f), FVector(-700.0f, 500.0f, 10.0f),
+            FVector(500.0f, 300.0f, 10.0f), FVector(700.0f, 600.0f, 10.0f), FVector(-250.0f, -1200.0f, 10.0f),
+            FVector(300.0f, -1100.0f, 10.0f), FVector(-500.0f, -1500.0f, 10.0f), FVector(450.0f, -1400.0f, 10.0f)
+        };
+        for (int32 Index = 0; Index < 12; ++Index)
+        {
+            const FLinearColor& Tint = (Index % 3 == 0) ? FlowerTint1 : ((Index % 3 == 1) ? FlowerTint2 : BushTint);
+            const float Scale = (Index % 3 == 2) ? 0.6f : 0.3f;
+            SpawnMeshActor(TEXT("/Engine/BasicShapes/Sphere.Sphere"), GardenPositions[Index], FRotator::ZeroRotator,
+                FVector(Scale, Scale, Scale * 0.8f), Tint);
+        }
+
+        // Bright golden dawn point lights (sparse, open feeling)
+        SpawnPointLight(FVector(0.0f, -1800.0f, 400.0f), FLinearColor(1.0f, 0.96f, 0.80f), 800.0f, 1200.0f);
+        SpawnPointLight(FVector(-300.0f, -600.0f, 200.0f), FLinearColor(1.0f, 0.94f, 0.78f), 350.0f, 800.0f);
+        SpawnPointLight(FVector(300.0f, -500.0f, 200.0f), FLinearColor(1.0f, 0.94f, 0.78f), 350.0f, 800.0f);
+        SpawnPointLight(Region.PrayerSiteLocation + FVector(0.0f, 0.0f, 250.0f), FLinearColor(1.0f, 0.98f, 0.86f), 500.0f, 1000.0f);
     }
 }
 
@@ -1459,8 +1805,104 @@ USoundBase* ANazareneCampaignGameMode::ResolveRegionMusic(const FNazareneRegionD
     {
         Candidate = JerusalemMusic;
     }
+    else if (Region.RegionId == FName(TEXT("gethsemane")))
+    {
+        Candidate = GethsemaneMusic;
+    }
+    else if (Region.RegionId == FName(TEXT("via_dolorosa")))
+    {
+        Candidate = ViaDolorosaMusic;
+    }
+    else if (Region.RegionId == FName(TEXT("empty_tomb")))
+    {
+        Candidate = EmptyTombMusic;
+    }
 
     return Candidate.ToSoftObjectPath().IsValid() ? Candidate.LoadSynchronous() : nullptr;
+}
+
+void ANazareneCampaignGameMode::CrossfadeToMusic(USoundBase* NewMusic)
+{
+    if (NewMusic == nullptr)
+    {
+        // Fade out current music
+        if (RegionMusicComponent != nullptr && RegionMusicComponent->IsPlaying())
+        {
+            RegionMusicComponent->FadeOut(MusicCrossfadeDuration, 0.0f);
+        }
+        bCrossfading = false;
+        return;
+    }
+
+    // Create the primary music component if it does not exist
+    if (RegionMusicComponent == nullptr)
+    {
+        RegionMusicComponent = UGameplayStatics::CreateSound2D(this, NewMusic, 0.75f, 1.0f, 0.0f, nullptr, true);
+        if (RegionMusicComponent != nullptr)
+        {
+            RegionMusicComponent->Play();
+        }
+        return;
+    }
+
+    // If already playing the same sound, do nothing
+    if (RegionMusicComponent->IsPlaying() && RegionMusicComponent->Sound == NewMusic)
+    {
+        return;
+    }
+
+    // Create the crossfade component if it does not exist
+    if (CrossfadeAudioComponent == nullptr)
+    {
+        CrossfadeAudioComponent = UGameplayStatics::CreateSound2D(this, NewMusic, 0.0f, 1.0f, 0.0f, nullptr, true);
+    }
+    else
+    {
+        CrossfadeAudioComponent->Stop();
+        CrossfadeAudioComponent->SetSound(NewMusic);
+        CrossfadeAudioComponent->SetVolumeMultiplier(0.0f);
+    }
+
+    if (CrossfadeAudioComponent != nullptr)
+    {
+        CrossfadeAudioComponent->Play();
+    }
+
+    bCrossfading = true;
+    CrossfadeElapsed = 0.0f;
+    CrossfadeStartVolume = RegionMusicComponent->VolumeMultiplier;
+}
+
+void ANazareneCampaignGameMode::TickCrossfade(float DeltaSeconds)
+{
+    if (!bCrossfading)
+    {
+        return;
+    }
+
+    CrossfadeElapsed += DeltaSeconds;
+    const float Alpha = FMath::Clamp(CrossfadeElapsed / MusicCrossfadeDuration, 0.0f, 1.0f);
+
+    if (RegionMusicComponent != nullptr)
+    {
+        RegionMusicComponent->SetVolumeMultiplier(FMath::Lerp(CrossfadeStartVolume, 0.0f, Alpha));
+    }
+
+    if (CrossfadeAudioComponent != nullptr)
+    {
+        CrossfadeAudioComponent->SetVolumeMultiplier(FMath::Lerp(0.0f, 0.75f, Alpha));
+    }
+
+    if (Alpha >= 1.0f)
+    {
+        if (RegionMusicComponent != nullptr)
+        {
+            RegionMusicComponent->Stop();
+        }
+
+        Swap(RegionMusicComponent, CrossfadeAudioComponent);
+        bCrossfading = false;
+    }
 }
 
 FString ANazareneCampaignGameMode::GetRandomLoreTip() const
@@ -1658,4 +2100,61 @@ void ANazareneCampaignGameMode::CheckDeferredWaves(ENazareneSpawnTrigger Trigger
 void ANazareneCampaignGameMode::HandleReinforcementWave(ANazareneEnemyCharacter* Boss, int32 Phase)
 {
     CheckDeferredWaves(ENazareneSpawnTrigger::OnBossPhaseChange, Phase);
+}
+
+// -----------------------------------------------------------------------
+// Task 7: Menu Camera
+// -----------------------------------------------------------------------
+
+void ANazareneCampaignGameMode::SpawnMenuCamera()
+{
+    if (MenuCamera != nullptr)
+    {
+        return;
+    }
+
+    FVector CameraCenter = FVector::ZeroVector;
+    if (Regions.IsValidIndex(RegionIndex))
+    {
+        CameraCenter = Regions[RegionIndex].PrayerSiteLocation;
+    }
+
+    MenuCamera = GetWorld()->SpawnActor<ANazareneMenuCameraActor>(
+        ANazareneMenuCameraActor::StaticClass(),
+        CameraCenter + FVector(1800.0f, 0.0f, 400.0f),
+        FRotator::ZeroRotator
+    );
+
+    if (MenuCamera != nullptr)
+    {
+        MenuCamera->OrbitCenter = CameraCenter;
+
+        APlayerController* PC = GetWorld()->GetFirstPlayerController();
+        if (PC != nullptr)
+        {
+            PC->SetViewTarget(MenuCamera);
+        }
+    }
+}
+
+void ANazareneCampaignGameMode::DestroyMenuCamera()
+{
+    if (MenuCamera == nullptr)
+    {
+        return;
+    }
+
+    MenuCamera->Destroy();
+    MenuCamera = nullptr;
+
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (PC != nullptr && PlayerCharacter != nullptr)
+    {
+        PC->SetViewTarget(PlayerCharacter);
+    }
+}
+
+void ANazareneCampaignGameMode::OnMenuDismissed()
+{
+    DestroyMenuCamera();
 }

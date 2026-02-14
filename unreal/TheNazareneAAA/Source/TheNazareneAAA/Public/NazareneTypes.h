@@ -290,3 +290,19 @@ struct FNazareneRegionDefinition
     TArray<FNazareneEncounterWave> EncounterWaves;
 };
 
+UENUM(BlueprintType)
+enum class ENazareneVFXType : uint8
+{
+    HealBurst = 0,
+    BlessingAura = 1,
+    RadiancePulse = 2,
+    LightSlash = 3,
+    HeavySlash = 4,
+    EnemyHitReact = 5,
+    EnemyRedeemed = 6,
+    BossArenaHazard = 7,
+    BossPhaseTransition = 8,
+    DodgeTrail = 9,
+    ParryFlash = 10
+};
+

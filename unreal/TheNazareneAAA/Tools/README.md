@@ -57,3 +57,24 @@ The script:
 ```bat
 UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/create_biblical_art_pack.py -unattended -nop4
 ```
+
+## create_region_sublevels.py
+Creates campaign streaming region levels under `/Game/Maps/Regions/*` with base lighting/nav setup.
+
+```bat
+UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/create_region_sublevels.py -unattended -nop4
+```
+
+## create_audio_pack.py
+Creates project-local combat/music audio placeholders under `/Game/Audio/*` so gameplay slot wiring resolves.
+
+```bat
+UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/create_audio_pack.py -unattended -nop4
+```
+
+## create_behavior_tree_assets.py
+Creates behavior tree placeholders under `/Game/AI/BehaviorTrees/*` for archetype routing.
+
+```bat
+UnrealEditor-Cmd.exe TheNazareneAAA.uproject -run=pythonscript -script=Tools/create_behavior_tree_assets.py -unattended -nop4
+```

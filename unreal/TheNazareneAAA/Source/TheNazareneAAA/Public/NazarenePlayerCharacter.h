@@ -314,6 +314,7 @@ private:
     void TryLoadSlot2();
     void TryLoadSlot3();
     void TryUnlockFirstAvailableSkill();
+    void TryToggleSkillTree();
 
     void UpdateTimers(float DeltaSeconds);
     void RegenStamina(float DeltaSeconds);
@@ -408,6 +409,9 @@ private:
 
     UPROPERTY()
     TObjectPtr<UInputAction> LoadSlot3InputAction;
+
+    UPROPERTY()
+    TObjectPtr<UInputAction> SkillTreeInputAction;
 
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<USpringArmComponent> CameraBoom;

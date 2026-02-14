@@ -13,6 +13,7 @@ class UProgressBar;
 class UTextBlock;
 class UNazareneDamageNumberWidget;
 class UNazareneEnemyHealthBarWidget;
+class UNazareneSkillTreeWidget;
 
 UCLASS()
 class THENAZARENEAAA_API UNazareneHUDWidget : public UUserWidget
@@ -34,6 +35,9 @@ public:
     void ShowDamageNumber(const FVector& WorldLocation, float Amount, ENazareneDamageNumberType Type);
     void ShowDeathOverlay(int32 RetryCount);
     void SetLoadingOverlayVisible(bool bVisible, const FString& LoreTip);
+
+    void SetSkillTreeVisible(bool bVisible);
+    bool IsSkillTreeVisible() const;
 
 private:
     void RefreshVitals(const ANazarenePlayerCharacter* Player);
@@ -138,6 +142,9 @@ private:
     UFUNCTION()
     void HandleRiseAgainPressed();
 
+    UFUNCTION()
+    void HandleSkillTreeClosePressed();
+
 private:
     void RefreshOptionsSummary();
 
@@ -211,6 +218,12 @@ private:
     TObjectPtr<UTextBlock> LoadingTipText;
 
     UPROPERTY()
+    TObjectPtr<UBorder> SkillTreeOverlay;
+
+    UPROPERTY()
+    TObjectPtr<UNazareneSkillTreeWidget> SkillTreeWidget;
+
+    UPROPERTY()
     TObjectPtr<ANazarenePlayerCharacter> CachedPlayerForWidgets;
 
     UPROPERTY()
@@ -218,6 +231,52 @@ private:
 
     UPROPERTY()
     TArray<TObjectPtr<UNazareneEnemyHealthBarWidget>> EnemyHealthBarWidgets;
+
+    // Navigation focus targets
+    UPROPERTY()
+    TObjectPtr<UButton> StartNewGameButton;
+
+    UPROPERTY()
+    TObjectPtr<UButton> StartContinueButton;
+
+    UPROPERTY()
+    TObjectPtr<UButton> StartOptionsButton;
+
+    UPROPERTY()
+    TObjectPtr<UButton> StartQuitButton;
+
+    UPROPERTY()
+    TObjectPtr<UButton> PauseResumeButton;
+
+    UPROPERTY()
+    TObjectPtr<UButton> PauseSaveSlot1Button;
+
+    UPROPERTY()
+    TObjectPtr<UButton> PauseSaveSlot2Button;
+
+    UPROPERTY()
+    TObjectPtr<UButton> PauseSaveSlot3Button;
+
+    UPROPERTY()
+    TObjectPtr<UButton> PauseLoadSlot1Button;
+
+    UPROPERTY()
+    TObjectPtr<UButton> PauseLoadSlot2Button;
+
+    UPROPERTY()
+    TObjectPtr<UButton> PauseLoadSlot3Button;
+
+    UPROPERTY()
+    TObjectPtr<UButton> PauseNewPilgrimageButton;
+
+    UPROPERTY()
+    TObjectPtr<UButton> PauseOptionsButton;
+
+    UPROPERTY()
+    TObjectPtr<UButton> RiseAgainButton;
+
+    UPROPERTY()
+    TObjectPtr<UButton> FirstOptionsButton;
 
     FString CachedRegionName = TEXT("Chapter 1: Galilee Shores");
     FString CachedObjective = TEXT("Redeem the guardian.");

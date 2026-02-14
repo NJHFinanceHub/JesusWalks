@@ -131,6 +131,33 @@ void ANazareneHUD::SetLoadingOverlayVisible(bool bVisible, const FString& LoreTi
     }
 }
 
+void ANazareneHUD::SetSkillTreeVisible(bool bVisible)
+{
+    if (RuntimeWidget != nullptr)
+    {
+        RuntimeWidget->SetSkillTreeVisible(bVisible);
+    }
+
+    ApplyMenuInputMode(bVisible);
+}
+
+bool ANazareneHUD::ToggleSkillTree()
+{
+    if (RuntimeWidget == nullptr)
+    {
+        return false;
+    }
+
+    if (RuntimeWidget->IsStartMenuVisible() || RuntimeWidget->IsPauseMenuVisible())
+    {
+        return false;
+    }
+
+    const bool bNextVisible = !RuntimeWidget->IsSkillTreeVisible();
+    SetSkillTreeVisible(bNextVisible);
+    return bNextVisible;
+}
+
 void ANazareneHUD::ApplyMenuInputMode(bool bMenuVisible)
 {
     APlayerController* PlayerController = GetOwningPlayerController();

@@ -32,6 +32,9 @@
 #include "NazareneSkillTree.h"
 #include "NazareneSettingsSubsystem.h"
 #include "NazareneTravelGate.h"
+#include "GA_NazareneHeal.h"
+#include "GA_NazareneBlessing.h"
+#include "GA_NazareneRadiance.h"
 #include "Sound/SoundBase.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -206,6 +209,7 @@ void ANazarenePlayerCharacter::BeginPlay()
     if (AbilitySystemComponent != nullptr)
     {
         AbilitySystemComponent->InitializeForActor(this, this);
+        AbilitySystemComponent->GrantDefaultAbilities();
     }
 
     bool bAppliedCharacterMesh = false;
@@ -434,6 +438,7 @@ void ANazarenePlayerCharacter::InitializeEnhancedInputDefaults()
         LoadSlot1InputAction = FindMappedAction(TEXT("LoadSlot1"));
         LoadSlot2InputAction = FindMappedAction(TEXT("LoadSlot2"));
         LoadSlot3InputAction = FindMappedAction(TEXT("LoadSlot3"));
+        SkillTreeInputAction = FindMappedAction(TEXT("SkillTree"));
 
         const bool bHasAllAssetActions =
             MoveForwardInputAction != nullptr &&
@@ -495,6 +500,7 @@ void ANazarenePlayerCharacter::InitializeEnhancedInputDefaults()
     LoadSlot1InputAction = MakeInputAction(this, TEXT("NazareneLoadSlot1"), EInputActionValueType::Boolean);
     LoadSlot2InputAction = MakeInputAction(this, TEXT("NazareneLoadSlot2"), EInputActionValueType::Boolean);
     LoadSlot3InputAction = MakeInputAction(this, TEXT("NazareneLoadSlot3"), EInputActionValueType::Boolean);
+    SkillTreeInputAction = MakeInputAction(this, TEXT("NazareneSkillTree"), EInputActionValueType::Boolean);
 
     if (RuntimeInputMappingContext == nullptr)
     {
@@ -549,6 +555,8 @@ void ANazarenePlayerCharacter::InitializeEnhancedInputDefaults()
     RuntimeInputMappingContext->MapKey(LoadSlot1InputAction, EKeys::F5);
     RuntimeInputMappingContext->MapKey(LoadSlot2InputAction, EKeys::F6);
     RuntimeInputMappingContext->MapKey(LoadSlot3InputAction, EKeys::F7);
+    RuntimeInputMappingContext->MapKey(SkillTreeInputAction, EKeys::T);
+    RuntimeInputMappingContext->MapKey(SkillTreeInputAction, EKeys::Gamepad_DPad_Left);
 }
 
 void ANazarenePlayerCharacter::RegisterEnhancedInputMappingContext() const
@@ -616,6 +624,7 @@ void ANazarenePlayerCharacter::BindEnhancedInput(UEnhancedInputComponent* Enhanc
     EnhancedInputComponent->BindAction(LoadSlot1InputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryLoadSlot1);
     EnhancedInputComponent->BindAction(LoadSlot2InputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryLoadSlot2);
     EnhancedInputComponent->BindAction(LoadSlot3InputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryLoadSlot3);
+    EnhancedInputComponent->BindAction(SkillTreeInputAction, ETriggerEvent::Started, this, &ANazarenePlayerCharacter::TryToggleSkillTree);
 }
 
 void ANazarenePlayerCharacter::OnMoveForwardInput(const FInputActionValue& Value)
@@ -1377,66 +1386,59 @@ void ANazarenePlayerCharacter::TryParry()
 
 void ANazarenePlayerCharacter::TryHealingMiracle()
 {
-    if (HealCooldownTimer > 0.0f || CurrentFaith < HealFaithCost || CurrentHealth >= MaxHealth)
+    if (AbilitySystemComponent != nullptr)
     {
-        return;
+        if (AbilitySystemComponent->TryActivateAbilityByClass(UGA_NazareneHeal::StaticClass()))
+        {
+            // GAS ability handles faith deduction and healing;
+            // sync the local state from the AttributeSet back to the character
+            if (AttributeSet != nullptr)
+            {
+                CurrentHealth = AttributeSet->GetHealth();
+                CurrentFaith = AttributeSet->GetFaith();
+            }
+            HealCooldownTimer = HealCooldown;
+            AttackCooldown = FMath::Max(AttackCooldown, 0.35f);
+            TriggerPresentation(MiracleSound, MiracleVFX, GetActorLocation());
+        }
     }
-
-    CurrentFaith -= HealFaithCost;
-    CurrentHealth = FMath::Min(MaxHealth, CurrentHealth + HealAmount);
-    HealCooldownTimer = HealCooldown;
-    AttackCooldown = FMath::Max(AttackCooldown, 0.35f);
-    TriggerPresentation(MiracleSound, MiracleVFX, GetActorLocation());
-    DisplayDamageNumber(GetActorLocation() + FVector(0.0f, 0.0f, 130.0f), HealAmount, ENazareneDamageNumberType::Heal);
 }
 
 void ANazarenePlayerCharacter::TryBlessingMiracle()
 {
-    if (!IsMiracleUnlocked(FName(TEXT("blessing"))))
+    if (AbilitySystemComponent != nullptr)
     {
-        SetContextHint(TEXT("Blessing miracle not yet unlocked."));
-        return;
+        if (AbilitySystemComponent->TryActivateAbilityByClass(UGA_NazareneBlessing::StaticClass()))
+        {
+            // GAS ability handles faith deduction;
+            // sync local state and set timers
+            if (AttributeSet != nullptr)
+            {
+                CurrentFaith = AttributeSet->GetFaith();
+            }
+            BlessingTimer = BlessingDuration;
+            BlessingCooldownTimer = BlessingCooldown;
+            AttackCooldown = FMath::Max(AttackCooldown, 0.35f);
+            TriggerPresentation(MiracleSound, MiracleVFX, GetActorLocation());
+        }
     }
-    if (BlessingCooldownTimer > 0.0f || CurrentFaith < BlessingFaithCost)
-    {
-        return;
-    }
-    CurrentFaith -= BlessingFaithCost;
-    BlessingTimer = BlessingDuration;
-    BlessingCooldownTimer = BlessingCooldown;
-    AttackCooldown = FMath::Max(AttackCooldown, 0.35f);
-    TriggerPresentation(MiracleSound, MiracleVFX, GetActorLocation());
 }
 
 void ANazarenePlayerCharacter::TryRadianceMiracle()
 {
-    if (!IsMiracleUnlocked(FName(TEXT("radiance"))))
+    if (AbilitySystemComponent != nullptr)
     {
-        SetContextHint(TEXT("Radiance miracle not yet unlocked."));
-        return;
-    }
-    if (RadianceCooldownTimer > 0.0f || CurrentFaith < RadianceFaithCost)
-    {
-        return;
-    }
-
-    CurrentFaith -= RadianceFaithCost;
-    RadianceCooldownTimer = RadianceCooldown;
-    AttackCooldown = FMath::Max(AttackCooldown, 0.45f);
-    TriggerPresentation(MiracleSound, MiracleVFX, GetActorLocation());
-
-    for (TActorIterator<ANazareneEnemyCharacter> It(GetWorld()); It; ++It)
-    {
-        ANazareneEnemyCharacter* Enemy = *It;
-        if (Enemy == nullptr || Enemy->IsRedeemed())
+        if (AbilitySystemComponent->TryActivateAbilityByClass(UGA_NazareneRadiance::StaticClass()))
         {
-            continue;
-        }
-        const FVector ToEnemy = Enemy->GetActorLocation() - GetActorLocation();
-        if (ToEnemy.Size() <= RadianceRadius)
-        {
-            Enemy->ReceiveCombatHit(RadianceDamage, RadiancePoiseDamage, this);
-            Enemy->ApplyKnockback(ToEnemy.GetSafeNormal2D(), 450.0f);
+            // GAS ability handles faith deduction and AOE damage;
+            // sync local state and set timers
+            if (AttributeSet != nullptr)
+            {
+                CurrentFaith = AttributeSet->GetFaith();
+            }
+            RadianceCooldownTimer = RadianceCooldown;
+            AttackCooldown = FMath::Max(AttackCooldown, 0.45f);
+            TriggerPresentation(MiracleSound, MiracleVFX, GetActorLocation());
         }
     }
 }
@@ -1479,6 +1481,21 @@ void ANazarenePlayerCharacter::TryUnlockFirstAvailableSkill()
         {
             return;
         }
+    }
+}
+
+void ANazarenePlayerCharacter::TryToggleSkillTree()
+{
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (PC == nullptr)
+    {
+        return;
+    }
+
+    ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD());
+    if (HUD != nullptr)
+    {
+        HUD->ToggleSkillTree();
     }
 }
 

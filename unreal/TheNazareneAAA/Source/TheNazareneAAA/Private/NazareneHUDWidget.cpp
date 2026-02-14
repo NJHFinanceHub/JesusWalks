@@ -22,6 +22,7 @@
 #include "NazarenePlayerCharacter.h"
 #include "NazareneSaveSubsystem.h"
 #include "NazareneSettingsSubsystem.h"
+#include "NazareneSkillTreeWidget.h"
 
 namespace
 {
@@ -236,7 +237,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
     UTextBlock* ControlsText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ControlsText"));
     ConfigureText(
         ControlsText,
-        TEXT("Move/Look: WASD + Mouse | Combat: LMB Light, RMB Heavy, Shift Block, F Parry, Space Dodge | Miracles: R Heal, 1 Blessing, 2 Radiance | Interaction: E Pray, Q Lock, Esc Menu"),
+        TEXT("Move/Look: WASD + Mouse | Combat: LMB Light, RMB Heavy, Shift Block, F Parry, Space Dodge | Miracles: R Heal, 1 Blessing, 2 Radiance | Interaction: E Pray, Q Lock, T Skill Tree, Esc Menu"),
         FLinearColor(0.90f, 0.85f, 0.70f),
         13
     );
@@ -283,43 +284,50 @@ void UNazareneHUDWidget::NativeOnInitialized()
     AddVerticalChild(PauseMenuContent, PauseTitle, FMargin(12.0f, 16.0f, 12.0f, 8.0f));
 
     UTextBlock* ButtonLabel = nullptr;
-    if (UButton* ResumeButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("ResumeButton"), TEXT("Resume"), ButtonLabel))
+    PauseResumeButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("ResumeButton"), TEXT("Resume"), ButtonLabel);
+    if (PauseResumeButton != nullptr)
     {
-        ResumeButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleResumePressed);
+        PauseResumeButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleResumePressed);
     }
 
     UTextBlock* SaveHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SaveHeader"));
     ConfigureText(SaveHeader, TEXT("Save Slots"), FLinearColor(0.94f, 0.88f, 0.74f), 18);
     AddVerticalChild(PauseMenuContent, SaveHeader, FMargin(12.0f, 16.0f, 12.0f, 6.0f));
 
-    if (UButton* SaveSlot1Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot1Button"), TEXT("Save Slot 1"), ButtonLabel))
+    PauseSaveSlot1Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot1Button"), TEXT("Save Slot 1"), ButtonLabel);
+    if (PauseSaveSlot1Button != nullptr)
     {
-        SaveSlot1Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot1Pressed);
+        PauseSaveSlot1Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot1Pressed);
     }
-    if (UButton* SaveSlot2Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot2Button"), TEXT("Save Slot 2"), ButtonLabel))
+    PauseSaveSlot2Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot2Button"), TEXT("Save Slot 2"), ButtonLabel);
+    if (PauseSaveSlot2Button != nullptr)
     {
-        SaveSlot2Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot2Pressed);
+        PauseSaveSlot2Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot2Pressed);
     }
-    if (UButton* SaveSlot3Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot3Button"), TEXT("Save Slot 3"), ButtonLabel))
+    PauseSaveSlot3Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot3Button"), TEXT("Save Slot 3"), ButtonLabel);
+    if (PauseSaveSlot3Button != nullptr)
     {
-        SaveSlot3Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot3Pressed);
+        PauseSaveSlot3Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot3Pressed);
     }
 
     UTextBlock* LoadHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LoadHeader"));
     ConfigureText(LoadHeader, TEXT("Load Slots"), FLinearColor(0.94f, 0.88f, 0.74f), 18);
     AddVerticalChild(PauseMenuContent, LoadHeader, FMargin(12.0f, 14.0f, 12.0f, 6.0f));
 
-    if (UButton* LoadSlot1Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot1Button"), TEXT("Load Slot 1"), ButtonLabel))
+    PauseLoadSlot1Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot1Button"), TEXT("Load Slot 1"), ButtonLabel);
+    if (PauseLoadSlot1Button != nullptr)
     {
-        LoadSlot1Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot1Pressed);
+        PauseLoadSlot1Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot1Pressed);
     }
-    if (UButton* LoadSlot2Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot2Button"), TEXT("Load Slot 2"), ButtonLabel))
+    PauseLoadSlot2Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot2Button"), TEXT("Load Slot 2"), ButtonLabel);
+    if (PauseLoadSlot2Button != nullptr)
     {
-        LoadSlot2Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot2Pressed);
+        PauseLoadSlot2Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot2Pressed);
     }
-    if (UButton* LoadSlot3Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot3Button"), TEXT("Load Slot 3"), ButtonLabel))
+    PauseLoadSlot3Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot3Button"), TEXT("Load Slot 3"), ButtonLabel);
+    if (PauseLoadSlot3Button != nullptr)
     {
-        LoadSlot3Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot3Pressed);
+        PauseLoadSlot3Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot3Pressed);
     }
 
     SlotSummary1Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SlotSummary1Text"));
@@ -334,14 +342,40 @@ void UNazareneHUDWidget::NativeOnInitialized()
     ConfigureText(SlotSummary3Text, TEXT("Slot 3: Empty"), FLinearColor(0.82f, 0.82f, 0.78f), 14);
     AddVerticalChild(PauseMenuContent, SlotSummary3Text, FMargin(14.0f, 2.0f, 12.0f, 0.0f));
 
-    if (UButton* NewPilgrimageButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("NewPilgrimageButton"), TEXT("New Pilgrimage"), ButtonLabel))
+    PauseNewPilgrimageButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("NewPilgrimageButton"), TEXT("New Pilgrimage"), ButtonLabel);
+    if (PauseNewPilgrimageButton != nullptr)
     {
-        NewPilgrimageButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleNewPilgrimagePressed);
+        PauseNewPilgrimageButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleNewPilgrimagePressed);
     }
 
-    if (UButton* PauseOptionsButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("PauseOptionsButton"), TEXT("Options"), ButtonLabel))
+    PauseOptionsButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("PauseOptionsButton"), TEXT("Options"), ButtonLabel);
+    if (PauseOptionsButton != nullptr)
     {
         PauseOptionsButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsPressed);
+    }
+
+    // Pause menu gamepad navigation chain
+    {
+        UButton* PauseButtons[] = {
+            PauseResumeButton, PauseSaveSlot1Button, PauseSaveSlot2Button, PauseSaveSlot3Button,
+            PauseLoadSlot1Button, PauseLoadSlot2Button, PauseLoadSlot3Button,
+            PauseNewPilgrimageButton, PauseOptionsButton
+        };
+        const int32 PauseCount = UE_ARRAY_COUNT(PauseButtons);
+        for (int32 i = 0; i < PauseCount; ++i)
+        {
+            if (PauseButtons[i] == nullptr) { continue; }
+            int32 NextIndex = (i + 1) % PauseCount;
+            int32 PrevIndex = (i - 1 + PauseCount) % PauseCount;
+            if (PauseButtons[NextIndex] != nullptr)
+            {
+                PauseButtons[i]->SetNavigationRuleExplicit(EUINavigation::Down, PauseButtons[NextIndex]);
+            }
+            if (PauseButtons[PrevIndex] != nullptr)
+            {
+                PauseButtons[i]->SetNavigationRuleExplicit(EUINavigation::Up, PauseButtons[PrevIndex]);
+            }
+        }
     }
 
     StartMenuOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("StartMenuOverlay"));
@@ -382,24 +416,48 @@ void UNazareneHUDWidget::NativeOnInitialized()
     AddVerticalChild(StartMenuContent, StartSubtitle, FMargin(16.0f, 0.0f, 16.0f, 24.0f));
 
     UTextBlock* StartButtonLabel = nullptr;
-    if (UButton* StartButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("StartPilgrimageButton"), TEXT("New Game"), StartButtonLabel))
+    StartNewGameButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("StartPilgrimageButton"), TEXT("New Game"), StartButtonLabel);
+    if (StartNewGameButton != nullptr)
     {
-        StartButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleStartPilgrimagePressed);
+        StartNewGameButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleStartPilgrimagePressed);
     }
 
-    if (UButton* ContinueButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("ContinuePilgrimageButton"), TEXT("Continue"), StartButtonLabel))
+    StartContinueButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("ContinuePilgrimageButton"), TEXT("Continue"), StartButtonLabel);
+    if (StartContinueButton != nullptr)
     {
-        ContinueButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleContinuePilgrimagePressed);
+        StartContinueButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleContinuePilgrimagePressed);
     }
 
-    if (UButton* OptionsButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("OptionsButton"), TEXT("Options"), StartButtonLabel))
+    StartOptionsButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("OptionsButton"), TEXT("Options"), StartButtonLabel);
+    if (StartOptionsButton != nullptr)
     {
-        OptionsButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsPressed);
+        StartOptionsButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsPressed);
     }
 
-    if (UButton* QuitButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("QuitButton"), TEXT("Quit"), StartButtonLabel))
+    StartQuitButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("QuitButton"), TEXT("Quit"), StartButtonLabel);
+    if (StartQuitButton != nullptr)
     {
-        QuitButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleQuitPressed);
+        StartQuitButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleQuitPressed);
+    }
+
+    // Start menu gamepad navigation chain (wrapping)
+    {
+        UButton* StartButtons[] = { StartNewGameButton, StartContinueButton, StartOptionsButton, StartQuitButton };
+        const int32 StartCount = UE_ARRAY_COUNT(StartButtons);
+        for (int32 i = 0; i < StartCount; ++i)
+        {
+            if (StartButtons[i] == nullptr) { continue; }
+            int32 NextIndex = (i + 1) % StartCount;
+            int32 PrevIndex = (i - 1 + StartCount) % StartCount;
+            if (StartButtons[NextIndex] != nullptr)
+            {
+                StartButtons[i]->SetNavigationRuleExplicit(EUINavigation::Down, StartButtons[NextIndex]);
+            }
+            if (StartButtons[PrevIndex] != nullptr)
+            {
+                StartButtons[i]->SetNavigationRuleExplicit(EUINavigation::Up, StartButtons[PrevIndex]);
+            }
+        }
     }
 
     OptionsOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("OptionsOverlay"));
@@ -440,49 +498,63 @@ void UNazareneHUDWidget::NativeOnInitialized()
     AddVerticalChild(OptionsContent, OptionsSummaryText, FMargin(18.0f, 4.0f, 18.0f, 12.0f));
 
     UTextBlock* OptionsButtonLabel = nullptr;
+    TArray<UButton*> OptionsButtons;
+
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SensitivityDownButton"), TEXT("Sensitivity -"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSensitivityDownPressed);
+        FirstOptionsButton = Button;
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SensitivityUpButton"), TEXT("Sensitivity +"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSensitivityUpPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("InvertLookYButton"), TEXT("Toggle Invert Look Y"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleInvertLookYPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FovDownButton"), TEXT("Field Of View -"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFovDownPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FovUpButton"), TEXT("Field Of View +"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFovUpPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("GammaDownButton"), TEXT("Gamma -"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleGammaDownPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("GammaUpButton"), TEXT("Gamma +"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleGammaUpPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("VolumeDownButton"), TEXT("Master Volume -"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleVolumeDownPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("VolumeUpButton"), TEXT("Master Volume +"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleVolumeUpPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FrameLimitDownButton"), TEXT("Frame Limit -"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFrameLimitDownPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FrameLimitUpButton"), TEXT("Frame Limit +"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFrameLimitUpPressed);
+        OptionsButtons.Add(Button);
     }
 
     UTextBlock* AccessibilityHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("AccessibilityHeader"));
@@ -493,39 +565,67 @@ void UNazareneHUDWidget::NativeOnInitialized()
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SubtitleScaleDownButton"), TEXT("Subtitle Size -"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSubtitleScaleDownPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SubtitleScaleUpButton"), TEXT("Subtitle Size +"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSubtitleScaleUpPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("ColorblindToggleButton"), TEXT("Colorblind Mode"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleColorblindTogglePressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("HighContrastToggleButton"), TEXT("High Contrast HUD"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleHighContrastTogglePressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("ScreenShakeToggleButton"), TEXT("Screen Shake Reduction"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleScreenShakeTogglePressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("HUDScaleDownButton"), TEXT("HUD Scale -"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleHUDScaleDownPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("HUDScaleUpButton"), TEXT("HUD Scale +"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleHUDScaleUpPressed);
+        OptionsButtons.Add(Button);
     }
 
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("OptionsApplyButton"), TEXT("Apply And Save"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsApplyPressed);
+        OptionsButtons.Add(Button);
     }
     if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("OptionsBackButton"), TEXT("Back"), OptionsButtonLabel))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsBackPressed);
+        OptionsButtons.Add(Button);
+    }
+
+    // Options menu gamepad navigation chain (wrapping)
+    {
+        const int32 OptCount = OptionsButtons.Num();
+        for (int32 i = 0; i < OptCount; ++i)
+        {
+            if (OptionsButtons[i] == nullptr) { continue; }
+            int32 NextIndex = (i + 1) % OptCount;
+            int32 PrevIndex = (i - 1 + OptCount) % OptCount;
+            if (OptionsButtons[NextIndex] != nullptr)
+            {
+                OptionsButtons[i]->SetNavigationRuleExplicit(EUINavigation::Down, OptionsButtons[NextIndex]);
+            }
+            if (OptionsButtons[PrevIndex] != nullptr)
+            {
+                OptionsButtons[i]->SetNavigationRuleExplicit(EUINavigation::Up, OptionsButtons[PrevIndex]);
+            }
+        }
     }
 
     DeathOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("DeathOverlay"));
@@ -552,9 +652,10 @@ void UNazareneHUDWidget::NativeOnInitialized()
     AddVerticalChild(DeathContent, DeathRetryText, FMargin(16.0f, 0.0f, 16.0f, 24.0f));
 
     UTextBlock* RiseButtonLabel = nullptr;
-    if (UButton* RiseButton = CreateMenuButton(WidgetTree, DeathContent, TEXT("RiseAgainButton"), TEXT("Rise Again"), RiseButtonLabel))
+    RiseAgainButton = CreateMenuButton(WidgetTree, DeathContent, TEXT("RiseAgainButton"), TEXT("Rise Again"), RiseButtonLabel);
+    if (RiseAgainButton != nullptr)
     {
-        RiseButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleRiseAgainPressed);
+        RiseAgainButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleRiseAgainPressed);
     }
 
     LoadingOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("LoadingOverlay"));
@@ -580,6 +681,18 @@ void UNazareneHUDWidget::NativeOnInitialized()
     LoadingTipText->SetJustification(ETextJustify::Center);
     LoadingTipText->SetAutoWrapText(true);
     AddVerticalChild(LoadingContent, LoadingTipText, FMargin(120.0f, 0.0f, 120.0f, 12.0f));
+
+    // Skill Tree Widget (separate viewport widget, toggled by T key)
+    APlayerController* SkillTreePC = GetOwningPlayer();
+    if (SkillTreePC != nullptr)
+    {
+        SkillTreeWidget = CreateWidget<UNazareneSkillTreeWidget>(SkillTreePC, UNazareneSkillTreeWidget::StaticClass());
+        if (SkillTreeWidget != nullptr)
+        {
+            SkillTreeWidget->AddToViewport(50);
+            SkillTreeWidget->SetVisibility(ESlateVisibility::Collapsed);
+        }
+    }
 
     RefreshSlotSummaries();
     RefreshOptionsSummary();
@@ -676,6 +789,11 @@ void UNazareneHUDWidget::ShowDeathOverlay(int32 RetryCount)
     {
         DeathOverlay->SetVisibility(ESlateVisibility::Visible);
     }
+
+    if (RiseAgainButton != nullptr)
+    {
+        RiseAgainButton->SetKeyboardFocus();
+    }
 }
 
 void UNazareneHUDWidget::SetLoadingOverlayVisible(bool bVisible, const FString& LoreTip)
@@ -707,6 +825,11 @@ void UNazareneHUDWidget::SetStartMenuVisible(bool bVisible)
     {
         OptionsOverlay->SetVisibility(ESlateVisibility::Collapsed);
     }
+
+    if (bVisible && StartNewGameButton != nullptr)
+    {
+        StartNewGameButton->SetKeyboardFocus();
+    }
 }
 
 bool UNazareneHUDWidget::IsStartMenuVisible() const
@@ -729,6 +852,11 @@ void UNazareneHUDWidget::SetPauseMenuVisible(bool bVisible)
     if (bVisible)
     {
         RefreshSlotSummaries();
+
+        if (PauseResumeButton != nullptr)
+        {
+            PauseResumeButton->SetKeyboardFocus();
+        }
     }
     else if (OptionsOverlay != nullptr && !bOptionsOpenedFromStartMenu)
     {
@@ -1083,6 +1211,15 @@ void UNazareneHUDWidget::HandleStartPilgrimagePressed()
             HUD->SetStartMenuVisible(false);
         }
     }
+
+    // Task 7: Dismiss menu camera when starting a new game
+    if (UWorld* World = GetWorld())
+    {
+        if (ANazareneCampaignGameMode* GM = Cast<ANazareneCampaignGameMode>(World->GetAuthGameMode()))
+        {
+            GM->OnMenuDismissed();
+        }
+    }
 }
 
 void UNazareneHUDWidget::HandleContinuePilgrimagePressed()
@@ -1128,6 +1265,15 @@ void UNazareneHUDWidget::HandleContinuePilgrimagePressed()
             HUD->SetStartMenuVisible(false);
         }
     }
+
+    // Task 7: Dismiss menu camera when continuing
+    if (UWorld* World = GetWorld())
+    {
+        if (ANazareneCampaignGameMode* GM = Cast<ANazareneCampaignGameMode>(World->GetAuthGameMode()))
+        {
+            GM->OnMenuDismissed();
+        }
+    }
 }
 
 void UNazareneHUDWidget::HandleOptionsPressed()
@@ -1138,6 +1284,11 @@ void UNazareneHUDWidget::HandleOptionsPressed()
         OptionsOverlay->SetVisibility(ESlateVisibility::Visible);
     }
     RefreshOptionsSummary();
+
+    if (FirstOptionsButton != nullptr)
+    {
+        FirstOptionsButton->SetKeyboardFocus();
+    }
 }
 
 void UNazareneHUDWidget::HandleOptionsBackPressed()
@@ -1489,5 +1640,32 @@ void UNazareneHUDWidget::HandleRiseAgainPressed()
     {
         DeathOverlay->SetVisibility(ESlateVisibility::Collapsed);
     }
+}
+
+void UNazareneHUDWidget::SetSkillTreeVisible(bool bVisible)
+{
+    if (SkillTreeWidget == nullptr)
+    {
+        return;
+    }
+
+    SkillTreeWidget->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+
+    if (bVisible)
+    {
+        ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
+        SkillTreeWidget->SetPlayerCharacter(Player);
+        SkillTreeWidget->RefreshSkillTree();
+    }
+}
+
+bool UNazareneHUDWidget::IsSkillTreeVisible() const
+{
+    return SkillTreeWidget != nullptr && SkillTreeWidget->GetVisibility() == ESlateVisibility::Visible;
+}
+
+void UNazareneHUDWidget::HandleSkillTreeClosePressed()
+{
+    SetSkillTreeVisible(false);
 }
 
