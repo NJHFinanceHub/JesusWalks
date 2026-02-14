@@ -71,7 +71,7 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 - [ ] Author Decapolis Ruins production sublevel (ruined Greco-Roman architecture, overcast lighting)
 - [ ] Author Wilderness of Temptation production sublevel (desert canyons, harsh sun, heat haze)
 - [ ] Author Jerusalem Approach production sublevel (city walls, temple columns, golden hour)
-- [ ] Blockout sublevels for chapters 5â€“7 (geometry + lighting placeholder)
+- [x] Blockout sublevels for chapters 5â€“7 (geometry + lighting placeholder)
 - [ ] Implement `ANazareneNPC` actor with overlap interaction and dialogue text display; place 2â€“3 NPCs per region
 
 ## Week 5 â€” GAS Miracles + Niagara VFX + Boss Polish
