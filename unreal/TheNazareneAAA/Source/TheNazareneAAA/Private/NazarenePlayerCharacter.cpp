@@ -1816,6 +1816,9 @@ void ANazarenePlayerCharacter::UpdateMovementState(float DeltaSeconds)
     const float SmoothingSpeed = FMath::Max(0.0f, MoveInputSmoothingSpeed);
     SmoothedMoveForwardAxis = FMath::FInterpTo(SmoothedMoveForwardAxis, MoveForwardAxis, DeltaSeconds, SmoothingSpeed);
     SmoothedMoveRightAxis = FMath::FInterpTo(SmoothedMoveRightAxis, MoveRightAxis, DeltaSeconds, SmoothingSpeed);
+    const float SmoothedInputMagnitude = FMath::Clamp(FVector2D(SmoothedMoveForwardAxis, SmoothedMoveRightAxis).Size(), 0.0f, 1.5f);
+    const bool bHasValidLockTarget = LockTarget.IsValid() && !LockTarget->IsRedeemed();
+    const bool bCombatState = bHasValidLockTarget || bIsBlocking || PendingAttack != ENazarenePlayerAttackType::None || HurtTimer > 0.0f;
 
     float MovementMultiplier = 1.0f;
     if (bIsBlocking)
@@ -1834,25 +1837,47 @@ void ANazarenePlayerCharacter::UpdateMovementState(float DeltaSeconds)
     {
         MovementMultiplier = FMath::Min(MovementMultiplier, 0.35f);
     }
+    if (!bCombatState && SmoothedInputMagnitude >= TraversalInputThreshold)
+    {
+        MovementMultiplier = FMath::Max(MovementMultiplier, TraversalRunMultiplier);
+    }
 
     GetCharacterMovement()->MaxWalkSpeed = WalkSpeed * MovementMultiplier;
 
     if (AController* C = GetController())
     {
-        const FRotator YawRotation(0.0f, C->GetControlRotation().Yaw, 0.0f);
-        const FVector Forward = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-        const FVector Right = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-        if (FMath::Abs(SmoothedMoveForwardAxis) > KINDA_SMALL_NUMBER)
+        if (bHasValidLockTarget)
         {
-            AddMovementInput(Forward, SmoothedMoveForwardAxis);
+            const FRotator ActorYawRotation(0.0f, GetActorRotation().Yaw, 0.0f);
+            const FVector Forward = FRotationMatrix(ActorYawRotation).GetUnitAxis(EAxis::X);
+            const FVector Right = FRotationMatrix(ActorYawRotation).GetUnitAxis(EAxis::Y);
+
+            if (FMath::Abs(SmoothedMoveForwardAxis) > KINDA_SMALL_NUMBER)
+            {
+                const float ForwardScale = SmoothedMoveForwardAxis >= 0.0f ? LockOnForwardSpeedMultiplier : LockOnBackpedalSpeedMultiplier;
+                AddMovementInput(Forward, SmoothedMoveForwardAxis * ForwardScale);
+            }
+            if (FMath::Abs(SmoothedMoveRightAxis) > KINDA_SMALL_NUMBER)
+            {
+                AddMovementInput(Right, SmoothedMoveRightAxis * LockOnStrafeSpeedMultiplier);
+            }
         }
-        if (FMath::Abs(SmoothedMoveRightAxis) > KINDA_SMALL_NUMBER)
+        else
         {
-            AddMovementInput(Right, SmoothedMoveRightAxis);
+            const FRotator YawRotation(0.0f, C->GetControlRotation().Yaw, 0.0f);
+            const FVector Forward = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+            const FVector Right = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+            if (FMath::Abs(SmoothedMoveForwardAxis) > KINDA_SMALL_NUMBER)
+            {
+                AddMovementInput(Forward, SmoothedMoveForwardAxis);
+            }
+            if (FMath::Abs(SmoothedMoveRightAxis) > KINDA_SMALL_NUMBER)
+            {
+                AddMovementInput(Right, SmoothedMoveRightAxis);
+            }
         }
     }
 
-    const bool bHasValidLockTarget = LockTarget.IsValid() && !LockTarget->IsRedeemed();
     GetCharacterMovement()->bOrientRotationToMovement = !bHasValidLockTarget;
 
     if (bHasValidLockTarget)

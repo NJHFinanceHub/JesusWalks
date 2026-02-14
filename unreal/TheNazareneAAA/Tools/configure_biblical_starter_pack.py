@@ -98,6 +98,29 @@ def _choose_top_maps(assets: list[unreal.AssetData], max_results: int = 4) -> li
     weighted.sort(key=lambda item: item[0], reverse=True)
     return [path for _, path in weighted[:max_results]]
 
+def _choose_region_map(assets: list[unreal.AssetData], region_terms: list[str], fallback_package_path: str) -> str:
+    weighted: list[tuple[int, str]] = []
+    include = ["map", "level", "region", "ancient", "town", "city", "village", "desert", "ruin"] + region_terms
+    exclude = ["test", "example", "overview", "template"]
+
+    for asset in assets:
+        if _class_name(asset) != "World":
+            continue
+        path = _asset_path(asset)
+        score = _score_asset(asset, include, exclude, bonus_terms=region_terms)
+        if score < 1:
+            continue
+        weighted.append((score, path))
+
+    if not weighted:
+        return fallback_package_path
+
+    weighted.sort(key=lambda item: item[0], reverse=True)
+    package = _to_package_path(weighted[0][1])
+    if package.startswith("/Game/Maps/Regions/"):
+        return fallback_package_path
+    return package
+
 
 def _to_package_path(asset_path: str) -> str:
     if "." in asset_path:
@@ -171,6 +194,86 @@ def main() -> None:
     if not enemy_anim:
         enemy_anim = player_anim
 
+    enemy_mesh_melee = _choose_best(
+        assets,
+        {"SkeletalMesh"},
+        include_terms=["roman", "shield", "legion", "soldier", "infantry"],
+        exclude_terms=["jesus", "hero", "demon", "monster", "female", "civilian"],
+        bonus_terms=["sk_", "enemy"],
+    ) or enemy_mesh
+
+    enemy_mesh_spear = _choose_best(
+        assets,
+        {"SkeletalMesh"},
+        include_terms=["roman", "spear", "lancer", "pike", "centurion"],
+        exclude_terms=["jesus", "hero", "demon", "monster", "female", "civilian"],
+        bonus_terms=["sk_", "enemy"],
+    ) or enemy_mesh_melee
+
+    enemy_mesh_ranged = _choose_best(
+        assets,
+        {"SkeletalMesh"},
+        include_terms=["archer", "ranged", "slinger", "bow", "marksman", "roman"],
+        exclude_terms=["jesus", "hero", "demon", "monster", "female", "civilian"],
+        bonus_terms=["sk_", "enemy"],
+    ) or enemy_mesh_melee
+
+    enemy_mesh_demon = _choose_best(
+        assets,
+        {"SkeletalMesh"},
+        include_terms=["demon", "spirit", "wraith", "undead", "ghost", "fiend"],
+        exclude_terms=["jesus", "hero", "roman", "civilian"],
+        bonus_terms=["sk_", "monster", "enemy"],
+    ) or enemy_mesh_melee
+
+    enemy_mesh_boss = _choose_best(
+        assets,
+        {"SkeletalMesh"},
+        include_terms=["boss", "warlord", "commander", "centurion", "champion"],
+        exclude_terms=["jesus", "hero", "civilian"],
+        bonus_terms=["sk_", "enemy", "elite"],
+    ) or enemy_mesh_melee
+
+    enemy_anim_melee = _choose_best(
+        assets,
+        {"AnimBlueprint", "Blueprint"},
+        include_terms=["abp", "anim", "melee", "sword", "shield", "roman", "legion"],
+        exclude_terms=["test", "demo", "hero", "player"],
+        bonus_terms=["combat", "enemy"],
+    ) or enemy_anim
+
+    enemy_anim_spear = _choose_best(
+        assets,
+        {"AnimBlueprint", "Blueprint"},
+        include_terms=["abp", "anim", "spear", "polearm", "lancer"],
+        exclude_terms=["test", "demo", "hero", "player"],
+        bonus_terms=["combat", "enemy"],
+    ) or enemy_anim_melee
+
+    enemy_anim_ranged = _choose_best(
+        assets,
+        {"AnimBlueprint", "Blueprint"},
+        include_terms=["abp", "anim", "ranged", "archer", "bow", "sling"],
+        exclude_terms=["test", "demo", "hero", "player"],
+        bonus_terms=["combat", "enemy"],
+    ) or enemy_anim_melee
+
+    enemy_anim_demon = _choose_best(
+        assets,
+        {"AnimBlueprint", "Blueprint"},
+        include_terms=["abp", "anim", "demon", "monster", "wraith", "fiend"],
+        exclude_terms=["test", "demo", "hero", "player"],
+        bonus_terms=["combat", "enemy"],
+    ) or enemy_anim_melee
+
+    enemy_anim_boss = _choose_best(
+        assets,
+        {"AnimBlueprint", "Blueprint"},
+        include_terms=["abp", "anim", "boss", "elite", "warlord", "champion"],
+        exclude_terms=["test", "demo", "hero", "player"],
+        bonus_terms=["combat", "enemy"],
+    ) or enemy_anim_melee
+
     env_block_mesh = _choose_best(
         assets,
         {"StaticMesh"},
@@ -190,18 +293,36 @@ def main() -> None:
     env_tent_mesh = _choose_best(
         assets,
         {"StaticMesh"},
-        include_terms=["tent", "awning", "canopy", "cloth", "stall"],
-        exclude_terms=["weapon", "character", "skeletal", "vfx", "collision", "proxy"],
+        include_terms=["tent", "awning", "stall", "cloth", "canopy"],
+        exclude_terms=["weapon", "character", "skeletal", "vfx", "collision", "proxy", "tree", "foliage", "leaf", "bush"],
         bonus_terms=["sm_", "market"],
     )
 
     env_canopy_mesh = _choose_best(
         assets,
         {"StaticMesh"},
-        include_terms=["olive", "tree", "palm", "foliage", "bush"],
-        exclude_terms=["weapon", "character", "skeletal", "vfx", "collision", "proxy"],
+        include_terms=["olive", "tree", "palm", "foliage", "bush", "canopy"],
+        exclude_terms=["weapon", "character", "skeletal", "vfx", "collision", "proxy", "tent", "awning", "stall", "wall", "block"],
         bonus_terms=["sm_", "environment"],
     )
+
+    if env_canopy_mesh and env_canopy_mesh == env_block_mesh:
+        env_canopy_mesh = _choose_best(
+            assets,
+            {"StaticMesh"},
+            include_terms=["tree", "olive", "palm", "foliage", "bush"],
+            exclude_terms=["weapon", "character", "skeletal", "vfx", "collision", "proxy", "wall", "block", "tent", "awning", "stall"],
+            bonus_terms=["sm_", "nature", "environment"],
+        )
+
+    if env_tent_mesh and env_canopy_mesh and env_tent_mesh == env_canopy_mesh:
+        env_tent_mesh = _choose_best(
+            assets,
+            {"StaticMesh"},
+            include_terms=["tent", "awning", "stall", "cloth"],
+            exclude_terms=["weapon", "character", "skeletal", "vfx", "collision", "proxy", "tree", "foliage", "bush", "leaf"],
+            bonus_terms=["sm_", "market"],
+        )
 
     env_ground_mesh = _choose_best(
         assets,
@@ -235,16 +356,69 @@ def main() -> None:
         bonus_terms=["mi_", "master", "ground"],
     )
 
+    default_maps = {
+        "GalileeMap": "/Game/Maps/Regions/Galilee/L_GalileeShores",
+        "DecapolisMap": "/Game/Maps/Regions/Decapolis/L_DecapolisRuins",
+        "WildernessMap": "/Game/Maps/Regions/Wilderness/L_WildernessTemptation",
+        "JerusalemMap": "/Game/Maps/Regions/Jerusalem/L_JerusalemApproach",
+        "GethsemaneMap": "/Game/Maps/Regions/Gethsemane/L_GardenGethsemane",
+        "ViaDolorosaMap": "/Game/Maps/Regions/ViaDolorosa/L_ViaDolorosa",
+        "EmptyTombMap": "/Game/Maps/Regions/EmptyTomb/L_EmptyTomb",
+    }
+
     map_candidates = _choose_top_maps(assets, max_results=4)
-    primary_map = _to_package_path(map_candidates[0]) if map_candidates else ""
+    primary_map = _to_package_path(map_candidates[0]) if map_candidates else default_maps["GalileeMap"]
     if primary_map.startswith("/Game/Maps/Regions/"):
-        primary_map = ""
+        primary_map = default_maps["GalileeMap"]
+
+    enemy_material_roman = _choose_best(
+        assets,
+        {"Material", "MaterialInstanceConstant", "MaterialInstance"},
+        include_terms=["roman", "armor", "soldier", "legion", "metal"],
+        exclude_terms=["demon", "monster", "ui", "vfx"],
+        bonus_terms=["mi_", "character"],
+    )
+    enemy_material_demon = _choose_best(
+        assets,
+        {"Material", "MaterialInstanceConstant", "MaterialInstance"},
+        include_terms=["demon", "monster", "evil", "corrupt", "undead"],
+        exclude_terms=["roman", "soldier", "ui", "vfx"],
+        bonus_terms=["mi_", "character"],
+    )
+    enemy_material_boss = _choose_best(
+        assets,
+        {"Material", "MaterialInstanceConstant", "MaterialInstance"},
+        include_terms=["boss", "elite", "warlord", "commander", "armor"],
+        exclude_terms=["ui", "vfx"],
+        bonus_terms=["mi_", "character"],
+    )
+
+    galilee_map = _choose_region_map(assets, ["galilee", "shore", "coast", "lake", "fish"], default_maps["GalileeMap"])
+    decapolis_map = _choose_region_map(assets, ["decapolis", "ruin", "roman", "plaza"], default_maps["DecapolisMap"])
+    wilderness_map = _choose_region_map(assets, ["wilderness", "desert", "canyon", "dune"], default_maps["WildernessMap"])
+    jerusalem_map = _choose_region_map(assets, ["jerusalem", "city", "temple", "wall"], default_maps["JerusalemMap"])
+    gethsemane_map = _choose_region_map(assets, ["gethsemane", "garden", "olive", "grove"], default_maps["GethsemaneMap"])
+    via_dolorosa_map = _choose_region_map(assets, ["via", "dolorosa", "street", "alley", "city"], default_maps["ViaDolorosaMap"])
+    empty_tomb_map = _choose_region_map(assets, ["tomb", "empty", "cave", "dawn"], default_maps["EmptyTombMap"])
 
     overrides = {
         "PlayerSkeletalMesh": player_mesh,
         "EnemySkeletalMesh": enemy_mesh,
+        "EnemySkeletalMesh_MeleeShield": enemy_mesh_melee,
+        "EnemySkeletalMesh_Spear": enemy_mesh_spear,
+        "EnemySkeletalMesh_Ranged": enemy_mesh_ranged,
+        "EnemySkeletalMesh_Demon": enemy_mesh_demon,
+        "EnemySkeletalMesh_Boss": enemy_mesh_boss,
         "PlayerAnimBlueprint": _to_anim_class_path(player_anim),
         "EnemyAnimBlueprint": _to_anim_class_path(enemy_anim),
+        "EnemyAnimBlueprint_MeleeShield": _to_anim_class_path(enemy_anim_melee),
+        "EnemyAnimBlueprint_Spear": _to_anim_class_path(enemy_anim_spear),
+        "EnemyAnimBlueprint_Ranged": _to_anim_class_path(enemy_anim_ranged),
+        "EnemyAnimBlueprint_Demon": _to_anim_class_path(enemy_anim_demon),
+        "EnemyAnimBlueprint_Boss": _to_anim_class_path(enemy_anim_boss),
+        "EnemyMaterialRoman": enemy_material_roman,
+        "EnemyMaterialDemon": enemy_material_demon,
+        "EnemyMaterialBoss": enemy_material_boss,
         "EnvMeshBlock": env_block_mesh,
         "EnvMeshColumn": env_column_mesh,
         "EnvMeshTent": env_tent_mesh,
@@ -253,13 +427,13 @@ def main() -> None:
         "EnvMaterialStone": env_material_stone,
         "EnvMaterialOlive": env_material_olive,
         "EnvMaterialSand": env_material_sand,
-        "GalileeMap": primary_map,
-        "DecapolisMap": primary_map,
-        "WildernessMap": primary_map,
-        "JerusalemMap": primary_map,
-        "GethsemaneMap": primary_map,
-        "ViaDolorosaMap": primary_map,
-        "EmptyTombMap": primary_map,
+        "GalileeMap": galilee_map,
+        "DecapolisMap": decapolis_map,
+        "WildernessMap": wilderness_map,
+        "JerusalemMap": jerusalem_map,
+        "GethsemaneMap": gethsemane_map,
+        "ViaDolorosaMap": via_dolorosa_map,
+        "EmptyTombMap": empty_tomb_map,
     }
 
     _write_overrides(overrides)

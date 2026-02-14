@@ -1363,6 +1363,7 @@ void ANazareneCampaignGameMode::SpawnRegionActors(const FNazareneRegionDefinitio
         Enemy->EnemyName = Spec.EnemyName;
         Enemy->Archetype = Spec.Archetype;
         Enemy->ConfigureFromArchetype();
+        ApplyRegionalEnemyTuning(Enemy, Region, false);
         ConfigureEnemyBehaviorTree(Enemy);
         Enemy->OnRedeemed.AddDynamic(this, &ANazareneCampaignGameMode::HandleEnemyRedeemed);
 
@@ -2143,6 +2144,41 @@ void ANazareneCampaignGameMode::ConfigureEnemyBehaviorTree(ANazareneEnemyCharact
     }
 }
 
+void ANazareneCampaignGameMode::ApplyRegionalEnemyTuning(ANazareneEnemyCharacter* Enemy, const FNazareneRegionDefinition& Region, bool bIsWaveEnemy) const
+{
+    if (Enemy == nullptr)
+    {
+        return;
+    }
+
+    const float ChapterScale = FMath::Max(0.0f, float(FMath::Max(1, Region.Chapter) - 1));
+    const int32 RetryCount = GetCurrentRegionRetryCount();
+    const float RetryAssistHealth = FMath::Clamp(1.0f - (float(RetryCount) * RetryAssistHealthReductionPerRetry), 0.72f, 1.0f);
+    const float RetryAssistDamage = FMath::Clamp(1.0f - (float(RetryCount) * RetryAssistDamageReductionPerRetry), 0.80f, 1.0f);
+
+    float HealthScale = 1.0f + (ChapterScale * ChapterHealthScaleStep);
+    float DamageScale = 1.0f + (ChapterScale * ChapterDamageScaleStep);
+    float FaithScale = 1.0f + (ChapterScale * ChapterFaithRewardScaleStep);
+
+    if (bIsWaveEnemy)
+    {
+        HealthScale += WaveEnemyBonusScale;
+        DamageScale += WaveEnemyBonusScale * 0.5f;
+        FaithScale += WaveEnemyBonusScale;
+    }
+
+    HealthScale *= RetryAssistHealth;
+    DamageScale *= RetryAssistDamage;
+
+    Enemy->MaxHealth = FMath::Max(55.0f, Enemy->MaxHealth * HealthScale);
+    Enemy->MaxPoise = FMath::Max(35.0f, Enemy->MaxPoise * FMath::Lerp(1.0f, HealthScale, 0.65f));
+    Enemy->CurrentHealth = Enemy->MaxHealth;
+    Enemy->CurrentPoise = Enemy->MaxPoise;
+    Enemy->AttackDamage = FMath::Max(8.0f, Enemy->AttackDamage * DamageScale);
+    Enemy->PostureDamage = FMath::Max(8.0f, Enemy->PostureDamage * FMath::Lerp(1.0f, DamageScale, 0.8f));
+    Enemy->FaithReward = FMath::Max(4.0f, Enemy->FaithReward * FaithScale);
+}
+
 int32 ANazareneCampaignGameMode::XPForLevel(int32 LevelValue) const
 {
     const int32 SafeLevel = FMath::Max(LevelValue, 1);
@@ -2217,6 +2253,10 @@ void ANazareneCampaignGameMode::SpawnWaveEnemies(const FNazareneEncounterWave& W
         Enemy->EnemyName = Spec.EnemyName;
         Enemy->Archetype = Spec.Archetype;
         Enemy->ConfigureFromArchetype();
+        if (Regions.IsValidIndex(RegionIndex))
+        {
+            ApplyRegionalEnemyTuning(Enemy, Regions[RegionIndex], true);
+        }
         ConfigureEnemyBehaviorTree(Enemy);
         Enemy->OnRedeemed.AddDynamic(this, &ANazareneCampaignGameMode::HandleEnemyRedeemed);
         RegionActors.Add(Enemy);

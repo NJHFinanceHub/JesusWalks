@@ -109,6 +109,7 @@ private:
     USoundBase* ResolveRegionMusic(const FNazareneRegionDefinition& Region) const;
     FString GetRandomLoreTip() const;
     void ConfigureEnemyBehaviorTree(ANazareneEnemyCharacter* Enemy) const;
+    void ApplyRegionalEnemyTuning(ANazareneEnemyCharacter* Enemy, const FNazareneRegionDefinition& Region, bool bIsWaveEnemy) const;
     int32 XPForLevel(int32 LevelValue) const;
 
     UFUNCTION()
@@ -186,6 +187,24 @@ private:
 
     UPROPERTY(EditAnywhere, Category = "AI")
     TSoftObjectPtr<UBehaviorTree> BTBossAsset;
+
+    UPROPERTY(EditAnywhere, Category = "Progression")
+    float ChapterHealthScaleStep = 0.08f;
+
+    UPROPERTY(EditAnywhere, Category = "Progression")
+    float ChapterDamageScaleStep = 0.06f;
+
+    UPROPERTY(EditAnywhere, Category = "Progression")
+    float ChapterFaithRewardScaleStep = 0.05f;
+
+    UPROPERTY(EditAnywhere, Category = "Progression")
+    float WaveEnemyBonusScale = 0.07f;
+
+    UPROPERTY(EditAnywhere, Category = "Progression")
+    float RetryAssistHealthReductionPerRetry = 0.03f;
+
+    UPROPERTY(EditAnywhere, Category = "Progression")
+    float RetryAssistDamageReductionPerRetry = 0.02f;
 
     FName LoadedRegionLevelPackage = NAME_None;
 

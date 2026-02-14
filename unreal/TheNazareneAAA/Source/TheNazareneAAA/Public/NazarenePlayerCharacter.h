@@ -89,6 +89,21 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     float MoveInputSmoothingSpeed = 12.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float TraversalRunMultiplier = 1.14f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    float TraversalInputThreshold = 0.85f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|LockOn")
+    float LockOnForwardSpeedMultiplier = 1.02f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|LockOn")
+    float LockOnStrafeSpeedMultiplier = 0.94f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|LockOn")
+    float LockOnBackpedalSpeedMultiplier = 0.78f;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Presentation|Animation")
     TSoftObjectPtr<USkeletalMesh> RetargetedSkeletalMesh;
 

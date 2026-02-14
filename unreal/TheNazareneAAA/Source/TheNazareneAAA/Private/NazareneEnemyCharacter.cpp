@@ -16,6 +16,37 @@
 #include "Sound/SoundBase.h"
 #include "UObject/ConstructorHelpers.h"
 
+namespace
+{
+    const TCHAR* EnemyMeshOverrideKey(ENazareneEnemyArchetype Archetype)
+    {
+        switch (Archetype)
+        {
+        case ENazareneEnemyArchetype::MeleeShield: return TEXT("EnemySkeletalMesh_MeleeShield");
+        case ENazareneEnemyArchetype::Spear: return TEXT("EnemySkeletalMesh_Spear");
+        case ENazareneEnemyArchetype::Ranged: return TEXT("EnemySkeletalMesh_Ranged");
+        case ENazareneEnemyArchetype::Demon: return TEXT("EnemySkeletalMesh_Demon");
+        case ENazareneEnemyArchetype::Boss: return TEXT("EnemySkeletalMesh_Boss");
+        default: break;
+        }
+        return nullptr;
+    }
+
+    const TCHAR* EnemyAnimOverrideKey(ENazareneEnemyArchetype Archetype)
+    {
+        switch (Archetype)
+        {
+        case ENazareneEnemyArchetype::MeleeShield: return TEXT("EnemyAnimBlueprint_MeleeShield");
+        case ENazareneEnemyArchetype::Spear: return TEXT("EnemyAnimBlueprint_Spear");
+        case ENazareneEnemyArchetype::Ranged: return TEXT("EnemyAnimBlueprint_Ranged");
+        case ENazareneEnemyArchetype::Demon: return TEXT("EnemyAnimBlueprint_Demon");
+        case ENazareneEnemyArchetype::Boss: return TEXT("EnemyAnimBlueprint_Boss");
+        default: break;
+        }
+        return nullptr;
+    }
+}
+
 ANazareneEnemyCharacter::ANazareneEnemyCharacter()
 {
     PrimaryActorTick.bCanEverTick = true;
@@ -146,10 +177,44 @@ void ANazareneEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-    bool bAppliedCharacterMesh = false;
-    if (ProductionSkeletalMesh.ToSoftObjectPath().IsValid())
+    TSoftObjectPtr<USkeletalMesh> ResolvedProductionMesh = ProductionSkeletalMesh;
+    if (const TCHAR* MeshKey = EnemyMeshOverrideKey(Archetype))
     {
-        if (USkeletalMesh* MeshAsset = ProductionSkeletalMesh.LoadSynchronous())
+        const FString BaseMeshPath = ProductionSkeletalMesh.ToSoftObjectPath().IsValid()
+            ? ProductionSkeletalMesh.ToSoftObjectPath().ToString()
+            : TEXT("/Game/Art/Characters/Enemies/SK_BiblicalLegionary.SK_BiblicalLegionary");
+        const FString ResolvedMeshPath = NazareneAssetResolver::ResolveObjectPath(
+            MeshKey,
+            BaseMeshPath,
+            {
+                TEXT("/Game/Art/Characters/Enemies/SK_BiblicalLegionary.SK_BiblicalLegionary"),
+                TEXT("/Game/Characters/MedievalOrientalArmour/SK_MOH_Soldier.SK_MOH_Soldier"),
+                TEXT("/Game/Characters/MedievalOrientalArmour/Meshes/SK_MOH_Soldier.SK_MOH_Soldier")
+            });
+        ResolvedProductionMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(ResolvedMeshPath));
+    }
+
+    TSoftClassPtr<UAnimInstance> ResolvedProductionAnim = ProductionAnimBlueprint;
+    if (const TCHAR* AnimKey = EnemyAnimOverrideKey(Archetype))
+    {
+        const FString BaseAnimPath = ProductionAnimBlueprint.ToSoftObjectPath().IsValid()
+            ? ProductionAnimBlueprint.ToSoftObjectPath().ToString()
+            : TEXT("/Game/Art/Animation/ABP_BiblicalEnemy.ABP_BiblicalEnemy_C");
+        const FString ResolvedAnimPath = NazareneAssetResolver::ResolveObjectPath(
+            AnimKey,
+            BaseAnimPath,
+            {
+                TEXT("/Game/Art/Animation/ABP_BiblicalEnemy.ABP_BiblicalEnemy_C"),
+                TEXT("/Game/AnimationStarterPack/UE4ASP_HeroTPP_AnimBlueprint.UE4ASP_HeroTPP_AnimBlueprint_C"),
+                TEXT("/Game/Characters/MedievalOrientalArmour/Animations/ABP_MOH_Soldier.ABP_MOH_Soldier_C")
+            });
+        ResolvedProductionAnim = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(ResolvedAnimPath));
+    }
+
+    bool bAppliedCharacterMesh = false;
+    if (ResolvedProductionMesh.ToSoftObjectPath().IsValid())
+    {
+        if (USkeletalMesh* MeshAsset = ResolvedProductionMesh.LoadSynchronous())
         {
             GetMesh()->SetSkeletalMesh(MeshAsset);
             bAppliedCharacterMesh = true;
@@ -165,9 +230,9 @@ void ANazareneEnemyCharacter::BeginPlay()
         }
     }
 
-    if (ProductionAnimBlueprint.ToSoftObjectPath().IsValid())
+    if (ResolvedProductionAnim.ToSoftObjectPath().IsValid())
     {
-        if (UClass* AnimClass = ProductionAnimBlueprint.LoadSynchronous())
+        if (UClass* AnimClass = ResolvedProductionAnim.LoadSynchronous())
         {
             GetMesh()->SetAnimInstanceClass(AnimClass);
         }
@@ -527,6 +592,19 @@ void ANazareneEnemyCharacter::ApplyProxyArchetypeVisualStyle()
         RobeMesh->SetRelativeScale3D(FVector(0.75f, 0.75f, 1.58f));
     }
 
+    const FString RomanMaterialPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnemyMaterialRoman"),
+        TEXT("/Game/Art/Materials/MI_Character_RomanArmor.MI_Character_RomanArmor"),
+        {});
+    const FString DemonMaterialPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnemyMaterialDemon"),
+        TEXT("/Game/Art/Materials/MI_Character_Demon.MI_Character_Demon"),
+        {});
+    const FString BossMaterialPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnemyMaterialBoss"),
+        TEXT("/Game/Art/Materials/MI_Character_Boss.MI_Character_Boss"),
+        {});
+
     UMaterialInterface* SkeletalMaterial = nullptr;
 
     switch (Archetype)
@@ -540,7 +618,7 @@ void ANazareneEnemyCharacter::ApplyProxyArchetypeVisualStyle()
         Tint(RobeMesh, FLinearColor(0.43f, 0.34f, 0.26f));
         Tint(WeaponMesh, FLinearColor(0.34f, 0.30f, 0.24f));
         Tint(ShieldMesh, FLinearColor(0.30f, 0.22f, 0.15f));
-        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Character_RomanArmor.MI_Character_RomanArmor"));
+        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, *RomanMaterialPath);
         break;
 
     case ENazareneEnemyArchetype::Spear:
@@ -553,7 +631,7 @@ void ANazareneEnemyCharacter::ApplyProxyArchetypeVisualStyle()
         Tint(MantleMesh, FLinearColor(0.53f, 0.24f, 0.16f));
         Tint(RobeMesh, FLinearColor(0.49f, 0.40f, 0.30f));
         Tint(WeaponMesh, FLinearColor(0.37f, 0.30f, 0.20f));
-        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Character_RomanArmor.MI_Character_RomanArmor"));
+        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, *RomanMaterialPath);
         break;
 
     case ENazareneEnemyArchetype::Ranged:
@@ -565,7 +643,7 @@ void ANazareneEnemyCharacter::ApplyProxyArchetypeVisualStyle()
         Tint(MantleMesh, FLinearColor(0.30f, 0.24f, 0.20f));
         Tint(RobeMesh, FLinearColor(0.34f, 0.31f, 0.26f));
         Tint(WeaponMesh, FLinearColor(0.45f, 0.36f, 0.24f));
-        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Character_RomanArmor.MI_Character_RomanArmor"));
+        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, *RomanMaterialPath);
         break;
 
     case ENazareneEnemyArchetype::Demon:
@@ -578,7 +656,7 @@ void ANazareneEnemyCharacter::ApplyProxyArchetypeVisualStyle()
         Tint(MantleMesh, FLinearColor(0.18f, 0.08f, 0.08f));
         Tint(RobeMesh, FLinearColor(0.12f, 0.07f, 0.08f));
         Tint(WeaponMesh, FLinearColor(0.80f, 0.16f, 0.14f));
-        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Character_Demon.MI_Character_Demon"));
+        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, *DemonMaterialPath);
         break;
 
     case ENazareneEnemyArchetype::Boss:
@@ -606,7 +684,7 @@ void ANazareneEnemyCharacter::ApplyProxyArchetypeVisualStyle()
         Tint(WeaponMesh, FLinearColor(0.56f, 0.42f, 0.18f));
         Tint(ShieldMesh, FLinearColor(0.40f, 0.29f, 0.14f));
         Tint(CrownMesh, FLinearColor(0.78f, 0.62f, 0.24f));
-        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Character_Boss.MI_Character_Boss"));
+        SkeletalMaterial = LoadObject<UMaterialInterface>(nullptr, *BossMaterialPath);
         break;
     }
 
