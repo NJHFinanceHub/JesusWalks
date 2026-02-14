@@ -9,6 +9,7 @@ class ANazareneEnemyCharacter;
 class ANazarenePlayerCharacter;
 class UButton;
 class UBorder;
+class UCanvasPanelSlot;
 class UProgressBar;
 class UTextBlock;
 class UNazareneDamageNumberWidget;
@@ -146,6 +147,8 @@ private:
     void HandleSkillTreeClosePressed();
 
 private:
+    void RefreshResponsiveMenuLayout();
+    void SetGameplayHUDVisible(bool bVisible);
     void RefreshOptionsSummary();
 
     UPROPERTY()
@@ -183,6 +186,15 @@ private:
 
     UPROPERTY()
     TObjectPtr<UTextBlock> MessageText;
+
+    UPROPERTY()
+    TObjectPtr<UBorder> PlayerPanelRoot;
+
+    UPROPERTY()
+    TObjectPtr<UBorder> ObjectivePanelRoot;
+
+    UPROPERTY()
+    TObjectPtr<UTextBlock> ControlsTextRoot;
 
     UPROPERTY()
     TObjectPtr<UBorder> StartMenuOverlay;
@@ -278,8 +290,18 @@ private:
     UPROPERTY()
     TObjectPtr<UButton> FirstOptionsButton;
 
+    UPROPERTY()
+    TObjectPtr<UCanvasPanelSlot> PauseMenuPanelSlotRef;
+
+    UPROPERTY()
+    TObjectPtr<UCanvasPanelSlot> StartMenuPanelSlotRef;
+
+    UPROPERTY()
+    TObjectPtr<UCanvasPanelSlot> OptionsPanelSlotRef;
+
     FString CachedRegionName = TEXT("Chapter 1: Galilee Shores");
     FString CachedObjective = TEXT("Redeem the guardian.");
+    FVector2D CachedMenuViewportSize = FVector2D::ZeroVector;
     float MessageTimer = 0.0f;
     bool bOptionsOpenedFromStartMenu = true;
 

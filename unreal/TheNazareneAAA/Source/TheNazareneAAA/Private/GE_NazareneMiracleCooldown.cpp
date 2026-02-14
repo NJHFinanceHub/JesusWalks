@@ -3,5 +3,8 @@
 UGE_NazareneMiracleCooldown::UGE_NazareneMiracleCooldown()
 {
     DurationPolicy = EGameplayEffectDurationType::HasDuration;
-    DurationMagnitude = FGameplayEffectModifierMagnitude(FSetByCallerFloat(FGameplayTag::RequestGameplayTag(TEXT("Data.Miracle.Cooldown"))));
+
+    FSetByCallerFloat CooldownMagnitude;
+    CooldownMagnitude.DataTag = FGameplayTag::RequestGameplayTag(TEXT("Data.Miracle.Cooldown"));
+    DurationMagnitude = FGameplayEffectModifierMagnitude(CooldownMagnitude);
 }

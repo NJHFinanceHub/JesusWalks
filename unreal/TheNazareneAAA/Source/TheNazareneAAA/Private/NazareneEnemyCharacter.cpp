@@ -18,6 +18,20 @@
 
 namespace
 {
+    bool ContainsModernWeaponTerm(const FString& InPath)
+    {
+        const FString Lower = InPath.ToLower();
+        const TCHAR* WeaponTerms[] = { TEXT("rifle"), TEXT("pistol"), TEXT("shotgun"), TEXT("sniper"), TEXT("smg"), TEXT("assault"), TEXT("carbine"), TEXT("ak"), TEXT("m4"), TEXT("gun") };
+        for (const TCHAR* Term : WeaponTerms)
+        {
+            if (Lower.Contains(Term))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     const TCHAR* EnemyMeshOverrideKey(ENazareneEnemyArchetype Archetype)
     {
         switch (Archetype)
@@ -192,6 +206,12 @@ void ANazareneEnemyCharacter::BeginPlay()
                 TEXT("/Game/Characters/MedievalOrientalArmour/Meshes/SK_MOH_Soldier.SK_MOH_Soldier")
             });
         ResolvedProductionMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(ResolvedMeshPath));
+    }
+
+    if (ContainsModernWeaponTerm(ResolvedProductionMesh.ToSoftObjectPath().ToString()))
+    {
+        ResolvedProductionMesh = TSoftObjectPtr<USkeletalMesh>(
+            FSoftObjectPath(TEXT("/Game/Art/Characters/Enemies/SK_BiblicalLegionary.SK_BiblicalLegionary")));
     }
 
     TSoftClassPtr<UAnimInstance> ResolvedProductionAnim = ProductionAnimBlueprint;

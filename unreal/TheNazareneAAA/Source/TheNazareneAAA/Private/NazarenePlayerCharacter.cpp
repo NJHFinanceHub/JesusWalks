@@ -41,6 +41,20 @@
 
 namespace
 {
+    static bool ContainsModernWeaponTerm(const FString& InPath)
+    {
+        const FString Lower = InPath.ToLower();
+        const TCHAR* WeaponTerms[] = { TEXT("rifle"), TEXT("pistol"), TEXT("shotgun"), TEXT("sniper"), TEXT("smg"), TEXT("assault"), TEXT("carbine"), TEXT("ak"), TEXT("m4"), TEXT("gun") };
+        for (const TCHAR* Term : WeaponTerms)
+        {
+            if (Lower.Contains(Term))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     static void AddScaledMapping(UInputMappingContext* MappingContext, UInputAction* Action, const FKey Key, float Scale)
     {
         if (MappingContext == nullptr || Action == nullptr)
@@ -174,7 +188,10 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
                 TEXT("/Game/Characters/MedievalOrientalArmour/Meshes/SK_MOH_Hero.SK_MOH_Hero"),
                 TEXT("/Game/MedievalOrientalArmour/SK_MOH_Hero.SK_MOH_Hero")
             });
-        ProductionSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(ResolvedPlayerMesh));
+        const FString SafePlayerMesh = ContainsModernWeaponTerm(ResolvedPlayerMesh)
+            ? TEXT("/Game/Art/Characters/Player/SK_BiblicalHero.SK_BiblicalHero")
+            : ResolvedPlayerMesh;
+        ProductionSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(SafePlayerMesh));
     }
     if (!ProductionAnimBlueprint.ToSoftObjectPath().IsValid())
     {
@@ -232,6 +249,7 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
 void ANazarenePlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
+    DefaultActorScale = GetActorScale3D();
 
     if (AbilitySystemComponent != nullptr)
     {
@@ -704,6 +722,11 @@ void ANazarenePlayerCharacter::OnLookUpInput(const FInputActionValue& Value)
 
 void ANazarenePlayerCharacter::ReceiveEnemyAttack(ANazareneEnemyCharacter* Attacker, float Damage, float PostureDamage)
 {
+    if (bBabyIntroMode || !bCombatEnabled)
+    {
+        return;
+    }
+
     if (InvulnerabilityTimer > 0.0f)
     {
         return;
@@ -769,6 +792,65 @@ const FString& ANazarenePlayerCharacter::GetContextHint() const
 void ANazarenePlayerCharacter::SetCampaignGameMode(ANazareneCampaignGameMode* InCampaignGameMode)
 {
     CampaignGameMode = InCampaignGameMode;
+}
+
+void ANazarenePlayerCharacter::SetCombatEnabled(bool bEnabled)
+{
+    bCombatEnabled = bEnabled;
+
+    if (!bCombatEnabled)
+    {
+        bIsBlocking = false;
+        LockTarget.Reset();
+        PendingAttack = ENazarenePlayerAttackType::None;
+        AttackWindupTimer = 0.0f;
+        AttackActiveTimer = 0.0f;
+        bAttackResolved = false;
+        AttackCooldown = 0.0f;
+        ParryWindowTimer = 0.0f;
+        ParryStartupTimer = 0.0f;
+    }
+}
+
+void ANazarenePlayerCharacter::SetBabyIntroMode(bool bEnabled)
+{
+    if (bBabyIntroMode == bEnabled)
+    {
+        return;
+    }
+
+    bBabyIntroMode = bEnabled;
+    if (bBabyIntroMode)
+    {
+        DefaultActorScale = GetActorScale3D();
+        const float IntroScale = FMath::Max(0.1f, BabyIntroVisualScale);
+        SetActorScale3D(FVector(IntroScale, IntroScale, IntroScale));
+
+        bIsBlocking = false;
+        LockTarget.Reset();
+        PendingAttack = ENazarenePlayerAttackType::None;
+        AttackWindupTimer = 0.0f;
+        AttackActiveTimer = 0.0f;
+        bAttackResolved = false;
+        AttackCooldown = FMath::Max(AttackCooldown, 0.2f);
+        DodgeTimer = 0.0f;
+        InvulnerabilityTimer = 0.0f;
+        ParryWindowTimer = 0.0f;
+        ParryStartupTimer = 0.0f;
+        if (StaffMesh != nullptr)
+        {
+            StaffMesh->SetHiddenInGame(true);
+        }
+    }
+    else
+    {
+        SetActorScale3D(DefaultActorScale);
+        if (StaffMesh != nullptr)
+        {
+            const bool bCharacterMeshVisible = GetMesh() != nullptr && GetMesh()->GetSkeletalMeshAsset() != nullptr;
+            StaffMesh->SetHiddenInGame(bCharacterMeshVisible);
+        }
+    }
 }
 
 void ANazarenePlayerCharacter::SetUnlockedMiracles(const TArray<FName>& Miracles)
@@ -1262,6 +1344,14 @@ void ANazarenePlayerCharacter::Interact()
     if (ActiveNPC.IsValid())
     {
         ActiveNPC->AdvanceDialogue();
+        if (CampaignGameMode.IsValid())
+        {
+            const FString Slug = ActiveNPC->CharacterSlug;
+            if (!Slug.IsEmpty())
+            {
+                CampaignGameMode->NotifyNPCDialogue(FName(*Slug.ToLower()));
+            }
+        }
         return;
     }
 
@@ -1273,6 +1363,11 @@ void ANazarenePlayerCharacter::Interact()
 
 void ANazarenePlayerCharacter::ToggleLockOn()
 {
+    if (bBabyIntroMode || !bCombatEnabled)
+    {
+        return;
+    }
+
     if (LockTarget.IsValid())
     {
         ClearLockTarget();
@@ -1371,6 +1466,11 @@ void ANazarenePlayerCharacter::StopBlock()
 
 void ANazarenePlayerCharacter::TryLightAttack()
 {
+    if (bBabyIntroMode || !bCombatEnabled)
+    {
+        return;
+    }
+
     if (IsBusy() || PendingAttack != ENazarenePlayerAttackType::None)
     {
         return;
@@ -1389,6 +1489,11 @@ void ANazarenePlayerCharacter::TryLightAttack()
 
 void ANazarenePlayerCharacter::TryHeavyAttack()
 {
+    if (bBabyIntroMode || !bCombatEnabled)
+    {
+        return;
+    }
+
     if (IsBusy() || PendingAttack != ENazarenePlayerAttackType::None)
     {
         return;
@@ -1407,6 +1512,11 @@ void ANazarenePlayerCharacter::TryHeavyAttack()
 
 void ANazarenePlayerCharacter::TryDodge()
 {
+    if (bBabyIntroMode || !bCombatEnabled)
+    {
+        return;
+    }
+
     if (IsBusy())
     {
         return;
@@ -1440,6 +1550,11 @@ void ANazarenePlayerCharacter::TryDodge()
 
 void ANazarenePlayerCharacter::TryParry()
 {
+    if (bBabyIntroMode || !bCombatEnabled)
+    {
+        return;
+    }
+
     if (IsBusy())
     {
         return;
@@ -1456,6 +1571,11 @@ void ANazarenePlayerCharacter::TryParry()
 
 void ANazarenePlayerCharacter::TryHealingMiracle()
 {
+    if (bBabyIntroMode || !bCombatEnabled)
+    {
+        return;
+    }
+
     if (AbilitySystemComponent != nullptr)
     {
         if (AbilitySystemComponent->TryActivateAbilityByClass(UGA_NazareneHeal::StaticClass()))
@@ -1476,6 +1596,11 @@ void ANazarenePlayerCharacter::TryHealingMiracle()
 
 void ANazarenePlayerCharacter::TryBlessingMiracle()
 {
+    if (bBabyIntroMode || !bCombatEnabled)
+    {
+        return;
+    }
+
     if (AbilitySystemComponent != nullptr)
     {
         if (AbilitySystemComponent->TryActivateAbilityByClass(UGA_NazareneBlessing::StaticClass()))
@@ -1496,6 +1621,11 @@ void ANazarenePlayerCharacter::TryBlessingMiracle()
 
 void ANazarenePlayerCharacter::TryRadianceMiracle()
 {
+    if (bBabyIntroMode || !bCombatEnabled)
+    {
+        return;
+    }
+
     if (AbilitySystemComponent != nullptr)
     {
         if (AbilitySystemComponent->TryActivateAbilityByClass(UGA_NazareneRadiance::StaticClass()))
@@ -1739,7 +1869,7 @@ void ANazarenePlayerCharacter::ClearLockTarget()
 
 bool ANazarenePlayerCharacter::IsBusy() const
 {
-    return AttackCooldown > 0.0f || DodgeTimer > 0.0f || HurtTimer > 0.0f;
+    return bBabyIntroMode || !bCombatEnabled || AttackCooldown > 0.0f || DodgeTimer > 0.0f || HurtTimer > 0.0f;
 }
 
 bool ANazarenePlayerCharacter::ConsumeStamina(float Cost)
@@ -1840,6 +1970,10 @@ void ANazarenePlayerCharacter::UpdateMovementState(float DeltaSeconds)
     if (!bCombatState && SmoothedInputMagnitude >= TraversalInputThreshold)
     {
         MovementMultiplier = FMath::Max(MovementMultiplier, TraversalRunMultiplier);
+    }
+    if (bBabyIntroMode)
+    {
+        MovementMultiplier *= FMath::Clamp(BabyIntroMovementMultiplier, 0.2f, 1.0f);
     }
 
     GetCharacterMovement()->MaxWalkSpeed = WalkSpeed * MovementMultiplier;
