@@ -26,6 +26,7 @@
 #include "NazareneEnemyCharacter.h"
 #include "NazareneGameInstance.h"
 #include "NazareneNPC.h"
+#include "NazareneAssetResolver.h"
 #include "NazareneRegionDataAsset.h"
 #include "NazareneHUD.h"
 #include "NazarenePlayerCharacter.h"
@@ -375,6 +376,27 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     {
         { ENazareneSpawnTrigger::OnBossPhaseChange, 3, { { FName(TEXT("empty_tomb_wave_demon_01")), TEXT("Final Spirit"), ENazareneEnemyArchetype::Demon, FVector(600.0f, -2100.0f, 100.0f) }, { FName(TEXT("empty_tomb_wave_demon_02")), TEXT("Final Spirit"), ENazareneEnemyArchetype::Demon, FVector(-600.0f, -2100.0f, 100.0f) } }, 0.5f }
     };
+
+    auto ResolveRegionMap = [](const TCHAR* OverrideKey, FNazareneRegionDefinition& RegionDef)
+    {
+        RegionDef.StreamedLevelPackage = NazareneAssetResolver::ResolveMapPackage(
+            OverrideKey,
+            RegionDef.StreamedLevelPackage,
+            {
+                TEXT("/Game/MiddleEasternTown/Maps/L_MiddleEasternTown"),
+                TEXT("/Game/MiddleEasternTown/Maps/MiddleEasternTown_Demo"),
+                TEXT("/Game/Environment/MiddleEasternTown/Maps/L_MiddleEasternTown"),
+                TEXT("/Game/AncientMiddleEast/Maps/L_AncientMiddleEastTown")
+            });
+    };
+
+    ResolveRegionMap(TEXT("GalileeMap"), Galilee);
+    ResolveRegionMap(TEXT("DecapolisMap"), Decapolis);
+    ResolveRegionMap(TEXT("WildernessMap"), Wilderness);
+    ResolveRegionMap(TEXT("JerusalemMap"), Jerusalem);
+    ResolveRegionMap(TEXT("GethsemaneMap"), Gethsemane);
+    ResolveRegionMap(TEXT("ViaDolorosaMap"), ViaDolorosa);
+    ResolveRegionMap(TEXT("EmptyTombMap"), EmptyTomb);
 
     Regions = { Galilee, Decapolis, Wilderness, Jerusalem, Gethsemane, ViaDolorosa, EmptyTomb };
 }

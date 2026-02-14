@@ -3,6 +3,7 @@
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "NazareneCursorWidget.h"
 #include "NazareneHUDWidget.h"
 
 void ANazareneHUD::BeginPlay()
@@ -22,6 +23,12 @@ void ANazareneHUD::BeginPlay()
     }
 
     RuntimeWidget->AddToViewport(0);
+    CursorWidget = CreateWidget<UNazareneCursorWidget>(PlayerController, UNazareneCursorWidget::StaticClass());
+    if (CursorWidget != nullptr)
+    {
+        CursorWidget->AddToViewport(1000);
+    }
+
     RuntimeWidget->SetRegionName(RegionName);
     RuntimeWidget->SetObjective(Objective);
     SetStartMenuVisible(true);
@@ -168,6 +175,9 @@ void ANazareneHUD::ApplyMenuInputMode(bool bMenuVisible)
 
     UGameplayStatics::SetGamePaused(this, bMenuVisible);
     PlayerController->bShowMouseCursor = bMenuVisible;
+    PlayerController->bEnableClickEvents = bMenuVisible;
+    PlayerController->bEnableMouseOverEvents = bMenuVisible;
+    PlayerController->CurrentMouseCursor = bMenuVisible ? EMouseCursor::None : EMouseCursor::Default;
 
     if (bMenuVisible)
     {
@@ -180,4 +190,3 @@ void ANazareneHUD::ApplyMenuInputMode(bool bMenuVisible)
 
     PlayerController->SetInputMode(FInputModeGameOnly());
 }
-

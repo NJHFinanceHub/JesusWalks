@@ -22,6 +22,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "NazareneAbilitySystemComponent.h"
+#include "NazareneAssetResolver.h"
 #include "NazareneAttributeSet.h"
 #include "NazareneCampaignGameMode.h"
 #include "NazareneEnemyCharacter.h"
@@ -141,16 +142,21 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
 
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
     CameraBoom->SetupAttachment(GetCapsuleComponent());
-    CameraBoom->TargetArmLength = 480.0f;
-    CameraBoom->SocketOffset = FVector(0.0f, 0.0f, 150.0f);
+    CameraBoom->TargetArmLength = 520.0f;
+    CameraBoom->SocketOffset = FVector(0.0f, 0.0f, 164.0f);
     CameraBoom->bUsePawnControlRotation = true;
     CameraBoom->bEnableCameraLag = true;
-    CameraBoom->CameraLagSpeed = 14.0f;
+    CameraBoom->CameraLagSpeed = 13.0f;
+    CameraBoom->bEnableCameraRotationLag = true;
+    CameraBoom->CameraRotationLagSpeed = 11.5f;
+    CameraBoom->CameraLagMaxDistance = 120.0f;
+    CameraBoom->bUseCameraLagSubstepping = true;
+    CameraBoom->CameraLagMaxTimeStep = 1.0f / 60.0f;
 
     FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     FollowCamera->SetupAttachment(CameraBoom);
     FollowCamera->bUsePawnControlRotation = false;
-    FollowCamera->FieldOfView = 68.0f;
+    FollowCamera->FieldOfView = 72.0f;
 
     GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -92.0f));
     GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
@@ -160,11 +166,27 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
 
     if (!ProductionSkeletalMesh.ToSoftObjectPath().IsValid())
     {
-        ProductionSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Art/Characters/Player/SK_BiblicalHero.SK_BiblicalHero")));
+        const FString ResolvedPlayerMesh = NazareneAssetResolver::ResolveObjectPath(
+            TEXT("PlayerSkeletalMesh"),
+            TEXT("/Game/Art/Characters/Player/SK_BiblicalHero.SK_BiblicalHero"),
+            {
+                TEXT("/Game/Characters/MedievalOrientalArmour/SK_MOH_Hero.SK_MOH_Hero"),
+                TEXT("/Game/Characters/MedievalOrientalArmour/Meshes/SK_MOH_Hero.SK_MOH_Hero"),
+                TEXT("/Game/MedievalOrientalArmour/SK_MOH_Hero.SK_MOH_Hero")
+            });
+        ProductionSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(ResolvedPlayerMesh));
     }
     if (!ProductionAnimBlueprint.ToSoftObjectPath().IsValid())
     {
-        ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(TEXT("/Game/Art/Animation/ABP_BiblicalHero.ABP_BiblicalHero_C")));
+        const FString ResolvedPlayerAnimBP = NazareneAssetResolver::ResolveObjectPath(
+            TEXT("PlayerAnimBlueprint"),
+            TEXT("/Game/Art/Animation/ABP_BiblicalHero.ABP_BiblicalHero_C"),
+            {
+                TEXT("/Game/AnimationStarterPack/UE4ASP_HeroTPP_AnimBlueprint.UE4ASP_HeroTPP_AnimBlueprint_C"),
+                TEXT("/Game/Characters/MedievalOrientalArmour/Animations/ABP_MOH_Hero.ABP_MOH_Hero_C"),
+                TEXT("/Game/MedievalOrientalArmour/Animations/ABP_MOH_Hero.ABP_MOH_Hero_C")
+            });
+        ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(ResolvedPlayerAnimBP));
     }
 
     if (LightAttackSound == nullptr)
@@ -193,6 +215,11 @@ ANazarenePlayerCharacter::ANazarenePlayerCharacter()
     bUseControllerRotationRoll = false;
     GetCharacterMovement()->bOrientRotationToMovement = true;
     GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
+    GetCharacterMovement()->MaxAcceleration = 2200.0f;
+    GetCharacterMovement()->BrakingDecelerationWalking = 1800.0f;
+    GetCharacterMovement()->GroundFriction = 6.0f;
+    GetCharacterMovement()->BrakingFrictionFactor = 1.0f;
+    GetCharacterMovement()->AirControl = 0.2f;
     GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
     CampaignBaseMaxHealth = MaxHealth;
@@ -267,8 +294,31 @@ void ANazarenePlayerCharacter::BeginPlay()
 
     if (APlayerController* PC = Cast<APlayerController>(GetController()))
     {
-        PC->SetInputMode(FInputModeGameOnly());
-        PC->bShowMouseCursor = false;
+        bool bMenuVisible = false;
+        if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
+        {
+            bMenuVisible = HUD->IsStartMenuVisible() || HUD->IsPauseMenuVisible();
+        }
+
+        if (bMenuVisible)
+        {
+            FInputModeGameAndUI InputMode;
+            InputMode.SetHideCursorDuringCapture(false);
+            InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+            PC->SetInputMode(InputMode);
+            PC->bShowMouseCursor = true;
+            PC->bEnableClickEvents = true;
+            PC->bEnableMouseOverEvents = true;
+            PC->CurrentMouseCursor = EMouseCursor::None;
+        }
+        else
+        {
+            PC->SetInputMode(FInputModeGameOnly());
+            PC->bShowMouseCursor = false;
+            PC->bEnableClickEvents = false;
+            PC->bEnableMouseOverEvents = false;
+            PC->CurrentMouseCursor = EMouseCursor::Default;
+        }
     }
 
     RegisterEnhancedInputMappingContext();
@@ -1262,11 +1312,17 @@ void ANazarenePlayerCharacter::TogglePause()
     if (!bPaused)
     {
         PC->bShowMouseCursor = true;
+        PC->bEnableClickEvents = true;
+        PC->bEnableMouseOverEvents = true;
+        PC->CurrentMouseCursor = EMouseCursor::None;
         PC->SetInputMode(FInputModeGameAndUI());
     }
     else
     {
         PC->bShowMouseCursor = false;
+        PC->bEnableClickEvents = false;
+        PC->bEnableMouseOverEvents = false;
+        PC->CurrentMouseCursor = EMouseCursor::Default;
         PC->SetInputMode(FInputModeGameOnly());
     }
 }
@@ -1277,9 +1333,15 @@ void ANazarenePlayerCharacter::ToggleMouseCapture()
     {
         const bool bShow = !PC->bShowMouseCursor;
         PC->bShowMouseCursor = bShow;
+        PC->bEnableClickEvents = bShow;
+        PC->bEnableMouseOverEvents = bShow;
+        PC->CurrentMouseCursor = bShow ? EMouseCursor::None : EMouseCursor::Default;
         if (bShow)
         {
-            PC->SetInputMode(FInputModeGameAndUI());
+            FInputModeGameAndUI InputMode;
+            InputMode.SetHideCursorDuringCapture(false);
+            InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+            PC->SetInputMode(InputMode);
         }
         else
         {

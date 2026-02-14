@@ -6,6 +6,7 @@
 #include "NazareneHUD.generated.h"
 
 class UNazareneHUDWidget;
+class UNazareneCursorWidget;
 
 UCLASS()
 class THENAZARENEAAA_API ANazareneHUD : public AHUD
@@ -62,7 +63,9 @@ private:
     UPROPERTY()
     TObjectPtr<UNazareneHUDWidget> RuntimeWidget;
 
+    UPROPERTY()
+    TObjectPtr<UNazareneCursorWidget> CursorWidget;
+
     FString RegionName = TEXT("Chapter 1: Galilee Shores");
     FString Objective = TEXT("Redeem the guardian.");
 };
-

@@ -9,6 +9,7 @@
 #include "Materials/MaterialInterface.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "NazareneAssetResolver.h"
 #include "NazareneEnemyAIController.h"
 #include "NazareneEnemyAnimInstance.h"
 #include "NazarenePlayerCharacter.h"
@@ -104,11 +105,27 @@ ANazareneEnemyCharacter::ANazareneEnemyCharacter()
 
     if (!ProductionSkeletalMesh.ToSoftObjectPath().IsValid())
     {
-        ProductionSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Art/Characters/Enemies/SK_BiblicalLegionary.SK_BiblicalLegionary")));
+        const FString ResolvedEnemyMesh = NazareneAssetResolver::ResolveObjectPath(
+            TEXT("EnemySkeletalMesh"),
+            TEXT("/Game/Art/Characters/Enemies/SK_BiblicalLegionary.SK_BiblicalLegionary"),
+            {
+                TEXT("/Game/Characters/MedievalOrientalArmour/SK_MOH_Soldier.SK_MOH_Soldier"),
+                TEXT("/Game/Characters/MedievalOrientalArmour/Meshes/SK_MOH_Soldier.SK_MOH_Soldier"),
+                TEXT("/Game/MedievalOrientalArmour/SK_MOH_Soldier.SK_MOH_Soldier")
+            });
+        ProductionSkeletalMesh = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(ResolvedEnemyMesh));
     }
     if (!ProductionAnimBlueprint.ToSoftObjectPath().IsValid())
     {
-        ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(TEXT("/Game/Art/Animation/ABP_BiblicalEnemy.ABP_BiblicalEnemy_C")));
+        const FString ResolvedEnemyAnimBP = NazareneAssetResolver::ResolveObjectPath(
+            TEXT("EnemyAnimBlueprint"),
+            TEXT("/Game/Art/Animation/ABP_BiblicalEnemy.ABP_BiblicalEnemy_C"),
+            {
+                TEXT("/Game/AnimationStarterPack/UE4ASP_HeroTPP_AnimBlueprint.UE4ASP_HeroTPP_AnimBlueprint_C"),
+                TEXT("/Game/Characters/MedievalOrientalArmour/Animations/ABP_MOH_Soldier.ABP_MOH_Soldier_C"),
+                TEXT("/Game/MedievalOrientalArmour/Animations/ABP_MOH_Soldier.ABP_MOH_Soldier_C")
+            });
+        ProductionAnimBlueprint = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(ResolvedEnemyAnimBP));
     }
 
     if (AttackSound == nullptr)
