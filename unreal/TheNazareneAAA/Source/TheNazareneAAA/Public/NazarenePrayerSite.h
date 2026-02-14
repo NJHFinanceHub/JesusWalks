@@ -57,8 +57,25 @@ private:
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<UStaticMeshComponent> AltarMesh;
 
+    /** Sacred flame mesh - bonfire-style ember glow above altar. */
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> FlameMesh;
+
+    /** Stone ring base around altar for grounded sacred look. */
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> StoneRingMesh;
+
+    /** Primary warm prayer light (inner glow - bright, small radius). */
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<UPointLightComponent> PrayerLight;
+
+    /** Secondary warm fill light (outer glow - dim, large radius). */
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UPointLightComponent> OuterGlowLight;
+
+    /** Ground-level amber rim light for bonfire ground scatter. */
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UPointLightComponent> GroundScatterLight;
 
     UFUNCTION()
     void HandleOverlapBegin(

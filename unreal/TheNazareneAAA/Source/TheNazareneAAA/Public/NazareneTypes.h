@@ -303,6 +303,134 @@ enum class ENazareneVFXType : uint8
     BossArenaHazard = 7,
     BossPhaseTransition = 8,
     DodgeTrail = 9,
-    ParryFlash = 10
+    ParryFlash = 10,
+    // Ambient atmospheric VFX (Dark Souls-inspired)
+    AmbientDustMotes = 11 UMETA(DisplayName = "Dust Motes"),
+    AmbientEmbers = 12 UMETA(DisplayName = "Floating Embers"),
+    AmbientGodRays = 13 UMETA(DisplayName = "God Rays"),
+    AmbientMistWisps = 14 UMETA(DisplayName = "Mist Wisps"),
+    AmbientFallingLeaves = 15 UMETA(DisplayName = "Falling Leaves"),
+    AmbientSandParticles = 16 UMETA(DisplayName = "Sand Particles"),
+    AmbientAshFall = 17 UMETA(DisplayName = "Ash Fall"),
+    AmbientDawnRays = 18 UMETA(DisplayName = "Dawn Rays"),
+    AmbientHolyGlow = 19 UMETA(DisplayName = "Holy Glow"),
+    AmbientMoonlitHaze = 20 UMETA(DisplayName = "Moonlit Haze"),
+    AmbientTorchSparks = 21 UMETA(DisplayName = "Torch Sparks"),
+    AmbientCrowdDust = 22 UMETA(DisplayName = "Crowd Dust")
+};
+
+/** Atmosphere preset for Dark Souls-quality per-region lighting and post-processing. */
+USTRUCT(BlueprintType)
+struct FNazareneAtmospherePreset
+{
+    GENERATED_BODY()
+
+    // Directional light (sun/moon)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Sun")
+    FLinearColor SunColor = FLinearColor(1.0f, 0.95f, 0.82f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Sun")
+    float SunIntensity = 10.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Sun")
+    float SunTemperature = 6000.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Sun")
+    FRotator SunRotation = FRotator(-38.0f, -32.0f, 0.0f);
+
+    // Sky light
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Sky")
+    float SkyIntensity = 0.65f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Sky")
+    FLinearColor SkyTint = FLinearColor(0.42f, 0.44f, 0.52f);
+
+    // Exponential height fog
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Fog")
+    float FogDensity = 0.018f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Fog")
+    float FogHeightFalloff = 0.22f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Fog")
+    FLinearColor FogInscatteringColor = FLinearColor(0.28f, 0.24f, 0.18f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Fog")
+    float FogMaxOpacity = 0.92f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Fog")
+    float FogStartDistance = 200.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Fog")
+    bool bVolumetricFog = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Fog")
+    float VolumetricFogScatteringDistribution = 0.35f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Fog")
+    float VolumetricFogExtinctionScale = 1.2f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Fog")
+    float SecondFogDensity = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Fog")
+    FLinearColor SecondFogColor = FLinearColor::Black;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Fog")
+    float SecondFogHeightOffset = -500.0f;
+
+    // Post-process
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    float BlendWeight = 0.88f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    FVector4 ColorSaturation = FVector4(0.88f, 0.86f, 0.84f, 1.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    FVector4 ColorContrast = FVector4(1.12f, 1.12f, 1.10f, 1.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    FVector4 ColorGamma = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    FVector4 ColorGain = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    float AutoExposureBias = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    float BloomIntensity = 0.72f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    float BloomThreshold = 1.2f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    float VignetteIntensity = 0.42f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    float ChromaticAberrationIntensity = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    float AmbientOcclusionIntensity = 0.65f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|PostProcess")
+    float AmbientOcclusionRadius = 180.0f;
+
+    // Material tints
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Materials")
+    FLinearColor GroundTint = FLinearColor(0.28f, 0.22f, 0.16f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Materials")
+    FLinearColor AccentTint = FLinearColor(0.58f, 0.50f, 0.38f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Materials")
+    FLinearColor WallTint = FLinearColor(0.42f, 0.36f, 0.30f);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|Materials")
+    float HeightJitter = 80.0f;
+
+    // Ambient VFX types for this region
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Atmosphere|VFX")
+    TArray<ENazareneVFXType> AmbientVFXTypes;
 };
 

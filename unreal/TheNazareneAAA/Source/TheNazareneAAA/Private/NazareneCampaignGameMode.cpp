@@ -28,6 +28,7 @@
 #include "NazareneNPC.h"
 #include "NazareneAssetResolver.h"
 #include "NazareneRegionDataAsset.h"
+#include "NazareneVFXSubsystem.h"
 #include "NazareneHUD.h"
 #include "NazarenePlayerCharacter.h"
 #include "NazarenePrayerSite.h"
@@ -611,11 +612,35 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
     const FName ViaDolorosaId(TEXT("via_dolorosa"));
     const FName EmptyTombId(TEXT("empty_tomb"));
 
-    FLinearColor SunColor = FLinearColor(1.0f, 0.95f, 0.82f);
-    float SunIntensity = 10.0f;
-    FLinearColor GroundTint = FLinearColor(0.35f, 0.28f, 0.19f);
-    FLinearColor AccentTint = FLinearColor(0.72f, 0.63f, 0.47f);
+    // Dark Souls-inspired atmosphere defaults: muted, high-contrast, dramatic
+    FLinearColor SunColor = FLinearColor(0.92f, 0.85f, 0.68f);
+    float SunIntensity = 8.0f;
+    float SunTemperature = 5800.0f;
+    FRotator SunRotation(-42.0f, -28.0f, 0.0f);
+    float SkyIntensity = 0.55f;
+    FLinearColor SkyTint = FLinearColor(0.38f, 0.40f, 0.48f);
+    float FogDensity = 0.020f;
+    float FogHeightFalloff = 0.20f;
+    FLinearColor FogInscatteringColor = FLinearColor(0.22f, 0.18f, 0.14f);
+    float FogMaxOpacity = 0.92f;
+    float SecondFogDensity = 0.0f;
+    FLinearColor SecondFogColor = FLinearColor::Black;
+    float SecondFogHeightOffset = -500.0f;
+    float PostProcessBlendWeight = 0.90f;
+    FVector4 PPColorSaturation(0.86f, 0.84f, 0.82f, 1.0f);
+    FVector4 PPColorContrast(1.14f, 1.14f, 1.12f, 1.0f);
+    FVector4 PPColorGamma(1.0f, 1.0f, 1.02f, 1.0f);
+    FVector4 PPColorGain(1.0f, 0.98f, 0.95f, 1.0f);
+    float PPAutoExposureBias = 0.0f;
+    float PPBloomIntensity = 0.72f;
+    float PPBloomThreshold = 1.1f;
+    float PPVignetteIntensity = 0.45f;
+    float PPAmbientOcclusionIntensity = 0.65f;
+    float PPAmbientOcclusionRadius = 200.0f;
+    FLinearColor GroundTint = FLinearColor(0.26f, 0.20f, 0.14f);
+    FLinearColor AccentTint = FLinearColor(0.52f, 0.44f, 0.34f);
     float HeightJitter = 80.0f;
+    TArray<ENazareneVFXType> AmbientVFXTypes;
 
     const FString ResolvedBlockMeshPath = NazareneAssetResolver::ResolveObjectPath(
         TEXT("EnvMeshBlock"),
@@ -687,68 +712,221 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
 
     FString EnvironmentMaterialPath = ResolvedStoneMaterialPath;
 
+    // -----------------------------------------------------------------------
+    // Dark Souls-quality per-region atmosphere presets
+    // Each region has a distinct visual identity: desaturated world with
+    // selective warm accents, heavy atmospheric fog, dramatic contrast,
+    // vignette, bloom on practical lights, and ambient particle VFX.
+    // -----------------------------------------------------------------------
     if (Region.RegionId == GalileeId)
     {
-        SunColor = FLinearColor(1.0f, 0.97f, 0.88f);
-        SunIntensity = 10.5f;
-        GroundTint = FLinearColor(0.32f, 0.35f, 0.22f);
-        AccentTint = FLinearColor(0.42f, 0.54f, 0.66f);
+        // Galilee: Melancholic lakeside dawn — hazy blue-green with warm pockets
+        SunColor = FLinearColor(0.88f, 0.90f, 0.78f);
+        SunIntensity = 8.5f;
+        SunTemperature = 6200.0f;
+        SunRotation = FRotator(-32.0f, -42.0f, 0.0f);
+        SkyTint = FLinearColor(0.42f, 0.48f, 0.56f);
+        FogDensity = 0.024f;
+        FogHeightFalloff = 0.18f;
+        FogInscatteringColor = FLinearColor(0.28f, 0.32f, 0.38f);
+        SecondFogDensity = 0.008f;
+        SecondFogColor = FLinearColor(0.18f, 0.22f, 0.30f);
+        SecondFogHeightOffset = -200.0f;
+        PPColorSaturation = FVector4(0.82f, 0.85f, 0.90f, 1.0f);
+        PPColorContrast = FVector4(1.12f, 1.10f, 1.08f, 1.0f);
+        PPColorGain = FVector4(0.96f, 0.98f, 1.02f, 1.0f);
+        PPAutoExposureBias = -0.1f;
+        PPBloomIntensity = 0.65f;
+        PPVignetteIntensity = 0.38f;
+        PPAmbientOcclusionIntensity = 0.55f;
+        GroundTint = FLinearColor(0.24f, 0.28f, 0.18f);
+        AccentTint = FLinearColor(0.36f, 0.44f, 0.52f);
         HeightJitter = 120.0f;
         EnvironmentMaterialPath = ResolvedOliveMaterialPath;
+        AmbientVFXTypes = { ENazareneVFXType::AmbientDustMotes, ENazareneVFXType::AmbientMistWisps, ENazareneVFXType::AmbientGodRays };
     }
     else if (Region.RegionId == DecapolisId)
     {
-        SunColor = FLinearColor(0.96f, 0.90f, 0.80f);
-        SunIntensity = 9.8f;
-        GroundTint = FLinearColor(0.34f, 0.31f, 0.30f);
-        AccentTint = FLinearColor(0.68f, 0.66f, 0.61f);
+        // Decapolis: Abandoned ruins — overcast gray-brown, torch-lit columns
+        SunColor = FLinearColor(0.82f, 0.76f, 0.68f);
+        SunIntensity = 7.2f;
+        SunTemperature = 5400.0f;
+        SunRotation = FRotator(-48.0f, -20.0f, 0.0f);
+        SkyTint = FLinearColor(0.36f, 0.34f, 0.36f);
+        FogDensity = 0.026f;
+        FogHeightFalloff = 0.16f;
+        FogInscatteringColor = FLinearColor(0.24f, 0.22f, 0.20f);
+        SecondFogDensity = 0.005f;
+        SecondFogColor = FLinearColor(0.18f, 0.16f, 0.15f);
+        SecondFogHeightOffset = -300.0f;
+        PPColorSaturation = FVector4(0.78f, 0.76f, 0.76f, 1.0f);
+        PPColorContrast = FVector4(1.18f, 1.16f, 1.14f, 1.0f);
+        PPColorGain = FVector4(0.95f, 0.93f, 0.90f, 1.0f);
+        PPAutoExposureBias = -0.15f;
+        PPBloomIntensity = 0.80f;
+        PPBloomThreshold = 0.9f;
+        PPVignetteIntensity = 0.50f;
+        PPAmbientOcclusionIntensity = 0.75f;
+        PPAmbientOcclusionRadius = 250.0f;
+        GroundTint = FLinearColor(0.26f, 0.24f, 0.22f);
+        AccentTint = FLinearColor(0.52f, 0.48f, 0.44f);
         HeightJitter = 160.0f;
         EnvironmentMaterialPath = ResolvedStoneMaterialPath;
+        AmbientVFXTypes = { ENazareneVFXType::AmbientDustMotes, ENazareneVFXType::AmbientTorchSparks, ENazareneVFXType::AmbientAshFall };
     }
     else if (Region.RegionId == WildernessId)
     {
-        SunColor = FLinearColor(0.98f, 0.78f, 0.58f);
-        SunIntensity = 11.2f;
-        GroundTint = FLinearColor(0.42f, 0.29f, 0.16f);
-        AccentTint = FLinearColor(0.79f, 0.58f, 0.32f);
+        // Wilderness: Scorching desolation — harsh orange sun, blinding heat, sand particles
+        SunColor = FLinearColor(0.95f, 0.72f, 0.42f);
+        SunIntensity = 12.0f;
+        SunTemperature = 4800.0f;
+        SunRotation = FRotator(-28.0f, -15.0f, 0.0f);
+        SkyTint = FLinearColor(0.52f, 0.42f, 0.30f);
+        SkyIntensity = 0.70f;
+        FogDensity = 0.018f;
+        FogHeightFalloff = 0.12f;
+        FogInscatteringColor = FLinearColor(0.48f, 0.36f, 0.22f);
+        SecondFogDensity = 0.010f;
+        SecondFogColor = FLinearColor(0.42f, 0.30f, 0.18f);
+        SecondFogHeightOffset = -100.0f;
+        PPColorSaturation = FVector4(0.90f, 0.80f, 0.68f, 1.0f);
+        PPColorContrast = FVector4(1.20f, 1.18f, 1.10f, 1.0f);
+        PPColorGamma = FVector4(0.98f, 0.96f, 0.94f, 1.0f);
+        PPColorGain = FVector4(1.08f, 0.98f, 0.85f, 1.0f);
+        PPAutoExposureBias = 0.35f;
+        PPBloomIntensity = 0.90f;
+        PPBloomThreshold = 0.8f;
+        PPVignetteIntensity = 0.55f;
+        PPAmbientOcclusionIntensity = 0.50f;
+        GroundTint = FLinearColor(0.36f, 0.24f, 0.12f);
+        AccentTint = FLinearColor(0.62f, 0.46f, 0.26f);
         HeightJitter = 210.0f;
         EnvironmentMaterialPath = ResolvedSandMaterialPath;
+        AmbientVFXTypes = { ENazareneVFXType::AmbientSandParticles, ENazareneVFXType::AmbientDustMotes, ENazareneVFXType::AmbientEmbers };
     }
     else if (Region.RegionId == JerusalemId)
     {
-        SunColor = FLinearColor(1.0f, 0.92f, 0.76f);
-        SunIntensity = 10.1f;
-        GroundTint = FLinearColor(0.39f, 0.35f, 0.27f);
-        AccentTint = FLinearColor(0.74f, 0.69f, 0.56f);
+        // Jerusalem: Golden hour grandeur — warm stone, deep shadows, monumental
+        SunColor = FLinearColor(0.98f, 0.86f, 0.62f);
+        SunIntensity = 9.2f;
+        SunTemperature = 5200.0f;
+        SunRotation = FRotator(-25.0f, -55.0f, 0.0f);
+        SkyTint = FLinearColor(0.48f, 0.42f, 0.34f);
+        FogDensity = 0.016f;
+        FogHeightFalloff = 0.22f;
+        FogInscatteringColor = FLinearColor(0.32f, 0.26f, 0.18f);
+        SecondFogDensity = 0.004f;
+        SecondFogColor = FLinearColor(0.28f, 0.22f, 0.14f);
+        SecondFogHeightOffset = -400.0f;
+        PPColorSaturation = FVector4(0.88f, 0.84f, 0.78f, 1.0f);
+        PPColorContrast = FVector4(1.16f, 1.14f, 1.10f, 1.0f);
+        PPColorGain = FVector4(1.04f, 0.96f, 0.86f, 1.0f);
+        PPAutoExposureBias = 0.10f;
+        PPBloomIntensity = 0.75f;
+        PPVignetteIntensity = 0.42f;
+        PPAmbientOcclusionIntensity = 0.70f;
+        PPAmbientOcclusionRadius = 220.0f;
+        GroundTint = FLinearColor(0.32f, 0.28f, 0.20f);
+        AccentTint = FLinearColor(0.60f, 0.52f, 0.40f);
         HeightJitter = 140.0f;
         EnvironmentMaterialPath = ResolvedStoneMaterialPath;
+        AmbientVFXTypes = { ENazareneVFXType::AmbientDustMotes, ENazareneVFXType::AmbientGodRays, ENazareneVFXType::AmbientCrowdDust };
     }
     else if (Region.RegionId == GethsemaneId)
     {
-        SunColor = FLinearColor(0.52f, 0.55f, 0.72f);
-        SunIntensity = 5.8f;
-        GroundTint = FLinearColor(0.22f, 0.26f, 0.18f);
-        AccentTint = FLinearColor(0.34f, 0.42f, 0.30f);
+        // Gethsemane: Moonlit anguish — deep blue darkness, candle warmth in void
+        SunColor = FLinearColor(0.38f, 0.42f, 0.62f);
+        SunIntensity = 3.8f;
+        SunTemperature = 8500.0f;
+        SunRotation = FRotator(-65.0f, -10.0f, 0.0f);
+        SkyIntensity = 0.25f;
+        SkyTint = FLinearColor(0.14f, 0.16f, 0.28f);
+        FogDensity = 0.032f;
+        FogHeightFalloff = 0.14f;
+        FogInscatteringColor = FLinearColor(0.10f, 0.12f, 0.22f);
+        FogMaxOpacity = 0.96f;
+        SecondFogDensity = 0.012f;
+        SecondFogColor = FLinearColor(0.08f, 0.10f, 0.18f);
+        SecondFogHeightOffset = -150.0f;
+        PostProcessBlendWeight = 0.94f;
+        PPColorSaturation = FVector4(0.72f, 0.76f, 0.98f, 1.0f);
+        PPColorContrast = FVector4(1.22f, 1.20f, 1.16f, 1.0f);
+        PPColorGamma = FVector4(1.06f, 1.04f, 0.98f, 1.0f);
+        PPColorGain = FVector4(0.85f, 0.88f, 1.08f, 1.0f);
+        PPAutoExposureBias = -0.55f;
+        PPBloomIntensity = 0.95f;
+        PPBloomThreshold = 0.6f;
+        PPVignetteIntensity = 0.62f;
+        PPAmbientOcclusionIntensity = 0.85f;
+        PPAmbientOcclusionRadius = 280.0f;
+        GroundTint = FLinearColor(0.14f, 0.16f, 0.12f);
+        AccentTint = FLinearColor(0.22f, 0.28f, 0.20f);
         HeightJitter = 90.0f;
         EnvironmentMaterialPath = ResolvedOliveMaterialPath;
+        AmbientVFXTypes = { ENazareneVFXType::AmbientMoonlitHaze, ENazareneVFXType::AmbientFallingLeaves, ENazareneVFXType::AmbientMistWisps };
     }
     else if (Region.RegionId == ViaDolorosaId)
     {
-        SunColor = FLinearColor(0.88f, 0.72f, 0.58f);
-        SunIntensity = 8.4f;
-        GroundTint = FLinearColor(0.44f, 0.34f, 0.26f);
-        AccentTint = FLinearColor(0.62f, 0.52f, 0.40f);
+        // Via Dolorosa: Oppressive corridor — dusty brown haze, claustrophobic
+        SunColor = FLinearColor(0.78f, 0.62f, 0.48f);
+        SunIntensity = 6.5f;
+        SunTemperature = 4600.0f;
+        SunRotation = FRotator(-55.0f, -35.0f, 0.0f);
+        SkyIntensity = 0.35f;
+        SkyTint = FLinearColor(0.32f, 0.28f, 0.24f);
+        FogDensity = 0.038f;
+        FogHeightFalloff = 0.14f;
+        FogInscatteringColor = FLinearColor(0.38f, 0.28f, 0.18f);
+        FogMaxOpacity = 0.95f;
+        SecondFogDensity = 0.014f;
+        SecondFogColor = FLinearColor(0.30f, 0.22f, 0.14f);
+        SecondFogHeightOffset = -100.0f;
+        PostProcessBlendWeight = 0.92f;
+        PPColorSaturation = FVector4(0.76f, 0.72f, 0.70f, 1.0f);
+        PPColorContrast = FVector4(1.22f, 1.20f, 1.16f, 1.0f);
+        PPColorGain = FVector4(0.98f, 0.90f, 0.82f, 1.0f);
+        PPAutoExposureBias = -0.25f;
+        PPBloomIntensity = 0.85f;
+        PPBloomThreshold = 0.7f;
+        PPVignetteIntensity = 0.58f;
+        PPAmbientOcclusionIntensity = 0.80f;
+        PPAmbientOcclusionRadius = 260.0f;
+        GroundTint = FLinearColor(0.32f, 0.24f, 0.18f);
+        AccentTint = FLinearColor(0.48f, 0.38f, 0.28f);
         HeightJitter = 100.0f;
         EnvironmentMaterialPath = ResolvedStoneMaterialPath;
+        AmbientVFXTypes = { ENazareneVFXType::AmbientCrowdDust, ENazareneVFXType::AmbientDustMotes, ENazareneVFXType::AmbientTorchSparks };
     }
     else if (Region.RegionId == EmptyTombId)
     {
-        SunColor = FLinearColor(1.0f, 1.0f, 0.96f);
-        SunIntensity = 13.0f;
-        GroundTint = FLinearColor(0.46f, 0.42f, 0.38f);
-        AccentTint = FLinearColor(0.82f, 0.80f, 0.74f);
+        // Empty Tomb: Resurrection dawn — radiant golden-white breakthrough, hopeful
+        SunColor = FLinearColor(1.0f, 0.98f, 0.90f);
+        SunIntensity = 14.0f;
+        SunTemperature = 6800.0f;
+        SunRotation = FRotator(-18.0f, -65.0f, 0.0f);
+        SkyIntensity = 0.85f;
+        SkyTint = FLinearColor(0.72f, 0.68f, 0.58f);
+        FogDensity = 0.008f;
+        FogHeightFalloff = 0.30f;
+        FogInscatteringColor = FLinearColor(0.82f, 0.76f, 0.58f);
+        FogMaxOpacity = 0.75f;
+        SecondFogDensity = 0.003f;
+        SecondFogColor = FLinearColor(0.70f, 0.65f, 0.50f);
+        SecondFogHeightOffset = -600.0f;
+        PostProcessBlendWeight = 0.85f;
+        PPColorSaturation = FVector4(0.94f, 0.92f, 0.86f, 1.0f);
+        PPColorContrast = FVector4(1.08f, 1.08f, 1.06f, 1.0f);
+        PPColorGain = FVector4(1.10f, 1.06f, 0.95f, 1.0f);
+        PPAutoExposureBias = 0.65f;
+        PPBloomIntensity = 1.10f;
+        PPBloomThreshold = 0.5f;
+        PPVignetteIntensity = 0.25f;
+        PPAmbientOcclusionIntensity = 0.30f;
+        GroundTint = FLinearColor(0.40f, 0.36f, 0.30f);
+        AccentTint = FLinearColor(0.72f, 0.68f, 0.60f);
         HeightJitter = 60.0f;
         EnvironmentMaterialPath = ResolvedStoneMaterialPath;
+        AmbientVFXTypes = { ENazareneVFXType::AmbientDawnRays, ENazareneVFXType::AmbientHolyGlow, ENazareneVFXType::AmbientGodRays };
     }
 
     auto SpawnMeshActor = [this, EnvironmentMaterialPath, ResolvedBlockMeshPath, ResolvedColumnMeshPath, ResolvedTentMeshPath, ResolvedCanopyMeshPath, ResolvedGroundMeshPath](const TCHAR* MeshPath, const FVector& Location, const FRotator& Rotation, const FVector& Scale, const FLinearColor& Tint) -> AStaticMeshActor*
@@ -860,46 +1038,100 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         SpawnMeshActor(TEXT("/Engine/BasicShapes/Sphere.Sphere"), Root + FVector(30.0f, -25.0f, 190.0f), FRotator::ZeroRotator, FVector(CanopyScale * 0.9f, CanopyScale * 0.9f, CanopyScale * 0.72f), LeafTint * 0.95f);
     };
 
-    ADirectionalLight* Sun = GetWorld()->SpawnActor<ADirectionalLight>(ADirectionalLight::StaticClass(), FVector(0.0f, 0.0f, 600.0f), FRotator(-38.0f, -32.0f, 0.0f));
+    // -----------------------------------------------------------------------
+    // Dark Souls-quality lighting rig: dramatic directional + fill + atmosphere
+    // -----------------------------------------------------------------------
+
+    // Primary directional light (sun/moon)
+    ADirectionalLight* Sun = GetWorld()->SpawnActor<ADirectionalLight>(ADirectionalLight::StaticClass(), FVector(0.0f, 0.0f, 600.0f), SunRotation);
     if (Sun != nullptr)
     {
         Sun->GetLightComponent()->SetIntensity(SunIntensity);
-        Sun->GetLightComponent()->SetTemperature(6000.0f);
+        Sun->GetLightComponent()->SetTemperature(SunTemperature);
         Sun->GetLightComponent()->SetLightColor(SunColor);
+        Sun->GetLightComponent()->SetVolumetricScatteringIntensity(1.2f);
+        Sun->GetLightComponent()->SetUseTemperature(true);
         RegionActors.Add(Sun);
     }
 
+    // Sky light — muted fill, never overpowering
     ASkyLight* SkyLight = GetWorld()->SpawnActor<ASkyLight>(ASkyLight::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
     if (SkyLight != nullptr)
     {
-        SkyLight->GetLightComponent()->SetIntensity(0.95f);
-        SkyLight->GetLightComponent()->SetLightColor(SunColor * 0.55f);
+        SkyLight->GetLightComponent()->SetIntensity(SkyIntensity);
+        SkyLight->GetLightComponent()->SetLightColor(SkyTint);
         RegionActors.Add(SkyLight);
     }
 
+    // Exponential height fog — heavy atmospheric scattering for Dark Souls depth
     AExponentialHeightFog* HeightFog = GetWorld()->SpawnActor<AExponentialHeightFog>(AExponentialHeightFog::StaticClass(), FVector(0.0f, 0.0f, -120.0f), FRotator::ZeroRotator);
     if (HeightFog != nullptr)
     {
-        HeightFog->GetComponent()->SetFogDensity(0.014f);
-        HeightFog->GetComponent()->SetFogHeightFalloff(0.24f);
-        HeightFog->GetComponent()->SetFogInscatteringColor(SunColor * 0.35f);
+        HeightFog->GetComponent()->SetFogDensity(FogDensity);
+        HeightFog->GetComponent()->SetFogHeightFalloff(FogHeightFalloff);
+        HeightFog->GetComponent()->SetFogInscatteringColor(FogInscatteringColor);
+        HeightFog->GetComponent()->SetFogMaxOpacity(FogMaxOpacity);
+        HeightFog->GetComponent()->SetStartDistance(200.0f);
+        HeightFog->GetComponent()->SetVolumetricFog(true);
+        HeightFog->GetComponent()->SetVolumetricFogScatteringDistribution(0.35f);
+        HeightFog->GetComponent()->SetVolumetricFogExtinctionScale(1.2f);
+        if (SecondFogDensity > 0.0f)
+        {
+            HeightFog->GetComponent()->SetSecondFogDensity(SecondFogDensity);
+            HeightFog->GetComponent()->SetSecondFogHeightOffset(SecondFogHeightOffset);
+        }
         RegionActors.Add(HeightFog);
     }
 
+    // Cinematic post-process volume — film-grade color grading, vignette, bloom, AO
     APostProcessVolume* PostProcessVolume = GetWorld()->SpawnActor<APostProcessVolume>(APostProcessVolume::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator);
     if (PostProcessVolume != nullptr)
     {
         PostProcessVolume->bUnbound = true;
-        PostProcessVolume->BlendWeight = 0.72f;
+        PostProcessVolume->BlendWeight = PostProcessBlendWeight;
+
+        // Color grading
         PostProcessVolume->Settings.bOverride_ColorSaturation = true;
-        PostProcessVolume->Settings.ColorSaturation = FVector4(0.96f, 0.94f, 0.92f, 1.0f);
+        PostProcessVolume->Settings.ColorSaturation = PPColorSaturation;
         PostProcessVolume->Settings.bOverride_ColorContrast = true;
-        PostProcessVolume->Settings.ColorContrast = FVector4(1.05f, 1.05f, 1.05f, 1.0f);
+        PostProcessVolume->Settings.ColorContrast = PPColorContrast;
+        PostProcessVolume->Settings.bOverride_ColorGamma = true;
+        PostProcessVolume->Settings.ColorGamma = PPColorGamma;
+        PostProcessVolume->Settings.bOverride_ColorGain = true;
+        PostProcessVolume->Settings.ColorGain = PPColorGain;
+
+        // Exposure
         PostProcessVolume->Settings.bOverride_AutoExposureMethod = true;
         PostProcessVolume->Settings.AutoExposureMethod = EAutoExposureMethod::AEM_Manual;
         PostProcessVolume->Settings.bOverride_AutoExposureBias = true;
-        PostProcessVolume->Settings.AutoExposureBias = 0.25f;
+        PostProcessVolume->Settings.AutoExposureBias = PPAutoExposureBias;
+
+        // Bloom — strong on practical lights for that Dark Souls glow
+        PostProcessVolume->Settings.bOverride_BloomIntensity = true;
+        PostProcessVolume->Settings.BloomIntensity = PPBloomIntensity;
+        PostProcessVolume->Settings.bOverride_BloomThreshold = true;
+        PostProcessVolume->Settings.BloomThreshold = PPBloomThreshold;
+
+        // Vignette — cinematic edge darkening
+        PostProcessVolume->Settings.bOverride_VignetteIntensity = true;
+        PostProcessVolume->Settings.VignetteIntensity = PPVignetteIntensity;
+
+        // Ambient Occlusion — deep shadow contact
+        PostProcessVolume->Settings.bOverride_AmbientOcclusionIntensity = true;
+        PostProcessVolume->Settings.AmbientOcclusionIntensity = PPAmbientOcclusionIntensity;
+        PostProcessVolume->Settings.bOverride_AmbientOcclusionRadius = true;
+        PostProcessVolume->Settings.AmbientOcclusionRadius = PPAmbientOcclusionRadius;
+
         RegionActors.Add(PostProcessVolume);
+    }
+
+    // Spawn ambient atmospheric VFX for this region
+    if (AmbientVFXTypes.Num() > 0)
+    {
+        if (UNazareneVFXSubsystem* VFXSubsystem = GetWorld()->GetSubsystem<UNazareneVFXSubsystem>())
+        {
+            VFXSubsystem->SpawnRegionAmbientVFX(AmbientVFXTypes, Region.PlayerSpawn, 3200.0f);
+        }
     }
 
     // Task 6: Expanded 3x3 ground plane grid for all regions
@@ -1087,21 +1319,6 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
     // -----------------------------------------------------------------------
     else if (Region.RegionId == GethsemaneId)
     {
-        // Override post-process for heavier nighttime blue tint / lower exposure
-        if (PostProcessVolume != nullptr)
-        {
-            PostProcessVolume->BlendWeight = 0.85f;
-            PostProcessVolume->Settings.ColorSaturation = FVector4(0.82f, 0.86f, 1.06f, 1.0f);
-            PostProcessVolume->Settings.AutoExposureBias = -0.35f;
-        }
-
-        // Override fog for moonlit atmosphere
-        if (HeightFog != nullptr)
-        {
-            HeightFog->GetComponent()->SetFogDensity(0.022f);
-            HeightFog->GetComponent()->SetFogInscatteringColor(FLinearColor(0.18f, 0.20f, 0.36f));
-        }
-
         // 28 olive trees arranged in organic clusters
         const FLinearColor OliveTrunk(0.26f, 0.20f, 0.14f);
         const FLinearColor OliveLeaf(0.16f, 0.28f, 0.14f);
@@ -1187,14 +1404,6 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
     // -----------------------------------------------------------------------
     else if (Region.RegionId == ViaDolorosaId)
     {
-        // Override fog for heavy dusty atmosphere
-        if (HeightFog != nullptr)
-        {
-            HeightFog->GetComponent()->SetFogDensity(0.028f);
-            HeightFog->GetComponent()->SetFogHeightFalloff(0.18f);
-            HeightFog->GetComponent()->SetFogInscatteringColor(FLinearColor(0.52f, 0.38f, 0.26f));
-        }
-
         // Two long rows of tall building walls (corridor, 800 units apart)
         const FLinearColor WallTint(0.52f, 0.44f, 0.36f);
         for (int32 Seg = 0; Seg < 8; ++Seg)
@@ -1259,22 +1468,6 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
     // -----------------------------------------------------------------------
     else if (Region.RegionId == EmptyTombId)
     {
-        // Override post-process for bright golden dawn
-        if (PostProcessVolume != nullptr)
-        {
-            PostProcessVolume->BlendWeight = 0.60f;
-            PostProcessVolume->Settings.ColorSaturation = FVector4(1.02f, 1.0f, 0.94f, 1.0f);
-            PostProcessVolume->Settings.AutoExposureBias = 0.60f;
-        }
-
-        // Minimal fog for open feeling
-        if (HeightFog != nullptr)
-        {
-            HeightFog->GetComponent()->SetFogDensity(0.006f);
-            HeightFog->GetComponent()->SetFogHeightFalloff(0.32f);
-            HeightFog->GetComponent()->SetFogInscatteringColor(FLinearColor(0.92f, 0.88f, 0.72f));
-        }
-
         // Tomb entrance: large semicircle of cube meshes forming cave mouth
         const FLinearColor CaveTint(0.40f, 0.36f, 0.32f);
         for (int32 Index = 0; Index < 9; ++Index)

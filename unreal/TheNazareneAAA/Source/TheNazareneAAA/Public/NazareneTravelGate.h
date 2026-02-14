@@ -42,11 +42,25 @@ private:
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<USphereComponent> InteractionSphere;
 
+    /** Primary fog wall mesh - tall vertical plane. */
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<UStaticMeshComponent> GateMesh;
 
+    /** Secondary fog layer for depth. */
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UStaticMeshComponent> FogLayerMesh;
+
+    /** Primary ethereal glow at fog wall center. */
     UPROPERTY(VisibleAnywhere, Category = "Components")
     TObjectPtr<UPointLightComponent> GateLight;
+
+    /** Secondary pulsing light at fog wall edges. */
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UPointLightComponent> EdgeGlowLight;
+
+    /** Ground-level light for fog wall ground scatter. */
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    TObjectPtr<UPointLightComponent> GroundFogLight;
 
     UPROPERTY()
     bool bGateEnabled = false;
