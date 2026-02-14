@@ -67,12 +67,13 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 > Expand the campaign from 4 to 7 chapters per the Gospel narrative arc in `docs/PLOT.md`.
 
 - [ ] Migrate region definitions from hard-coded `BuildDefaultRegions()` to DataTable/DataAsset for all 7 chapters
-- [ ] Define Chapter 5 "Journey to Jerusalem" (roadside villages, discipleship teachings), Chapter 6 "Passion Week" (upper room, Gethsemane, trial), Chapter 7 "Golgotha Crucifixion" (hilltop, solemn crucifixion and burial)
+- [x] Define Chapter 5 "Journey to Jerusalem" (roadside villages, discipleship teachings), Chapter 6 "Passion Week" (upper room, Gethsemane, trial), Chapter 7 "Golgotha Crucifixion" (hilltop, solemn crucifixion and burial)
 - [ ] Author Decapolis Ruins production sublevel (ruined Greco-Roman architecture, overcast lighting)
 - [ ] Author Wilderness of Temptation production sublevel (desert canyons, harsh sun, heat haze)
 - [ ] Author Jerusalem Approach production sublevel (city walls, temple columns, golden hour)
 - [x] Blockout sublevels for chapters 5â€“7 (geometry + lighting placeholder)
-- [ ] Implement `ANazareneNPC` actor with overlap interaction and dialogue text display; place 2â€“3 NPCs per region
+- [x] Add chapter-title HUD labels and per-region reward items that persist into campaign inventory
+- [x] Implement `ANazareneNPC` actor with overlap interaction and dialogue text display; place 2â€“3 NPCs per region
 
 ## Week 5 â€” GAS Miracles + Niagara VFX + Boss Polish
 

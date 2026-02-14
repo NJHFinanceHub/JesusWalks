@@ -121,6 +121,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     Galilee.RegionName = TEXT("Bethlehem Nativity");
     Galilee.Chapter = 1;
     Galilee.Objective = TEXT("Witness the nativity and the promise of the Messiah.");
+    Galilee.ChapterTitle = TEXT("The Promise");
     Galilee.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Galilee/L_GalileeShores"));
     Galilee.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Galilee.PrayerSiteId = FName(TEXT("galilee_site_01"));
@@ -145,6 +146,10 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("galilee_named_boss_01")), TEXT("Legion Sovereign of Gerasa"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2200.0f, 100.0f) }
     };
     Galilee.LoreText = TEXT("In Bethlehem, the Word became flesh; shepherds and sages rejoiced at his birth.");
+    Galilee.RewardItems =
+    {
+        { FName(TEXT("oil_lamp_of_watchfulness")), TEXT("Oil Lamp of Watchfulness"), TEXT("A consecrated lamp carried into dark valleys. Increases resolve."), ENazareneItemType::Relic, ENazareneItemRarity::Rare, 1 }
+    };
     Galilee.NPCs =
     {
         { TEXT("Peter"), TEXT("peter"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Peter"), { { TEXT("Follow me, and I will make you fishers of men."), 4.0f }, { TEXT("The nets are full, Lord."), 4.0f } } },
@@ -156,6 +161,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     Decapolis.RegionName = TEXT("Jordan River Baptism");
     Decapolis.Chapter = 2;
     Decapolis.Objective = TEXT("Be baptized and prepare the way for public ministry.");
+    Decapolis.ChapterTitle = TEXT("Open Heavens");
     Decapolis.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Decapolis/L_DecapolisRuins"));
     Decapolis.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Decapolis.PrayerSiteId = FName(TEXT("decapolis_site_01"));
@@ -180,6 +186,10 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("decapolis_named_boss_01")), TEXT("Gadarene Warlord"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2300.0f, 100.0f) }
     };
     Decapolis.LoreText = TEXT("At the Jordan, the heavens opened and the Father affirmed the Son.");
+    Decapolis.RewardItems =
+    {
+        { FName(TEXT("seal_of_jordan")), TEXT("Seal of the Jordan"), TEXT("A water-marked seal carried by early disciples. Unlocks later testimony dialogue."), ENazareneItemType::Quest, ENazareneItemRarity::Rare, 1 }
+    };
     Decapolis.NPCs =
     {
         { TEXT("Andrew"), TEXT("andrew"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Andrew"), { { TEXT("We have found the Messiah."), 4.0f } } },
@@ -191,6 +201,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     Wilderness.RegionName = TEXT("Wilderness of Temptation");
     Wilderness.Chapter = 3;
     Wilderness.Objective = TEXT("Resist temptation through fasting, prayer, and obedience.");
+    Wilderness.ChapterTitle = TEXT("The Testing");
     Wilderness.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Wilderness/L_WildernessTemptation"));
     Wilderness.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Wilderness.PrayerSiteId = FName(TEXT("wilderness_site_01"));
@@ -213,6 +224,10 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("wilderness_named_boss_01")), TEXT("Adversary of the Desert"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2400.0f, 100.0f) }
     };
     Wilderness.LoreText = TEXT("Forty days in solitude. Every temptation met with scripture and obedience.");
+    Wilderness.RewardItems =
+    {
+        { FName(TEXT("scroll_of_endurance")), TEXT("Scroll of Endurance"), TEXT("Scripture fragments memorized in the wilderness. Grants bonus XP flavor progression."), ENazareneItemType::Relic, ENazareneItemRarity::Epic, 1 }
+    };
     Wilderness.NPCs =
     {
         { TEXT("Moses"), TEXT("moses"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Moses"), { { TEXT("Be strong and courageous. The Lord your God goes with you."), 4.0f } } },
@@ -228,6 +243,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     Jerusalem.RegionName = TEXT("Galilean Ministry");
     Jerusalem.Chapter = 4;
     Jerusalem.Objective = TEXT("Teach, heal, and call disciples to follow the kingdom way.");
+    Jerusalem.ChapterTitle = TEXT("Kingdom Proclaimed");
     Jerusalem.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Jerusalem/L_JerusalemApproach"));
     Jerusalem.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Jerusalem.PrayerSiteId = FName(TEXT("jerusalem_site_01"));
@@ -249,6 +265,10 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("jerusalem_named_boss_01")), TEXT("Temple Warden"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2450.0f, 100.0f) }
     };
     Jerusalem.LoreText = TEXT("Crowds gathered in Galilee as parables and miracles revealed the kingdom.");
+    Jerusalem.RewardItems =
+    {
+        { FName(TEXT("bread_of_multitude")), TEXT("Bread of the Multitude"), TEXT("A remembered token from a miracle meal, cherished by the faithful."), ENazareneItemType::Consumable, ENazareneItemRarity::Rare, 2 }
+    };
     Jerusalem.NPCs =
     {
         { TEXT("Isaiah"), TEXT("isaiah"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Isaiah"), { { TEXT("Though your sins are like scarlet, they shall be white as snow."), 4.0f } } },
@@ -267,6 +287,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     Gethsemane.RegionName = TEXT("Journey to Jerusalem");
     Gethsemane.Chapter = 5;
     Gethsemane.Objective = TEXT("Set your face toward Jerusalem and prepare for Passion Week.");
+    Gethsemane.ChapterTitle = TEXT("Journey to Jerusalem");
     Gethsemane.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Gethsemane/L_GardenGethsemane"));
     Gethsemane.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Gethsemane.PrayerSiteId = FName(TEXT("gethsemane_site_01"));
@@ -278,6 +299,10 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     Gethsemane.RewardHealthBonus = 14.0f;
     Gethsemane.RewardStaminaBonus = 10.0f;
     Gethsemane.LoreText = TEXT("On the road to Jerusalem, Jesus taught humility, mercy, and repentance.");
+    Gethsemane.RewardItems =
+    {
+        { FName(TEXT("olive_branch_of_peace")), TEXT("Olive Branch of Peace"), TEXT("A branch gathered near Gethsemane, symbol of faithful surrender."), ENazareneItemType::Relic, ENazareneItemRarity::Epic, 1 }
+    };
     Gethsemane.Enemies =
     {
         { FName(TEXT("gethsemane_shield_01")), TEXT("Temple Guard I"), ENazareneEnemyArchetype::MeleeShield, FVector(900.0f, 400.0f, 100.0f) },
@@ -307,6 +332,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     ViaDolorosa.RegionName = TEXT("Via Dolorosa");
     ViaDolorosa.Chapter = 6;
     ViaDolorosa.Objective = TEXT("Bear the weight of judgment on the road of sorrow.");
+    ViaDolorosa.ChapterTitle = TEXT("Passion Week");
     ViaDolorosa.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/ViaDolorosa/L_ViaDolorosa"));
     ViaDolorosa.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     ViaDolorosa.PrayerSiteId = FName(TEXT("via_dolorosa_site_01"));
@@ -318,6 +344,10 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     ViaDolorosa.RewardHealthBonus = 16.0f;
     ViaDolorosa.RewardStaminaBonus = 12.0f;
     ViaDolorosa.LoreText = TEXT("He bore the cross for the joy set before him.");
+    ViaDolorosa.RewardItems =
+    {
+        { FName(TEXT("nails_of_remembrance")), TEXT("Nails of Remembrance"), TEXT("A solemn keepsake that marks the cost of redemption."), ENazareneItemType::Quest, ENazareneItemRarity::Legendary, 1 }
+    };
     ViaDolorosa.Enemies =
     {
         { FName(TEXT("via_dolorosa_shield_01")), TEXT("Roman Legionary I"), ENazareneEnemyArchetype::MeleeShield, FVector(800.0f, 350.0f, 100.0f) },
@@ -347,6 +377,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     EmptyTomb.RegionName = TEXT("Golgotha Crucifixion");
     EmptyTomb.Chapter = 7;
     EmptyTomb.Objective = TEXT("Fulfill the sacrifice on the cross and complete the earthly mission.");
+    EmptyTomb.ChapterTitle = TEXT("Golgotha");
     EmptyTomb.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/EmptyTomb/L_EmptyTomb"));
     EmptyTomb.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     EmptyTomb.PrayerSiteId = FName(TEXT("empty_tomb_site_01"));
@@ -356,6 +387,10 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     EmptyTomb.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
     EmptyTomb.BossSpawnId = FName(TEXT("empty_tomb_named_boss_01"));
     EmptyTomb.LoreText = TEXT("At Golgotha, the crucified King gave himself in perfect love.");
+    EmptyTomb.RewardItems =
+    {
+        { FName(TEXT("resurrection_shroud_fragment")), TEXT("Resurrection Shroud Fragment"), TEXT("A final relic of victory over death. Marks campaign completion."), ENazareneItemType::Relic, ENazareneItemRarity::Legendary, 1 }
+    };
     EmptyTomb.Enemies =
     {
         { FName(TEXT("empty_tomb_shield_01")), TEXT("Shadow Guard I"), ENazareneEnemyArchetype::MeleeShield, FVector(900.0f, 400.0f, 100.0f) },
@@ -1740,7 +1775,25 @@ void ANazareneCampaignGameMode::OnBossRedeemed()
     {
         if (ANazareneHUD* HUD = Cast<ANazareneHUD>(PC->GetHUD()))
         {
-            HUD->ShowMessage(bRewardApplied ? TEXT("Blessings strengthened. The way forward is open.") : TEXT("The way forward is open."));
+            if (bRewardApplied)
+            {
+                FString RewardSummary = TEXT("Blessings strengthened. The way forward is open.");
+                if (Region.RewardItems.Num() > 0)
+                {
+                    TArray<FString> ItemNames;
+                    ItemNames.Reserve(Region.RewardItems.Num());
+                    for (const FNazareneInventoryItem& Item : Region.RewardItems)
+                    {
+                        ItemNames.Add(Item.ItemName);
+                    }
+                    RewardSummary += FString::Printf(TEXT(" Added to inventory: %s."), *FString::Join(ItemNames, TEXT(", ")));
+                }
+                HUD->ShowMessage(RewardSummary);
+            }
+            else
+            {
+                HUD->ShowMessage(TEXT("The way forward is open."));
+            }
         }
     }
 
@@ -1777,6 +1830,11 @@ bool ANazareneCampaignGameMode::ApplyRegionReward(const FNazareneRegionDefinitio
     {
         State.MaxStaminaBonus += Region.RewardStaminaBonus;
         bAnyReward = true;
+    }
+
+    for (const FNazareneInventoryItem& RewardItem : Region.RewardItems)
+    {
+        bAnyReward |= Session->AddInventoryItem(RewardItem);
     }
 
     if (PlayerCharacter != nullptr)
@@ -1892,7 +1950,8 @@ void ANazareneCampaignGameMode::UpdateHUDForRegion(const FNazareneRegionDefiniti
         return;
     }
 
-    HUD->SetRegionName(FString::Printf(TEXT("Chapter %d: %s"), Region.Chapter, *Region.RegionName));
+    const FString ChapterLabel = Region.ChapterTitle.IsEmpty() ? Region.RegionName : FString::Printf(TEXT("%s - %s"), *Region.RegionName, *Region.ChapterTitle);
+    HUD->SetRegionName(FString::Printf(TEXT("Chapter %d: %s"), Region.Chapter, *ChapterLabel));
     HUD->SetObjective(BuildObjectiveText(Region, bCompleted));
 }
 

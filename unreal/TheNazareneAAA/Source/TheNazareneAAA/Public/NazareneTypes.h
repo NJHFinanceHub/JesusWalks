@@ -41,6 +41,48 @@ enum class ENazareneDamageNumberType : uint8
     Blocked = 4
 };
 
+UENUM(BlueprintType)
+enum class ENazareneItemType : uint8
+{
+    Quest = 0 UMETA(DisplayName = "Quest"),
+    Consumable = 1 UMETA(DisplayName = "Consumable"),
+    Relic = 2 UMETA(DisplayName = "Relic"),
+    Key = 3 UMETA(DisplayName = "Key")
+};
+
+UENUM(BlueprintType)
+enum class ENazareneItemRarity : uint8
+{
+    Common = 0 UMETA(DisplayName = "Common"),
+    Rare = 1 UMETA(DisplayName = "Rare"),
+    Epic = 2 UMETA(DisplayName = "Epic"),
+    Legendary = 3 UMETA(DisplayName = "Legendary")
+};
+
+USTRUCT(BlueprintType)
+struct FNazareneInventoryItem
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FName ItemId = NAME_None;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString ItemName = TEXT("Unnamed Item");
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString Description;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    ENazareneItemType ItemType = ENazareneItemType::Quest;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    ENazareneItemRarity Rarity = ENazareneItemRarity::Common;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 Quantity = 1;
+};
+
 USTRUCT(BlueprintType)
 struct FNazarenePlayerSnapshot
 {
@@ -120,6 +162,9 @@ struct FNazareneCampaignState
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FName> UnlockedSkills;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FNazareneInventoryItem> Inventory;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<int32> RegionRetryCounts;
@@ -245,6 +290,9 @@ struct FNazareneRegionDefinition
     FString Objective = TEXT("Redeem the guardian.");
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    FString ChapterTitle;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FName StreamedLevelPackage = NAME_None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -288,6 +336,9 @@ struct FNazareneRegionDefinition
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<FNazareneEncounterWave> EncounterWaves;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TArray<FNazareneInventoryItem> RewardItems;
 };
 
 UENUM(BlueprintType)
@@ -305,4 +356,3 @@ enum class ENazareneVFXType : uint8
     DodgeTrail = 9,
     ParryFlash = 10
 };
-
