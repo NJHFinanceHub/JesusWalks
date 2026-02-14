@@ -5,9 +5,11 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
 #include "Components/ProgressBar.h"
-#include "Components/ScrollBox.h"
-#include "Components/Spacer.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
@@ -43,8 +45,6 @@ namespace
         FSlateFontInfo FontInfo = Text->GetFont();
         FontInfo.Size = Size;
         Text->SetFont(FontInfo);
-        Text->SetShadowOffset(FVector2D(1.0f, 1.0f));
-        Text->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.55f));
     }
 
     static void AddVerticalChild(UVerticalBox* Parent, UWidget* Child, const FMargin& Padding)
@@ -68,25 +68,25 @@ namespace
         // Normal state: dark warm brown with subtle gold border
         FSlateBrush NormalBrush;
         NormalBrush.DrawAs = ESlateBrushDrawType::RoundedBox;
-        NormalBrush.TintColor = FSlateColor(FLinearColor(0.12f, 0.09f, 0.05f, 1.0f));
-        NormalBrush.OutlineSettings.CornerRadii = FVector4(8.0f, 8.0f, 8.0f, 8.0f);
+        NormalBrush.TintColor = FSlateColor(FLinearColor(0.10f, 0.08f, 0.05f, 1.0f));
+        NormalBrush.OutlineSettings.CornerRadii = FVector4(4.0f, 4.0f, 4.0f, 4.0f);
         NormalBrush.OutlineSettings.RoundingType = ESlateBrushRoundingType::FixedRadius;
-        NormalBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.66f, 0.54f, 0.28f, 0.75f));
-        NormalBrush.OutlineSettings.Width = 2.0f;
+        NormalBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.55f, 0.45f, 0.22f, 0.70f));
+        NormalBrush.OutlineSettings.Width = 1.5f;
         Style.SetNormal(NormalBrush);
 
         // Hovered state: gold-tinted brightening with glowing border
         FSlateBrush HoveredBrush = NormalBrush;
-        HoveredBrush.TintColor = FSlateColor(FLinearColor(0.27f, 0.21f, 0.10f, 1.0f));
-        HoveredBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.90f, 0.78f, 0.45f, 1.0f));
-        HoveredBrush.OutlineSettings.Width = 2.5f;
+        HoveredBrush.TintColor = FSlateColor(FLinearColor(0.22f, 0.18f, 0.08f, 1.0f));
+        HoveredBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.78f, 0.68f, 0.38f, 0.95f));
+        HoveredBrush.OutlineSettings.Width = 2.0f;
         Style.SetHovered(HoveredBrush);
 
         // Pressed state: darkened inset with dimmer border
         FSlateBrush PressedBrush = NormalBrush;
-        PressedBrush.TintColor = FSlateColor(FLinearColor(0.08f, 0.06f, 0.03f, 1.0f));
-        PressedBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.55f, 0.45f, 0.22f, 0.90f));
-        PressedBrush.OutlineSettings.Width = 1.5f;
+        PressedBrush.TintColor = FSlateColor(FLinearColor(0.06f, 0.05f, 0.03f, 1.0f));
+        PressedBrush.OutlineSettings.Color = FSlateColor(FLinearColor(0.40f, 0.34f, 0.18f, 0.80f));
+        PressedBrush.OutlineSettings.Width = 1.0f;
         Style.SetPressed(PressedBrush);
 
         // Padding with 1px downshift on press for physical push feel
@@ -120,9 +120,8 @@ namespace
 
         const FName LabelName(*FString::Printf(TEXT("%sLabel"), Name));
         OutLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), LabelName);
-        ConfigureText(OutLabel, Label, FLinearColor(0.95f, 0.90f, 0.82f), 18);
+        ConfigureText(OutLabel, Label, FLinearColor(0.95f, 0.90f, 0.82f), 20);
         OutLabel->SetJustification(ETextJustify::Center);
-        OutLabel->SetMargin(FMargin(0.0f, 2.0f));
         Button->AddChild(OutLabel);
 
         // Wrap in SizeBox for 48px minimum click target
@@ -130,80 +129,136 @@ namespace
         USizeBox* SizeWrapper = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), SizeBoxName);
         if (SizeWrapper != nullptr)
         {
-            SizeWrapper->SetMinDesiredHeight(50.0f);
+            SizeWrapper->SetMinDesiredHeight(48.0f);
             SizeWrapper->AddChild(Button);
-            AddVerticalChild(Parent, SizeWrapper, FMargin(14.0f, 5.0f, 14.0f, 5.0f));
+            AddVerticalChild(Parent, SizeWrapper, FMargin(12.0f, 4.0f, 12.0f, 4.0f));
         }
         else
         {
-            AddVerticalChild(Parent, Button, FMargin(14.0f, 5.0f, 14.0f, 5.0f));
+            AddVerticalChild(Parent, Button, FMargin(12.0f, 4.0f, 12.0f, 4.0f));
         }
 
         return Button;
     }
-    static void AddSectionDivider(UWidgetTree* WidgetTree, UVerticalBox* Parent, const FLinearColor& Color, const FMargin& Padding)
+
+    // Create a compact menu button with tighter padding for dense menus
+    static UButton* CreateCompactMenuButton(
+        UWidgetTree* WidgetTree,
+        UVerticalBox* Parent,
+        const TCHAR* Name,
+        const FString& Label,
+        UTextBlock*& OutLabel,
+        int32 FontSize = 17
+    )
+    {
+        if (WidgetTree == nullptr || Parent == nullptr)
+        {
+            return nullptr;
+        }
+
+        UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), Name);
+        if (Button == nullptr)
+        {
+            return nullptr;
+        }
+
+        FButtonStyle Style = CreateThemedButtonStyle();
+        Style.SetNormalPadding(FMargin(12.0f, 6.0f));
+        Style.SetPressedPadding(FMargin(12.0f, 7.0f, 12.0f, 5.0f));
+        Button->SetStyle(Style);
+
+        const FName LabelName(*FString::Printf(TEXT("%sLabel"), Name));
+        OutLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), LabelName);
+        ConfigureText(OutLabel, Label, FLinearColor(0.95f, 0.90f, 0.82f), FontSize);
+        OutLabel->SetJustification(ETextJustify::Center);
+        Button->AddChild(OutLabel);
+
+        const FName SizeBoxName(*FString::Printf(TEXT("%sSizeBox"), Name));
+        USizeBox* SizeWrapper = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), SizeBoxName);
+        if (SizeWrapper != nullptr)
+        {
+            SizeWrapper->SetMinDesiredHeight(40.0f);
+            SizeWrapper->AddChild(Button);
+            AddVerticalChild(Parent, SizeWrapper, FMargin(10.0f, 2.0f, 10.0f, 2.0f));
+        }
+        else
+        {
+            AddVerticalChild(Parent, Button, FMargin(10.0f, 2.0f, 10.0f, 2.0f));
+        }
+
+        return Button;
+    }
+
+    // Styled progress bar with dark backing and height constraint
+    static UProgressBar* CreateStyledBar(
+        UWidgetTree* WidgetTree,
+        UVerticalBox* Parent,
+        const TCHAR* Name,
+        float BarHeight,
+        const FLinearColor& FillColor,
+        const FMargin& Padding
+    )
+    {
+        if (WidgetTree == nullptr || Parent == nullptr)
+        {
+            return nullptr;
+        }
+
+        UProgressBar* Bar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), Name);
+        if (Bar == nullptr)
+        {
+            return nullptr;
+        }
+
+        Bar->SetPercent(1.0f);
+        Bar->SetFillColorAndOpacity(FillColor);
+
+        // Style the bar with a dark backing
+        FProgressBarStyle BarStyle = Bar->GetWidgetStyle();
+        FSlateBrush BackgroundBrush;
+        BackgroundBrush.TintColor = FSlateColor(FLinearColor(0.03f, 0.03f, 0.02f, 0.92f));
+        BarStyle.BackgroundImage = BackgroundBrush;
+        Bar->SetWidgetStyle(BarStyle);
+
+        // Constrain height with SizeBox
+        const FName SizeBoxName(*FString::Printf(TEXT("%sSizeBox"), Name));
+        USizeBox* SizeWrapper = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), SizeBoxName);
+        if (SizeWrapper != nullptr)
+        {
+            SizeWrapper->SetMaxDesiredHeight(BarHeight);
+            SizeWrapper->SetMinDesiredHeight(BarHeight);
+            SizeWrapper->AddChild(Bar);
+            AddVerticalChild(Parent, SizeWrapper, Padding);
+        }
+        else
+        {
+            AddVerticalChild(Parent, Bar, Padding);
+        }
+
+        return Bar;
+    }
+
+    // Gold ornamental divider line
+    static void AddGoldSeparator(UWidgetTree* WidgetTree, UVerticalBox* Parent, const TCHAR* Name, const FMargin& Padding)
     {
         if (WidgetTree == nullptr || Parent == nullptr)
         {
             return;
         }
 
-        UBorder* Divider = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-        if (Divider == nullptr)
+        UBorder* Separator = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), Name);
+        if (Separator != nullptr)
         {
-            return;
-        }
-
-        Divider->SetBrushColor(Color);
-        USizeBox* DividerHeight = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-        if (DividerHeight != nullptr)
-        {
-            DividerHeight->SetHeightOverride(1.5f);
-            DividerHeight->AddChild(Divider);
-            AddVerticalChild(Parent, DividerHeight, Padding);
-            return;
-        }
-
-        AddVerticalChild(Parent, Divider, Padding);
-    }
-
-    static void AddVerticalSpacer(UWidgetTree* WidgetTree, UVerticalBox* Parent, float Height, const FMargin& Padding)
-    {
-        if (WidgetTree == nullptr || Parent == nullptr)
-        {
-            return;
-        }
-
-        USpacer* Spacer = WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass());
-        if (Spacer == nullptr)
-        {
-            return;
-        }
-
-        Spacer->SetSize(FVector2D(1.0f, Height));
-        AddVerticalChild(Parent, Spacer, Padding);
-    }
-
-    static FVector2D ResolveViewportSize(const UUserWidget* Widget)
-    {
-        FVector2D ViewportSize(1920.0f, 1080.0f);
-        if (Widget == nullptr)
-        {
-            return ViewportSize;
-        }
-
-        if (APlayerController* PC = Widget->GetOwningPlayer())
-        {
-            int32 ViewportX = 0;
-            int32 ViewportY = 0;
-            PC->GetViewportSize(ViewportX, ViewportY);
-            if (ViewportX > 0 && ViewportY > 0)
+            Separator->SetBrushColor(FLinearColor(0.55f, 0.45f, 0.22f, 0.50f));
+            USizeBox* SepSizeBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+            if (SepSizeBox != nullptr)
             {
-                ViewportSize = FVector2D(float(ViewportX), float(ViewportY));
+                SepSizeBox->SetMaxDesiredHeight(1.0f);
+                SepSizeBox->SetMinDesiredHeight(1.0f);
+                SepSizeBox->AddChild(Separator);
+                AddVerticalChild(Parent, SepSizeBox, Padding);
             }
         }
-
-        return ViewportSize;
     }
 }
 
@@ -223,97 +278,99 @@ void UNazareneHUDWidget::NativeOnInitialized()
     }
     WidgetTree->RootWidget = RootPanel;
 
+    // ======================================================================
+    // PLAYER VITALS PANEL - Compact Dark Souls style (top-left)
+    // ======================================================================
     UBorder* PlayerPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PlayerPanel"));
-    PlayerPanel->SetBrushColor(FLinearColor(0.07f, 0.07f, 0.06f, 0.74f));
-    PlayerPanelRoot = PlayerPanel;
+    PlayerPanel->SetBrushColor(FLinearColor(0.04f, 0.04f, 0.03f, 0.80f));
     UCanvasPanelSlot* PlayerPanelSlot = RootPanel->AddChildToCanvas(PlayerPanel);
     if (PlayerPanelSlot != nullptr)
     {
-        PlayerPanelSlot->SetSize(FVector2D(470.0f, 380.0f));
+        PlayerPanelSlot->SetSize(FVector2D(320.0f, 170.0f));
         PlayerPanelSlot->SetPosition(FVector2D(24.0f, 18.0f));
     }
 
     UVerticalBox* PlayerPanelContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("PlayerPanelContent"));
     PlayerPanel->SetContent(PlayerPanelContent);
 
-    UTextBlock* TitleText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("TitleText"));
-    ConfigureText(TitleText, TEXT("The Nazarene - Unreal Campaign"), FLinearColor(0.95f, 0.90f, 0.78f), 17);
-    AddVerticalChild(PlayerPanelContent, TitleText, FMargin(14.0f, 12.0f, 12.0f, 4.0f));
-
+    // Health bar - red, 14px tall, dark backing
     HealthText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("HealthText"));
-    ConfigureText(HealthText, TEXT("Health 0 / 0"), FLinearColor::White, 15);
-    AddVerticalChild(PlayerPanelContent, HealthText, FMargin(14.0f, 4.0f, 12.0f, 0.0f));
+    ConfigureText(HealthText, TEXT(""), FLinearColor(0.80f, 0.80f, 0.75f), 11);
+    AddVerticalChild(PlayerPanelContent, HealthText, FMargin(10.0f, 8.0f, 10.0f, 1.0f));
 
-    HealthBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("HealthBar"));
-    HealthBar->SetPercent(1.0f);
-    HealthBar->SetFillColorAndOpacity(FLinearColor(0.83f, 0.24f, 0.20f, 1.0f));
-    AddVerticalChild(PlayerPanelContent, HealthBar, FMargin(14.0f, 2.0f, 14.0f, 6.0f));
+    HealthBar = CreateStyledBar(WidgetTree, PlayerPanelContent, TEXT("HealthBar"), 14.0f,
+        FLinearColor(0.78f, 0.18f, 0.14f, 1.0f), FMargin(10.0f, 0.0f, 10.0f, 4.0f));
 
+    // Stamina bar - muted green, 12px tall
     StaminaText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("StaminaText"));
-    ConfigureText(StaminaText, TEXT("Stamina 0 / 0"), FLinearColor::White, 15);
-    AddVerticalChild(PlayerPanelContent, StaminaText, FMargin(14.0f, 4.0f, 12.0f, 0.0f));
+    ConfigureText(StaminaText, TEXT(""), FLinearColor(0.80f, 0.80f, 0.75f), 11);
+    AddVerticalChild(PlayerPanelContent, StaminaText, FMargin(10.0f, 2.0f, 10.0f, 1.0f));
 
-    StaminaBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("StaminaBar"));
-    StaminaBar->SetPercent(1.0f);
-    StaminaBar->SetFillColorAndOpacity(FLinearColor(0.30f, 0.78f, 0.34f, 1.0f));
-    AddVerticalChild(PlayerPanelContent, StaminaBar, FMargin(14.0f, 2.0f, 14.0f, 6.0f));
+    StaminaBar = CreateStyledBar(WidgetTree, PlayerPanelContent, TEXT("StaminaBar"), 12.0f,
+        FLinearColor(0.22f, 0.62f, 0.20f, 1.0f), FMargin(10.0f, 0.0f, 10.0f, 4.0f));
 
-    FaithBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("FaithBar"));
-    if (FaithBar != nullptr)
-    {
-        FaithBar->SetPercent(1.0f);
-        FaithBar->SetFillColorAndOpacity(FLinearColor(0.93f, 0.86f, 0.54f, 1.0f));
-        AddVerticalChild(PlayerPanelContent, FaithBar, FMargin(14.0f, 2.0f, 14.0f, 6.0f));
-    }
-
+    // Faith bar - gold, 10px tall
     FaithText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FaithText"));
-    ConfigureText(FaithText, TEXT("Faith 0"), FLinearColor(0.93f, 0.86f, 0.54f), 15);
-    AddVerticalChild(PlayerPanelContent, FaithText, FMargin(14.0f, 3.0f, 12.0f, 0.0f));
+    ConfigureText(FaithText, TEXT(""), FLinearColor(0.90f, 0.82f, 0.50f), 11);
+    AddVerticalChild(PlayerPanelContent, FaithText, FMargin(10.0f, 2.0f, 10.0f, 1.0f));
 
+    FaithBar = CreateStyledBar(WidgetTree, PlayerPanelContent, TEXT("FaithBar"), 10.0f,
+        FLinearColor(0.88f, 0.78f, 0.38f, 1.0f), FMargin(10.0f, 0.0f, 10.0f, 4.0f));
+
+    // Compact miracle cooldown strip - 3 thin bars
+    HealCooldownBar = CreateStyledBar(WidgetTree, PlayerPanelContent, TEXT("HealCooldownBar"), 5.0f,
+        FLinearColor(0.2f, 0.72f, 0.3f, 0.85f), FMargin(10.0f, 2.0f, 10.0f, 1.0f));
+    BlessingCooldownBar = CreateStyledBar(WidgetTree, PlayerPanelContent, TEXT("BlessingCooldownBar"), 5.0f,
+        FLinearColor(0.85f, 0.72f, 0.25f, 0.85f), FMargin(10.0f, 1.0f, 10.0f, 1.0f));
+    RadianceCooldownBar = CreateStyledBar(WidgetTree, PlayerPanelContent, TEXT("RadianceCooldownBar"), 5.0f,
+        FLinearColor(0.85f, 0.52f, 0.18f, 0.85f), FMargin(10.0f, 1.0f, 10.0f, 6.0f));
+
+    // Compact level/combat state line (hidden until player data available)
+    CombatStateText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("CombatStateText"));
+    ConfigureText(CombatStateText, TEXT(""), FLinearColor(0.72f, 0.70f, 0.62f), 11);
+    CombatStateText->SetAutoWrapText(true);
+    AddVerticalChild(PlayerPanelContent, CombatStateText, FMargin(10.0f, 0.0f, 10.0f, 6.0f));
+
+    // Lock target and context hint text - positioned separately below player panel
     LockTargetText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LockTargetText"));
-    ConfigureText(LockTargetText, TEXT("Lock-On None"), FLinearColor(0.88f, 0.88f, 0.88f), 15);
-    AddVerticalChild(PlayerPanelContent, LockTargetText, FMargin(14.0f, 3.0f, 12.0f, 0.0f));
+    ConfigureText(LockTargetText, TEXT(""), FLinearColor(0.80f, 0.76f, 0.68f), 13);
+    LockTargetText->SetVisibility(ESlateVisibility::Collapsed);
+    UCanvasPanelSlot* LockTargetSlot = RootPanel->AddChildToCanvas(LockTargetText);
+    if (LockTargetSlot != nullptr)
+    {
+        LockTargetSlot->SetSize(FVector2D(320.0f, 22.0f));
+        LockTargetSlot->SetPosition(FVector2D(24.0f, 194.0f));
+    }
 
     ContextHintText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ContextHintText"));
-    ConfigureText(ContextHintText, TEXT(""), FLinearColor(0.92f, 0.82f, 0.66f), 14);
-    AddVerticalChild(PlayerPanelContent, ContextHintText, FMargin(14.0f, 6.0f, 12.0f, 10.0f));
-
-    CombatStateText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("CombatStateText"));
-    ConfigureText(CombatStateText, TEXT("Cooldowns: Heal Ready | Blessing Locked | Radiance Locked"), FLinearColor(0.84f, 0.86f, 0.92f), 13);
-    CombatStateText->SetAutoWrapText(true);
-    AddVerticalChild(PlayerPanelContent, CombatStateText, FMargin(14.0f, 0.0f, 12.0f, 8.0f));
-
-    HealCooldownBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("HealCooldownBar"));
-    if (HealCooldownBar != nullptr)
+    ConfigureText(ContextHintText, TEXT(""), FLinearColor(0.88f, 0.80f, 0.58f), 14);
+    ContextHintText->SetVisibility(ESlateVisibility::Collapsed);
+    UCanvasPanelSlot* ContextHintSlot = RootPanel->AddChildToCanvas(ContextHintText);
+    if (ContextHintSlot != nullptr)
     {
-        HealCooldownBar->SetPercent(1.0f);
-        HealCooldownBar->SetFillColorAndOpacity(FLinearColor(0.2f, 0.8f, 0.3f, 0.9f));
-        AddVerticalChild(PlayerPanelContent, HealCooldownBar, FMargin(14.0f, 2.0f, 14.0f, 2.0f));
+        ContextHintSlot->SetSize(FVector2D(400.0f, 28.0f));
+        ContextHintSlot->SetAnchors(FAnchors(0.5f, 1.0f, 0.5f, 1.0f));
+        ContextHintSlot->SetAlignment(FVector2D(0.5f, 1.0f));
+        ContextHintSlot->SetPosition(FVector2D(0.0f, -24.0f));
     }
 
-    BlessingCooldownBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("BlessingCooldownBar"));
-    if (BlessingCooldownBar != nullptr)
-    {
-        BlessingCooldownBar->SetPercent(1.0f);
-        BlessingCooldownBar->SetFillColorAndOpacity(FLinearColor(0.9f, 0.8f, 0.3f, 0.9f));
-        AddVerticalChild(PlayerPanelContent, BlessingCooldownBar, FMargin(14.0f, 2.0f, 14.0f, 2.0f));
-    }
+    // Cooldown labels (hidden; kept for compatibility)
+    HealCooldownLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("HealCooldownLabel"));
+    HealCooldownLabel->SetVisibility(ESlateVisibility::Collapsed);
+    BlessingCooldownLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("BlessingCooldownLabel"));
+    BlessingCooldownLabel->SetVisibility(ESlateVisibility::Collapsed);
+    RadianceCooldownLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("RadianceCooldownLabel"));
+    RadianceCooldownLabel->SetVisibility(ESlateVisibility::Collapsed);
 
-    RadianceCooldownBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("RadianceCooldownBar"));
-    if (RadianceCooldownBar != nullptr)
-    {
-        RadianceCooldownBar->SetPercent(1.0f);
-        RadianceCooldownBar->SetFillColorAndOpacity(FLinearColor(0.9f, 0.6f, 0.2f, 0.9f));
-        AddVerticalChild(PlayerPanelContent, RadianceCooldownBar, FMargin(14.0f, 2.0f, 14.0f, 6.0f));
-    }
-
+    // ======================================================================
+    // OBJECTIVE PANEL (top-right)
+    // ======================================================================
     UBorder* ObjectivePanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("ObjectivePanel"));
-    ObjectivePanel->SetBrushColor(FLinearColor(0.07f, 0.07f, 0.06f, 0.74f));
-    ObjectivePanelRoot = ObjectivePanel;
+    ObjectivePanel->SetBrushColor(FLinearColor(0.04f, 0.04f, 0.03f, 0.72f));
     UCanvasPanelSlot* ObjectivePanelSlot = RootPanel->AddChildToCanvas(ObjectivePanel);
     if (ObjectivePanelSlot != nullptr)
     {
-        ObjectivePanelSlot->SetSize(FVector2D(500.0f, 190.0f));
+        ObjectivePanelSlot->SetSize(FVector2D(420.0f, 120.0f));
         ObjectivePanelSlot->SetAnchors(FAnchors(1.0f, 0.0f, 1.0f, 0.0f));
         ObjectivePanelSlot->SetAlignment(FVector2D(1.0f, 0.0f));
         ObjectivePanelSlot->SetPosition(FVector2D(-24.0f, 18.0f));
@@ -323,14 +380,19 @@ void UNazareneHUDWidget::NativeOnInitialized()
     ObjectivePanel->SetContent(ObjectiveContent);
 
     RegionNameText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("RegionNameText"));
-    ConfigureText(RegionNameText, CachedRegionName, FLinearColor(0.95f, 0.90f, 0.78f), 17);
-    AddVerticalChild(ObjectiveContent, RegionNameText, FMargin(14.0f, 12.0f, 12.0f, 4.0f));
+    ConfigureText(RegionNameText, CachedRegionName, FLinearColor(0.90f, 0.84f, 0.68f), 15);
+    AddVerticalChild(ObjectiveContent, RegionNameText, FMargin(12.0f, 10.0f, 12.0f, 3.0f));
+
+    AddGoldSeparator(WidgetTree, ObjectiveContent, TEXT("ObjSeparator"), FMargin(12.0f, 0.0f, 12.0f, 3.0f));
 
     ObjectiveText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ObjectiveText"));
-    ConfigureText(ObjectiveText, CachedObjective, FLinearColor(0.87f, 0.83f, 0.72f), 15);
+    ConfigureText(ObjectiveText, CachedObjective, FLinearColor(0.78f, 0.75f, 0.65f), 13);
     ObjectiveText->SetAutoWrapText(true);
-    AddVerticalChild(ObjectiveContent, ObjectiveText, FMargin(14.0f, 3.0f, 12.0f, 8.0f));
+    AddVerticalChild(ObjectiveContent, ObjectiveText, FMargin(12.0f, 0.0f, 12.0f, 8.0f));
 
+    // ======================================================================
+    // MESSAGE TEXT (top-center, shows contextual messages)
+    // ======================================================================
     MessageText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("MessageText"));
     ConfigureText(MessageText, TEXT(""), FLinearColor(0.95f, 0.90f, 0.78f), 18);
     MessageText->SetJustification(ETextJustify::Center);
@@ -344,39 +406,27 @@ void UNazareneHUDWidget::NativeOnInitialized()
         MessageSlot->SetPosition(FVector2D(0.0f, 18.0f));
     }
 
-
+    // ======================================================================
+    // CRITICAL STATE TEXT (upper-center, danger warnings)
+    // ======================================================================
     CriticalStateText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("CriticalStateText"));
-    ConfigureText(CriticalStateText, TEXT(""), FLinearColor(0.95f, 0.40f, 0.28f), 19);
+    ConfigureText(CriticalStateText, TEXT(""), FLinearColor(0.95f, 0.40f, 0.28f), 17);
     CriticalStateText->SetJustification(ETextJustify::Center);
     CriticalStateText->SetVisibility(ESlateVisibility::Collapsed);
     UCanvasPanelSlot* CriticalStateSlot = RootPanel->AddChildToCanvas(CriticalStateText);
     if (CriticalStateSlot != nullptr)
     {
-        CriticalStateSlot->SetSize(FVector2D(700.0f, 46.0f));
+        CriticalStateSlot->SetSize(FVector2D(600.0f, 36.0f));
         CriticalStateSlot->SetAnchors(FAnchors(0.5f, 0.0f, 0.5f, 0.0f));
         CriticalStateSlot->SetAlignment(FVector2D(0.5f, 0.0f));
-        CriticalStateSlot->SetPosition(FVector2D(0.0f, 72.0f));
+        CriticalStateSlot->SetPosition(FVector2D(0.0f, 62.0f));
     }
 
-    ControlsTextRoot = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ControlsText"));
-    ConfigureText(
-        ControlsTextRoot,
-        TEXT("Move/Look: WASD + Mouse | Combat: LMB Light, RMB Heavy, Shift Block, F Parry, Space Dodge | Miracles: R Heal, 1 Blessing, 2 Radiance | Interaction: E Pray, Q Lock, T Skill Tree, Esc Menu"),
-        FLinearColor(0.90f, 0.85f, 0.70f),
-        13
-    );
-    ControlsTextRoot->SetAutoWrapText(true);
-    UCanvasPanelSlot* ControlsSlot = RootPanel->AddChildToCanvas(ControlsTextRoot);
-    if (ControlsSlot != nullptr)
-    {
-        ControlsSlot->SetSize(FVector2D(1300.0f, 40.0f));
-        ControlsSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
-        ControlsSlot->SetAlignment(FVector2D(0.0f, 1.0f));
-        ControlsSlot->SetPosition(FVector2D(24.0f, -18.0f));
-    }
-
+    // ======================================================================
+    // PAUSE MENU OVERLAY
+    // ======================================================================
     PauseOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PauseOverlay"));
-    PauseOverlay->SetBrushColor(FLinearColor(0.01f, 0.01f, 0.01f, 0.82f));
+    PauseOverlay->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.78f));
     PauseOverlay->SetVisibility(ESlateVisibility::Collapsed);
     UCanvasPanelSlot* PauseOverlaySlot = RootPanel->AddChildToCanvas(PauseOverlay);
     if (PauseOverlaySlot != nullptr)
@@ -389,103 +439,91 @@ void UNazareneHUDWidget::NativeOnInitialized()
     PauseOverlay->SetContent(PauseCanvas);
 
     UBorder* PauseMenuPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("PauseMenuPanel"));
-    PauseMenuPanel->SetBrushColor(FLinearColor(0.08f, 0.06f, 0.04f, 0.97f));
+    PauseMenuPanel->SetBrushColor(FLinearColor(0.06f, 0.06f, 0.04f, 0.96f));
     UCanvasPanelSlot* PauseMenuSlot = PauseCanvas->AddChildToCanvas(PauseMenuPanel);
-    PauseMenuPanelSlotRef = PauseMenuSlot;
-
-    UScrollBox* PauseScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("PauseMenuScroll"));
-    PauseMenuPanel->SetContent(PauseScroll);
-
-    UVerticalBox* PauseMenuContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("PauseMenuContent"));
-    if (PauseScroll != nullptr)
+    if (PauseMenuSlot != nullptr)
     {
-        PauseScroll->SetConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible);
-        PauseScroll->SetScrollbarPadding(FMargin(4.0f, 6.0f, 4.0f, 6.0f));
-        PauseScroll->AddChild(PauseMenuContent);
+        PauseMenuSlot->SetSize(FVector2D(440.0f, 560.0f));
+        PauseMenuSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+        PauseMenuSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+        PauseMenuSlot->SetPosition(FVector2D::ZeroVector);
     }
 
+    UVerticalBox* PauseMenuContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("PauseMenuContent"));
+    PauseMenuPanel->SetContent(PauseMenuContent);
+
     UTextBlock* PauseTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("PauseTitle"));
-    ConfigureText(PauseTitle, TEXT("PILGRIMAGE MENU"), FLinearColor(0.98f, 0.93f, 0.82f), 28);
+    ConfigureText(PauseTitle, TEXT("PILGRIMAGE"), FLinearColor(0.90f, 0.84f, 0.68f), 24);
     PauseTitle->SetJustification(ETextJustify::Center);
-    AddVerticalChild(PauseMenuContent, PauseTitle, FMargin(12.0f, 20.0f, 12.0f, 4.0f));
+    AddVerticalChild(PauseMenuContent, PauseTitle, FMargin(12.0f, 16.0f, 12.0f, 4.0f));
 
-    UTextBlock* PauseSubtitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("PauseSubtitle"));
-    ConfigureText(PauseSubtitle, TEXT("Rest, reflect, and choose the next step of your journey."), FLinearColor(0.90f, 0.84f, 0.68f), 14);
-    PauseSubtitle->SetAutoWrapText(true);
-    PauseSubtitle->SetJustification(ETextJustify::Center);
-    AddVerticalChild(PauseMenuContent, PauseSubtitle, FMargin(26.0f, 0.0f, 26.0f, 10.0f));
-
-    AddSectionDivider(WidgetTree, PauseMenuContent, FLinearColor(0.62f, 0.50f, 0.25f, 0.95f), FMargin(24.0f, 0.0f, 24.0f, 10.0f));
+    AddGoldSeparator(WidgetTree, PauseMenuContent, TEXT("PauseTitleSep"), FMargin(40.0f, 0.0f, 40.0f, 8.0f));
 
     UTextBlock* ButtonLabel = nullptr;
-    PauseResumeButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("ResumeButton"), TEXT("Resume"), ButtonLabel);
+    PauseResumeButton = CreateCompactMenuButton(WidgetTree, PauseMenuContent, TEXT("ResumeButton"), TEXT("Resume"), ButtonLabel);
     if (PauseResumeButton != nullptr)
     {
         PauseResumeButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleResumePressed);
     }
 
-    UTextBlock* SaveHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SaveHeader"));
-    ConfigureText(SaveHeader, TEXT("Save Slots"), FLinearColor(0.94f, 0.88f, 0.74f), 18);
-    AddVerticalChild(PauseMenuContent, SaveHeader, FMargin(20.0f, 14.0f, 12.0f, 6.0f));
+    AddGoldSeparator(WidgetTree, PauseMenuContent, TEXT("SaveSep"), FMargin(20.0f, 6.0f, 20.0f, 4.0f));
 
-    PauseSaveSlot1Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot1Button"), TEXT("Save Slot 1"), ButtonLabel);
+    PauseSaveSlot1Button = CreateCompactMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot1Button"), TEXT("Save Slot 1"), ButtonLabel);
     if (PauseSaveSlot1Button != nullptr)
     {
         PauseSaveSlot1Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot1Pressed);
     }
-    PauseSaveSlot2Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot2Button"), TEXT("Save Slot 2"), ButtonLabel);
+    PauseSaveSlot2Button = CreateCompactMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot2Button"), TEXT("Save Slot 2"), ButtonLabel);
     if (PauseSaveSlot2Button != nullptr)
     {
         PauseSaveSlot2Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot2Pressed);
     }
-    PauseSaveSlot3Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot3Button"), TEXT("Save Slot 3"), ButtonLabel);
+    PauseSaveSlot3Button = CreateCompactMenuButton(WidgetTree, PauseMenuContent, TEXT("SaveSlot3Button"), TEXT("Save Slot 3"), ButtonLabel);
     if (PauseSaveSlot3Button != nullptr)
     {
         PauseSaveSlot3Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSaveSlot3Pressed);
     }
 
-    UTextBlock* LoadHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LoadHeader"));
-    ConfigureText(LoadHeader, TEXT("Load Slots"), FLinearColor(0.94f, 0.88f, 0.74f), 18);
-    AddSectionDivider(WidgetTree, PauseMenuContent, FLinearColor(0.35f, 0.30f, 0.18f, 0.85f), FMargin(26.0f, 6.0f, 26.0f, 8.0f));
-    AddVerticalChild(PauseMenuContent, LoadHeader, FMargin(20.0f, 2.0f, 12.0f, 6.0f));
+    AddGoldSeparator(WidgetTree, PauseMenuContent, TEXT("LoadSep"), FMargin(20.0f, 6.0f, 20.0f, 4.0f));
 
-    PauseLoadSlot1Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot1Button"), TEXT("Load Slot 1"), ButtonLabel);
+    PauseLoadSlot1Button = CreateCompactMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot1Button"), TEXT("Load Slot 1"), ButtonLabel);
     if (PauseLoadSlot1Button != nullptr)
     {
         PauseLoadSlot1Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot1Pressed);
     }
-    PauseLoadSlot2Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot2Button"), TEXT("Load Slot 2"), ButtonLabel);
+    PauseLoadSlot2Button = CreateCompactMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot2Button"), TEXT("Load Slot 2"), ButtonLabel);
     if (PauseLoadSlot2Button != nullptr)
     {
         PauseLoadSlot2Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot2Pressed);
     }
-    PauseLoadSlot3Button = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot3Button"), TEXT("Load Slot 3"), ButtonLabel);
+    PauseLoadSlot3Button = CreateCompactMenuButton(WidgetTree, PauseMenuContent, TEXT("LoadSlot3Button"), TEXT("Load Slot 3"), ButtonLabel);
     if (PauseLoadSlot3Button != nullptr)
     {
         PauseLoadSlot3Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleLoadSlot3Pressed);
     }
 
+    // Compact slot summaries
     SlotSummary1Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SlotSummary1Text"));
-    ConfigureText(SlotSummary1Text, TEXT("Slot 1: Empty"), FLinearColor(0.82f, 0.82f, 0.78f), 14);
-    AddVerticalChild(PauseMenuContent, SlotSummary1Text, FMargin(20.0f, 10.0f, 12.0f, 0.0f));
+    ConfigureText(SlotSummary1Text, TEXT("Slot 1: Empty"), FLinearColor(0.62f, 0.60f, 0.55f), 11);
+    AddVerticalChild(PauseMenuContent, SlotSummary1Text, FMargin(14.0f, 4.0f, 12.0f, 0.0f));
 
     SlotSummary2Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SlotSummary2Text"));
-    ConfigureText(SlotSummary2Text, TEXT("Slot 2: Empty"), FLinearColor(0.82f, 0.82f, 0.78f), 14);
-    AddVerticalChild(PauseMenuContent, SlotSummary2Text, FMargin(20.0f, 2.0f, 12.0f, 0.0f));
+    ConfigureText(SlotSummary2Text, TEXT("Slot 2: Empty"), FLinearColor(0.62f, 0.60f, 0.55f), 11);
+    AddVerticalChild(PauseMenuContent, SlotSummary2Text, FMargin(14.0f, 1.0f, 12.0f, 0.0f));
 
     SlotSummary3Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SlotSummary3Text"));
-    ConfigureText(SlotSummary3Text, TEXT("Slot 3: Empty"), FLinearColor(0.82f, 0.82f, 0.78f), 14);
-    AddVerticalChild(PauseMenuContent, SlotSummary3Text, FMargin(20.0f, 2.0f, 12.0f, 0.0f));
+    ConfigureText(SlotSummary3Text, TEXT("Slot 3: Empty"), FLinearColor(0.62f, 0.60f, 0.55f), 11);
+    AddVerticalChild(PauseMenuContent, SlotSummary3Text, FMargin(14.0f, 1.0f, 12.0f, 4.0f));
 
-    AddVerticalSpacer(WidgetTree, PauseMenuContent, 4.0f, FMargin(0.0f));
+    AddGoldSeparator(WidgetTree, PauseMenuContent, TEXT("BottomSep"), FMargin(20.0f, 4.0f, 20.0f, 4.0f));
 
-    PauseNewPilgrimageButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("NewPilgrimageButton"), TEXT("New Pilgrimage"), ButtonLabel);
+    PauseNewPilgrimageButton = CreateCompactMenuButton(WidgetTree, PauseMenuContent, TEXT("NewPilgrimageButton"), TEXT("New Pilgrimage"), ButtonLabel);
     if (PauseNewPilgrimageButton != nullptr)
     {
         PauseNewPilgrimageButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleNewPilgrimagePressed);
     }
 
-    PauseOptionsButton = CreateMenuButton(WidgetTree, PauseMenuContent, TEXT("PauseOptionsButton"), TEXT("Options"), ButtonLabel);
+    PauseOptionsButton = CreateCompactMenuButton(WidgetTree, PauseMenuContent, TEXT("PauseOptionsButton"), TEXT("Options"), ButtonLabel);
     if (PauseOptionsButton != nullptr)
     {
         PauseOptionsButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsPressed);
@@ -515,8 +553,11 @@ void UNazareneHUDWidget::NativeOnInitialized()
         }
     }
 
+    // ======================================================================
+    // START MENU OVERLAY
+    // ======================================================================
     StartMenuOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("StartMenuOverlay"));
-    StartMenuOverlay->SetBrushColor(FLinearColor(0.01f, 0.01f, 0.00f, 0.56f));
+    StartMenuOverlay->SetBrushColor(FLinearColor(0.02f, 0.02f, 0.01f, 0.42f));
     StartMenuOverlay->SetVisibility(ESlateVisibility::Collapsed);
     UCanvasPanelSlot* StartOverlaySlot = RootPanel->AddChildToCanvas(StartMenuOverlay);
     if (StartOverlaySlot != nullptr)
@@ -529,29 +570,30 @@ void UNazareneHUDWidget::NativeOnInitialized()
     StartMenuOverlay->SetContent(StartCanvas);
 
     UBorder* StartMenuPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("StartMenuPanel"));
-    StartMenuPanel->SetBrushColor(FLinearColor(0.09f, 0.07f, 0.04f, 0.93f));
+    StartMenuPanel->SetBrushColor(FLinearColor(0.05f, 0.05f, 0.03f, 0.92f));
     UCanvasPanelSlot* StartPanelSlot = StartCanvas->AddChildToCanvas(StartMenuPanel);
-    StartMenuPanelSlotRef = StartPanelSlot;
+    if (StartPanelSlot != nullptr)
+    {
+        StartPanelSlot->SetSize(FVector2D(520.0f, 420.0f));
+        StartPanelSlot->SetAnchors(FAnchors(0.0f, 1.0f, 0.0f, 1.0f));
+        StartPanelSlot->SetAlignment(FVector2D(0.0f, 1.0f));
+        StartPanelSlot->SetPosition(FVector2D(54.0f, -42.0f));
+    }
 
     UVerticalBox* StartMenuContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("StartMenuContent"));
     StartMenuPanel->SetContent(StartMenuContent);
 
     UTextBlock* StartTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("StartTitle"));
-    ConfigureText(StartTitle, TEXT("THE NAZARENE"), FLinearColor(0.98f, 0.92f, 0.80f), 30);
+    ConfigureText(StartTitle, TEXT("THE NAZARENE"), FLinearColor(0.92f, 0.86f, 0.68f), 32);
     StartTitle->SetJustification(ETextJustify::Left);
-    AddVerticalChild(StartMenuContent, StartTitle, FMargin(20.0f, 26.0f, 18.0f, 4.0f));
+    AddVerticalChild(StartMenuContent, StartTitle, FMargin(20.0f, 26.0f, 18.0f, 2.0f));
 
     UTextBlock* StartSubtitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("StartSubtitle"));
-    ConfigureText(StartSubtitle, TEXT("The stone is rolled away."), FLinearColor(0.92f, 0.86f, 0.66f), 18);
+    ConfigureText(StartSubtitle, TEXT("The stone is rolled away."), FLinearColor(0.82f, 0.76f, 0.58f), 16);
     StartSubtitle->SetJustification(ETextJustify::Left);
-    AddVerticalChild(StartMenuContent, StartSubtitle, FMargin(20.0f, 0.0f, 18.0f, 4.0f));
+    AddVerticalChild(StartMenuContent, StartSubtitle, FMargin(20.0f, 0.0f, 18.0f, 2.0f));
 
-    UTextBlock* StartLoreLine = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("StartLoreLine"));
-    ConfigureText(StartLoreLine, TEXT("An empty tomb. Dawn over Jerusalem. Begin the pilgrimage."), FLinearColor(0.86f, 0.82f, 0.74f), 14);
-    StartLoreLine->SetAutoWrapText(true);
-    StartLoreLine->SetJustification(ETextJustify::Left);
-    AddVerticalChild(StartMenuContent, StartLoreLine, FMargin(20.0f, 0.0f, 20.0f, 16.0f));
-    AddSectionDivider(WidgetTree, StartMenuContent, FLinearColor(0.62f, 0.50f, 0.25f, 0.95f), FMargin(24.0f, 0.0f, 24.0f, 10.0f));
+    AddGoldSeparator(WidgetTree, StartMenuContent, TEXT("StartSep"), FMargin(20.0f, 8.0f, 20.0f, 12.0f));
 
     UTextBlock* StartButtonLabel = nullptr;
     StartNewGameButton = CreateMenuButton(WidgetTree, StartMenuContent, TEXT("StartPilgrimageButton"), TEXT("Begin Pilgrimage"), StartButtonLabel);
@@ -598,6 +640,9 @@ void UNazareneHUDWidget::NativeOnInitialized()
         }
     }
 
+    // ======================================================================
+    // OPTIONS OVERLAY
+    // ======================================================================
     OptionsOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("OptionsOverlay"));
     OptionsOverlay->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.94f));
     OptionsOverlay->SetVisibility(ESlateVisibility::Collapsed);
@@ -612,138 +657,156 @@ void UNazareneHUDWidget::NativeOnInitialized()
     OptionsOverlay->SetContent(OptionsCanvas);
 
     UBorder* OptionsPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("OptionsPanel"));
-    OptionsPanel->SetBrushColor(FLinearColor(0.10f, 0.09f, 0.07f, 0.98f));
+    OptionsPanel->SetBrushColor(FLinearColor(0.06f, 0.06f, 0.04f, 0.98f));
     UCanvasPanelSlot* OptionsPanelSlot = OptionsCanvas->AddChildToCanvas(OptionsPanel);
-    OptionsPanelSlotRef = OptionsPanelSlot;
-
-    UScrollBox* OptionsScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("OptionsScroll"));
-    OptionsPanel->SetContent(OptionsScroll);
-
-    UVerticalBox* OptionsContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("OptionsContent"));
-    if (OptionsScroll != nullptr)
+    if (OptionsPanelSlot != nullptr)
     {
-        OptionsScroll->SetConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible);
-        OptionsScroll->SetScrollbarPadding(FMargin(4.0f, 6.0f, 4.0f, 6.0f));
-        OptionsScroll->AddChild(OptionsContent);
+        FVector2D ViewportSize(1920.0f, 1080.0f);
+        if (APlayerController* PC = GetOwningPlayer())
+        {
+            int32 ViewportX = 0;
+            int32 ViewportY = 0;
+            PC->GetViewportSize(ViewportX, ViewportY);
+            if (ViewportX > 0 && ViewportY > 0)
+            {
+                ViewportSize = FVector2D(float(ViewportX), float(ViewportY));
+            }
+        }
+
+        const float ResponsiveWidth = FMath::Clamp(ViewportSize.X * 0.38f, 580.0f, 800.0f);
+        const float ResponsiveHeight = FMath::Clamp(ViewportSize.Y * 0.82f, 700.0f, 980.0f);
+        OptionsPanelSlot->SetSize(FVector2D(ResponsiveWidth, ResponsiveHeight));
+        OptionsPanelSlot->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
+        OptionsPanelSlot->SetAlignment(FVector2D(0.5f, 0.5f));
+        OptionsPanelSlot->SetPosition(FVector2D::ZeroVector);
     }
 
+    UVerticalBox* OptionsContent = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("OptionsContent"));
+    OptionsPanel->SetContent(OptionsContent);
+
     UTextBlock* OptionsTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("OptionsTitle"));
-    ConfigureText(OptionsTitle, TEXT("Options"), FLinearColor(0.98f, 0.92f, 0.80f), 28);
+    ConfigureText(OptionsTitle, TEXT("OPTIONS"), FLinearColor(0.90f, 0.84f, 0.68f), 24);
     OptionsTitle->SetJustification(ETextJustify::Center);
-    AddVerticalChild(OptionsContent, OptionsTitle, FMargin(16.0f, 22.0f, 16.0f, 10.0f));
+    AddVerticalChild(OptionsContent, OptionsTitle, FMargin(16.0f, 16.0f, 16.0f, 4.0f));
+
+    AddGoldSeparator(WidgetTree, OptionsContent, TEXT("OptionsTitleSep"), FMargin(40.0f, 0.0f, 40.0f, 6.0f));
 
     OptionsSummaryText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("OptionsSummaryText"));
-    ConfigureText(OptionsSummaryText, TEXT("Loading settings..."), FLinearColor(0.90f, 0.86f, 0.76f), 15);
+    ConfigureText(OptionsSummaryText, TEXT("Loading settings..."), FLinearColor(0.78f, 0.74f, 0.66f), 13);
     OptionsSummaryText->SetAutoWrapText(true);
-    AddVerticalChild(OptionsContent, OptionsSummaryText, FMargin(18.0f, 4.0f, 18.0f, 12.0f));
+    AddVerticalChild(OptionsContent, OptionsSummaryText, FMargin(18.0f, 4.0f, 18.0f, 8.0f));
 
     UTextBlock* OptionsButtonLabel = nullptr;
     TArray<UButton*> OptionsButtons;
 
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SensitivityDownButton"), TEXT("Sensitivity -"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("SensitivityDownButton"), TEXT("Sensitivity -"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSensitivityDownPressed);
         FirstOptionsButton = Button;
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SensitivityUpButton"), TEXT("Sensitivity +"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("SensitivityUpButton"), TEXT("Sensitivity +"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSensitivityUpPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("InvertLookYButton"), TEXT("Toggle Invert Look Y"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("InvertLookYButton"), TEXT("Toggle Invert Look Y"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleInvertLookYPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FovDownButton"), TEXT("Field Of View -"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("FovDownButton"), TEXT("Field Of View -"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFovDownPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FovUpButton"), TEXT("Field Of View +"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("FovUpButton"), TEXT("Field Of View +"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFovUpPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("GammaDownButton"), TEXT("Gamma -"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("GammaDownButton"), TEXT("Gamma -"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleGammaDownPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("GammaUpButton"), TEXT("Gamma +"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("GammaUpButton"), TEXT("Gamma +"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleGammaUpPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("VolumeDownButton"), TEXT("Master Volume -"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("VolumeDownButton"), TEXT("Master Volume -"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleVolumeDownPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("VolumeUpButton"), TEXT("Master Volume +"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("VolumeUpButton"), TEXT("Master Volume +"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleVolumeUpPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FrameLimitDownButton"), TEXT("Frame Limit -"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("FrameLimitDownButton"), TEXT("Frame Limit -"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFrameLimitDownPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("FrameLimitUpButton"), TEXT("Frame Limit +"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("FrameLimitUpButton"), TEXT("Frame Limit +"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleFrameLimitUpPressed);
         OptionsButtons.Add(Button);
     }
 
-    UTextBlock* AccessibilityHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("AccessibilityHeader"));
-    ConfigureText(AccessibilityHeader, TEXT("-- Accessibility --"), FLinearColor(0.94f, 0.88f, 0.74f), 16);
-    AccessibilityHeader->SetJustification(ETextJustify::Center);
-    AddVerticalChild(OptionsContent, AccessibilityHeader, FMargin(12.0f, 12.0f, 12.0f, 4.0f));
+    AddGoldSeparator(WidgetTree, OptionsContent, TEXT("AccessSep"), FMargin(20.0f, 4.0f, 20.0f, 4.0f));
 
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SubtitleScaleDownButton"), TEXT("Subtitle Size -"), OptionsButtonLabel))
+    UTextBlock* AccessibilityHeader = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("AccessibilityHeader"));
+    ConfigureText(AccessibilityHeader, TEXT("Accessibility"), FLinearColor(0.90f, 0.84f, 0.68f), 15);
+    AccessibilityHeader->SetJustification(ETextJustify::Center);
+    AddVerticalChild(OptionsContent, AccessibilityHeader, FMargin(12.0f, 2.0f, 12.0f, 4.0f));
+
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("SubtitleScaleDownButton"), TEXT("Subtitle Size -"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSubtitleScaleDownPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("SubtitleScaleUpButton"), TEXT("Subtitle Size +"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("SubtitleScaleUpButton"), TEXT("Subtitle Size +"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleSubtitleScaleUpPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("ColorblindToggleButton"), TEXT("Colorblind Mode"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("ColorblindToggleButton"), TEXT("Colorblind Mode"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleColorblindTogglePressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("HighContrastToggleButton"), TEXT("High Contrast HUD"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("HighContrastToggleButton"), TEXT("High Contrast HUD"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleHighContrastTogglePressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("ScreenShakeToggleButton"), TEXT("Screen Shake Reduction"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("ScreenShakeToggleButton"), TEXT("Screen Shake Reduction"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleScreenShakeTogglePressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("HUDScaleDownButton"), TEXT("HUD Scale -"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("HUDScaleDownButton"), TEXT("HUD Scale -"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleHUDScaleDownPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("HUDScaleUpButton"), TEXT("HUD Scale +"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("HUDScaleUpButton"), TEXT("HUD Scale +"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleHUDScaleUpPressed);
         OptionsButtons.Add(Button);
     }
 
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("OptionsApplyButton"), TEXT("Apply And Save"), OptionsButtonLabel))
+    AddGoldSeparator(WidgetTree, OptionsContent, TEXT("OptionsBottomSep"), FMargin(20.0f, 4.0f, 20.0f, 4.0f));
+
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("OptionsApplyButton"), TEXT("Apply And Save"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsApplyPressed);
         OptionsButtons.Add(Button);
     }
-    if (UButton* Button = CreateMenuButton(WidgetTree, OptionsContent, TEXT("OptionsBackButton"), TEXT("Back"), OptionsButtonLabel))
+    if (UButton* Button = CreateCompactMenuButton(WidgetTree, OptionsContent, TEXT("OptionsBackButton"), TEXT("Back"), OptionsButtonLabel, 15))
     {
         Button->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleOptionsBackPressed);
         OptionsButtons.Add(Button);
@@ -768,8 +831,11 @@ void UNazareneHUDWidget::NativeOnInitialized()
         }
     }
 
+    // ======================================================================
+    // DEATH OVERLAY
+    // ======================================================================
     DeathOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("DeathOverlay"));
-    DeathOverlay->SetBrushColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.86f));
+    DeathOverlay->SetBrushColor(FLinearColor(0.02f, 0.01f, 0.01f, 0.90f));
     DeathOverlay->SetVisibility(ESlateVisibility::Collapsed);
     UCanvasPanelSlot* DeathOverlaySlot = RootPanel->AddChildToCanvas(DeathOverlay);
     if (DeathOverlaySlot != nullptr)
@@ -782,12 +848,12 @@ void UNazareneHUDWidget::NativeOnInitialized()
     DeathOverlay->SetContent(DeathContent);
 
     UTextBlock* DeathTitleText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("DeathTitleText"));
-    ConfigureText(DeathTitleText, TEXT("You Were Struck Down"), FLinearColor(0.95f, 0.34f, 0.24f), 34);
+    ConfigureText(DeathTitleText, TEXT("YOU WERE STRUCK DOWN"), FLinearColor(0.85f, 0.22f, 0.16f), 32);
     DeathTitleText->SetJustification(ETextJustify::Center);
-    AddVerticalChild(DeathContent, DeathTitleText, FMargin(16.0f, 220.0f, 16.0f, 12.0f));
+    AddVerticalChild(DeathContent, DeathTitleText, FMargin(16.0f, 260.0f, 16.0f, 12.0f));
 
     DeathRetryText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("DeathRetryText"));
-    ConfigureText(DeathRetryText, TEXT("Attempt 1 begins."), FLinearColor(0.95f, 0.89f, 0.79f), 18);
+    ConfigureText(DeathRetryText, TEXT("Attempt 1 begins."), FLinearColor(0.88f, 0.82f, 0.70f), 16);
     DeathRetryText->SetJustification(ETextJustify::Center);
     AddVerticalChild(DeathContent, DeathRetryText, FMargin(16.0f, 0.0f, 16.0f, 24.0f));
 
@@ -798,8 +864,11 @@ void UNazareneHUDWidget::NativeOnInitialized()
         RiseAgainButton->OnClicked.AddDynamic(this, &UNazareneHUDWidget::HandleRiseAgainPressed);
     }
 
+    // ======================================================================
+    // LOADING OVERLAY
+    // ======================================================================
     LoadingOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("LoadingOverlay"));
-    LoadingOverlay->SetBrushColor(FLinearColor(0.01f, 0.01f, 0.01f, 0.88f));
+    LoadingOverlay->SetBrushColor(FLinearColor(0.01f, 0.01f, 0.01f, 0.92f));
     LoadingOverlay->SetVisibility(ESlateVisibility::Collapsed);
     UCanvasPanelSlot* LoadingOverlaySlot = RootPanel->AddChildToCanvas(LoadingOverlay);
     if (LoadingOverlaySlot != nullptr)
@@ -812,17 +881,19 @@ void UNazareneHUDWidget::NativeOnInitialized()
     LoadingOverlay->SetContent(LoadingContent);
 
     UTextBlock* LoadingTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LoadingTitle"));
-    ConfigureText(LoadingTitle, TEXT("Loading Pilgrimage..."), FLinearColor(0.95f, 0.90f, 0.82f), 30);
+    ConfigureText(LoadingTitle, TEXT("Loading Pilgrimage..."), FLinearColor(0.90f, 0.84f, 0.72f), 28);
     LoadingTitle->SetJustification(ETextJustify::Center);
-    AddVerticalChild(LoadingContent, LoadingTitle, FMargin(20.0f, 220.0f, 20.0f, 18.0f));
+    AddVerticalChild(LoadingContent, LoadingTitle, FMargin(20.0f, 260.0f, 20.0f, 18.0f));
 
     LoadingTipText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LoadingTipText"));
-    ConfigureText(LoadingTipText, TEXT("Lore Tip"), FLinearColor(0.88f, 0.84f, 0.72f), 18);
+    ConfigureText(LoadingTipText, TEXT("Lore Tip"), FLinearColor(0.78f, 0.74f, 0.62f), 16);
     LoadingTipText->SetJustification(ETextJustify::Center);
     LoadingTipText->SetAutoWrapText(true);
     AddVerticalChild(LoadingContent, LoadingTipText, FMargin(120.0f, 0.0f, 120.0f, 12.0f));
 
-    // Skill Tree Widget (separate viewport widget, toggled by T key)
+    // ======================================================================
+    // SKILL TREE WIDGET
+    // ======================================================================
     APlayerController* SkillTreePC = GetOwningPlayer();
     if (SkillTreePC != nullptr)
     {
@@ -834,7 +905,6 @@ void UNazareneHUDWidget::NativeOnInitialized()
         }
     }
 
-    RefreshResponsiveMenuLayout();
     RefreshSlotSummaries();
     RefreshOptionsSummary();
 }
@@ -844,12 +914,6 @@ void UNazareneHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
     Super::NativeTick(MyGeometry, InDeltaTime);
 
     CachedDeltaTime = InDeltaTime;
-    const FVector2D ViewportSize = ResolveViewportSize(this);
-    if (!ViewportSize.Equals(CachedMenuViewportSize, 1.0f))
-    {
-        CachedMenuViewportSize = ViewportSize;
-        RefreshResponsiveMenuLayout();
-    }
 
     ANazarenePlayerCharacter* Player = Cast<ANazarenePlayerCharacter>(GetOwningPlayerPawn());
     RefreshVitals(Player);
@@ -875,64 +939,6 @@ void UNazareneHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTi
         {
             DamageNumberWidgets.RemoveAtSwap(Index);
         }
-    }
-}
-
-void UNazareneHUDWidget::RefreshResponsiveMenuLayout()
-{
-    const FVector2D ViewportSize = ResolveViewportSize(this);
-    CachedMenuViewportSize = ViewportSize;
-
-    if (PauseMenuPanelSlotRef != nullptr)
-    {
-        const float Width = FMath::Clamp(ViewportSize.X * 0.43f, 560.0f, 820.0f);
-        const float Height = FMath::Clamp(ViewportSize.Y * 0.84f, 500.0f, 900.0f);
-        PauseMenuPanelSlotRef->SetSize(FVector2D(Width, Height));
-        PauseMenuPanelSlotRef->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
-        PauseMenuPanelSlotRef->SetAlignment(FVector2D(0.5f, 0.5f));
-        PauseMenuPanelSlotRef->SetPosition(FVector2D::ZeroVector);
-    }
-
-    if (StartMenuPanelSlotRef != nullptr)
-    {
-        const float Width = FMath::Clamp(ViewportSize.X * 0.40f, 520.0f, 800.0f);
-        const float Height = FMath::Clamp(ViewportSize.Y * 0.62f, 460.0f, 700.0f);
-        const float OffsetX = FMath::Clamp(ViewportSize.X * 0.20f, 190.0f, 390.0f);
-        const float OffsetY = FMath::Clamp(ViewportSize.Y * 0.02f, 8.0f, 36.0f);
-        StartMenuPanelSlotRef->SetSize(FVector2D(Width, Height));
-        StartMenuPanelSlotRef->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
-        StartMenuPanelSlotRef->SetAlignment(FVector2D(0.5f, 0.5f));
-        StartMenuPanelSlotRef->SetPosition(FVector2D(OffsetX, OffsetY));
-    }
-
-    if (OptionsPanelSlotRef != nullptr)
-    {
-        const float Width = FMath::Clamp(ViewportSize.X * 0.50f, 660.0f, 980.0f);
-        const float Height = FMath::Clamp(ViewportSize.Y * 0.90f, 540.0f, 1020.0f);
-        OptionsPanelSlotRef->SetSize(FVector2D(Width, Height));
-        OptionsPanelSlotRef->SetAnchors(FAnchors(0.5f, 0.5f, 0.5f, 0.5f));
-        OptionsPanelSlotRef->SetAlignment(FVector2D(0.5f, 0.5f));
-        OptionsPanelSlotRef->SetPosition(FVector2D::ZeroVector);
-    }
-}
-
-void UNazareneHUDWidget::SetGameplayHUDVisible(bool bVisible)
-{
-    const ESlateVisibility TargetVisibility = bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
-
-    if (PlayerPanelRoot != nullptr)
-    {
-        PlayerPanelRoot->SetVisibility(TargetVisibility);
-    }
-
-    if (ObjectivePanelRoot != nullptr)
-    {
-        ObjectivePanelRoot->SetVisibility(TargetVisibility);
-    }
-
-    if (ControlsTextRoot != nullptr)
-    {
-        ControlsTextRoot->SetVisibility(TargetVisibility);
     }
 }
 
@@ -1016,17 +1022,9 @@ void UNazareneHUDWidget::SetLoadingOverlayVisible(bool bVisible, const FString& 
 
 void UNazareneHUDWidget::SetStartMenuVisible(bool bVisible)
 {
-    RefreshResponsiveMenuLayout();
-    SetGameplayHUDVisible(!bVisible);
-
     if (StartMenuOverlay != nullptr)
     {
         StartMenuOverlay->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-    }
-
-    if (bVisible && MessageText != nullptr)
-    {
-        MessageText->SetVisibility(ESlateVisibility::Collapsed);
     }
 
     if (bVisible && PauseOverlay != nullptr)
@@ -1052,8 +1050,6 @@ bool UNazareneHUDWidget::IsStartMenuVisible() const
 
 void UNazareneHUDWidget::SetPauseMenuVisible(bool bVisible)
 {
-    RefreshResponsiveMenuLayout();
-
     if (IsStartMenuVisible() && bVisible)
     {
         return;
@@ -1096,15 +1092,15 @@ void UNazareneHUDWidget::RefreshSlotSummaries()
     {
         if (SlotSummary1Text != nullptr)
         {
-            SlotSummary1Text->SetText(FText::FromString(TEXT("Slot 1: Save subsystem unavailable")));
+            SlotSummary1Text->SetText(FText::FromString(TEXT("Slot 1: unavailable")));
         }
         if (SlotSummary2Text != nullptr)
         {
-            SlotSummary2Text->SetText(FText::FromString(TEXT("Slot 2: Save subsystem unavailable")));
+            SlotSummary2Text->SetText(FText::FromString(TEXT("Slot 2: unavailable")));
         }
         if (SlotSummary3Text != nullptr)
         {
-            SlotSummary3Text->SetText(FText::FromString(TEXT("Slot 3: Save subsystem unavailable")));
+            SlotSummary3Text->SetText(FText::FromString(TEXT("Slot 3: unavailable")));
         }
         return;
     }
@@ -1148,17 +1144,17 @@ void UNazareneHUDWidget::RefreshOptionsSummary()
     const int32 ColorblindIndex = FMath::Clamp(static_cast<int32>(Settings.ColorblindMode), 0, 3);
 
     const FString Summary = FString::Printf(
-        TEXT("Mouse Sensitivity: %.2f\nInvert Look Y: %s\nField Of View: %.0f\nDisplay Gamma: %.2f\nMaster Volume: %.0f%%\nFrame Rate Limit: %.0f\nSubtitle Scale: %.2f\nColorblind Mode: %s\nHigh Contrast HUD: %s\nScreen Shake Reduction: %s\nHUD Scale: %.2f"),
+        TEXT("Sensitivity: %.2f | Invert Y: %s | FOV: %.0f\nGamma: %.2f | Volume: %.0f%% | FPS Cap: %.0f\nSubtitles: %.2f | Colorblind: %s\nContrast: %s | Shake: %s | HUD: %.2f"),
         Settings.MouseSensitivity,
-        Settings.bInvertLookY ? TEXT("Enabled") : TEXT("Disabled"),
+        Settings.bInvertLookY ? TEXT("On") : TEXT("Off"),
         Settings.FieldOfView,
         Settings.DisplayGamma,
         Settings.MasterVolume * 100.0f,
         Settings.FrameRateLimit,
         Settings.SubtitleTextScale,
         ColorblindModeNames[ColorblindIndex],
-        Settings.bHighContrastHUD ? TEXT("Enabled") : TEXT("Disabled"),
-        Settings.bScreenShakeReduction ? TEXT("Enabled") : TEXT("Disabled"),
+        Settings.bHighContrastHUD ? TEXT("On") : TEXT("Off"),
+        Settings.bScreenShakeReduction ? TEXT("On") : TEXT("Off"),
         Settings.HUDScale
     );
     OptionsSummaryText->SetText(FText::FromString(Summary));
@@ -1179,18 +1175,20 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
     const float HealthRatio = MaxHealth > 0.0f ? Health / MaxHealth : 0.0f;
     const float StaminaRatio = MaxStamina > 0.0f ? Stamina / MaxStamina : 0.0f;
 
+    // Compact bar labels
     if (HealthText != nullptr)
     {
-        HealthText->SetText(FText::FromString(FString::Printf(TEXT("Health %.0f / %.0f"), Health, MaxHealth)));
+        HealthText->SetText(FText::FromString(FString::Printf(TEXT("HP  %.0f / %.0f"), Health, MaxHealth)));
     }
     if (StaminaText != nullptr)
     {
-        StaminaText->SetText(FText::FromString(FString::Printf(TEXT("Stamina %.0f / %.0f"), Stamina, MaxStamina)));
+        StaminaText->SetText(FText::FromString(FString::Printf(TEXT("STA  %.0f / %.0f"), Stamina, MaxStamina)));
     }
     if (FaithText != nullptr)
     {
-        FaithText->SetText(FText::FromString(FString::Printf(TEXT("Faith %.0f"), Player->GetFaith())));
+        FaithText->SetText(FText::FromString(FString::Printf(TEXT("FTH  %.0f"), Player->GetFaith())));
     }
+
     // Smooth bar interpolation
     const float TargetHealthPercent = FMath::Clamp(HealthRatio, 0.0f, 1.0f);
     DisplayedHealthPercent = FMath::FInterpTo(DisplayedHealthPercent, TargetHealthPercent, CachedDeltaTime, BarLerpSpeed);
@@ -1214,7 +1212,7 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
         const float PulseAlpha = 0.5f + 0.5f * FMath::Sin(HealthPulseTimer * 6.0f);
         if (HealthBar)
         {
-            HealthBar->SetFillColorAndOpacity(FLinearColor(0.98f, 0.24f * PulseAlpha, 0.20f * PulseAlpha, 1.0f));
+            HealthBar->SetFillColorAndOpacity(FLinearColor(0.92f, 0.18f * PulseAlpha, 0.12f * PulseAlpha, 1.0f));
         }
     }
     else
@@ -1222,7 +1220,7 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
         HealthPulseTimer = 0.0f;
         if (HealthBar)
         {
-            HealthBar->SetFillColorAndOpacity(FLinearColor(0.83f, 0.24f, 0.20f, 1.0f));
+            HealthBar->SetFillColorAndOpacity(FLinearColor(0.78f, 0.18f, 0.14f, 1.0f));
         }
     }
 
@@ -1233,7 +1231,7 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
         const float StaminaPulse = 0.5f + 0.5f * FMath::Sin(StaminaPulseTimer * 6.0f);
         if (StaminaBar)
         {
-            StaminaBar->SetFillColorAndOpacity(FLinearColor(0.22f, 0.68f * StaminaPulse, 0.24f * StaminaPulse, 1.0f));
+            StaminaBar->SetFillColorAndOpacity(FLinearColor(0.18f, 0.58f * StaminaPulse, 0.16f * StaminaPulse, 1.0f));
         }
     }
     else
@@ -1241,7 +1239,7 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
         StaminaPulseTimer = 0.0f;
         if (StaminaBar)
         {
-            StaminaBar->SetFillColorAndOpacity(FLinearColor(0.22f, 0.68f, 0.24f, 1.0f));
+            StaminaBar->SetFillColorAndOpacity(FLinearColor(0.22f, 0.62f, 0.20f, 1.0f));
         }
     }
 
@@ -1274,16 +1272,37 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
         }
     }
 
+    // Lock-on target display
     if (LockTargetText != nullptr)
     {
         const FString TargetName = Player->GetLockTargetName();
-        LockTargetText->SetText(FText::FromString(FString::Printf(TEXT("Lock-On %s"), TargetName.IsEmpty() ? TEXT("None") : *TargetName)));
-    }
-    if (ContextHintText != nullptr)
-    {
-        ContextHintText->SetText(FText::FromString(Player->GetContextHint()));
+        if (TargetName.IsEmpty())
+        {
+            LockTargetText->SetVisibility(ESlateVisibility::Collapsed);
+        }
+        else
+        {
+            LockTargetText->SetText(FText::FromString(FString::Printf(TEXT("Target: %s"), *TargetName)));
+            LockTargetText->SetVisibility(ESlateVisibility::Visible);
+        }
     }
 
+    // Context hint (only show when there's a hint)
+    if (ContextHintText != nullptr)
+    {
+        const FString Hint = Player->GetContextHint();
+        if (Hint.IsEmpty())
+        {
+            ContextHintText->SetVisibility(ESlateVisibility::Collapsed);
+        }
+        else
+        {
+            ContextHintText->SetText(FText::FromString(Hint));
+            ContextHintText->SetVisibility(ESlateVisibility::Visible);
+        }
+    }
+
+    // Critical state warning
     if (CriticalStateText != nullptr)
     {
         FString CriticalState;
@@ -1291,13 +1310,13 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
 
         if (HealthRatio <= 0.25f)
         {
-            CriticalState = TEXT("Critical Health - Retreat or heal now");
-            CriticalColor = FLinearColor(0.98f, 0.25f, 0.20f, 1.0f);
+            CriticalState = TEXT("CRITICAL HEALTH");
+            CriticalColor = FLinearColor(0.92f, 0.20f, 0.14f, 1.0f);
         }
         else if (StaminaRatio <= 0.15f)
         {
-            CriticalState = TEXT("Exhausted - stamina nearly depleted");
-            CriticalColor = FLinearColor(0.96f, 0.72f, 0.24f, 1.0f);
+            CriticalState = TEXT("EXHAUSTED");
+            CriticalColor = FLinearColor(0.90f, 0.65f, 0.18f, 1.0f);
         }
 
         if (CriticalState.IsEmpty())
@@ -1312,19 +1331,20 @@ void UNazareneHUDWidget::RefreshVitals(const ANazarenePlayerCharacter* Player)
         }
     }
 
+    // Compact combat state (level + miracles)
     if (CombatStateText != nullptr)
     {
         const FString BlessingState = Player->IsMiracleUnlocked(FName(TEXT("blessing")))
-            ? FString::Printf(TEXT("Blessing %.1fs"), Player->GetBlessingCooldownRemaining())
-            : TEXT("Blessing Locked");
+            ? FString::Printf(TEXT("Bless %.0fs"), Player->GetBlessingCooldownRemaining())
+            : TEXT("Bless --");
         const FString RadianceState = Player->IsMiracleUnlocked(FName(TEXT("radiance")))
-            ? FString::Printf(TEXT("Radiance %.1fs"), Player->GetRadianceCooldownRemaining())
-            : TEXT("Radiance Locked");
+            ? FString::Printf(TEXT("Rad %.0fs"), Player->GetRadianceCooldownRemaining())
+            : TEXT("Rad --");
 
         CombatStateText->SetText(
             FText::FromString(
                 FString::Printf(
-                    TEXT("Lvl %d | XP %d (Next %d) | Skill Pts %d\nHeal %.1fs | %s | %s"),
+                    TEXT("Lv%d  XP %d/%d  SP %d  |  Heal %.0fs  %s  %s"),
                     Player->GetPlayerLevel(),
                     Player->GetTotalXP(),
                     Player->GetXPToNextLevel(),
@@ -1427,7 +1447,6 @@ void UNazareneHUDWidget::HandleStartPilgrimagePressed()
         }
     }
 
-    // Task 7: Dismiss menu camera when starting a new game
     if (UWorld* World = GetWorld())
     {
         if (ANazareneCampaignGameMode* GM = Cast<ANazareneCampaignGameMode>(World->GetAuthGameMode()))
@@ -1481,7 +1500,6 @@ void UNazareneHUDWidget::HandleContinuePilgrimagePressed()
         }
     }
 
-    // Task 7: Dismiss menu camera when continuing
     if (UWorld* World = GetWorld())
     {
         if (ANazareneCampaignGameMode* GM = Cast<ANazareneCampaignGameMode>(World->GetAuthGameMode()))
@@ -1493,8 +1511,6 @@ void UNazareneHUDWidget::HandleContinuePilgrimagePressed()
 
 void UNazareneHUDWidget::HandleOptionsPressed()
 {
-    RefreshResponsiveMenuLayout();
-
     bOptionsOpenedFromStartMenu = IsStartMenuVisible();
     if (OptionsOverlay != nullptr)
     {
@@ -1513,18 +1529,6 @@ void UNazareneHUDWidget::HandleOptionsBackPressed()
     if (OptionsOverlay != nullptr)
     {
         OptionsOverlay->SetVisibility(ESlateVisibility::Collapsed);
-    }
-
-    if (bOptionsOpenedFromStartMenu)
-    {
-        if (StartOptionsButton != nullptr)
-        {
-            StartOptionsButton->SetKeyboardFocus();
-        }
-    }
-    else if (PauseOptionsButton != nullptr)
-    {
-        PauseOptionsButton->SetKeyboardFocus();
     }
 }
 
