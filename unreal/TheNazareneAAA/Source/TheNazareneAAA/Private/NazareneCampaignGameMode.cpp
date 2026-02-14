@@ -118,15 +118,15 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
 
     FNazareneRegionDefinition Galilee;
     Galilee.RegionId = FName(TEXT("galilee"));
-    Galilee.RegionName = TEXT("Galilee Shores");
+    Galilee.RegionName = TEXT("Bethlehem Nativity");
     Galilee.Chapter = 1;
-    Galilee.Objective = TEXT("Redeem the Legion Sovereign of Gerasa.");
+    Galilee.Objective = TEXT("Witness the nativity and the promise of the Messiah.");
     Galilee.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Galilee/L_GalileeShores"));
     Galilee.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Galilee.PrayerSiteId = FName(TEXT("galilee_site_01"));
-    Galilee.PrayerSiteName = TEXT("Prayer Site: Galilee Shores");
+    Galilee.PrayerSiteName = TEXT("Prayer Site: Bethlehem Grotto");
     Galilee.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
-    Galilee.TravelGatePrompt = TEXT("Press E to travel to Decapolis Ruins");
+    Galilee.TravelGatePrompt = TEXT("Press E to travel to the Jordan River");
     Galilee.TravelGateLocation = FVector(0.0f, 1800.0f, 20.0f);
     Galilee.BossSpawnId = FName(TEXT("galilee_named_boss_01"));
     Galilee.RewardMiracle = FName(TEXT("blessing"));
@@ -144,7 +144,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("galilee_demon_02")), TEXT("Unclean Spirit II"), ENazareneEnemyArchetype::Demon, FVector(-460.0f, -1180.0f, 100.0f) },
         { FName(TEXT("galilee_named_boss_01")), TEXT("Legion Sovereign of Gerasa"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2200.0f, 100.0f) }
     };
-    Galilee.LoreText = TEXT("By these shores the Teacher called his first followers, saying: Come, and I will make you fishers of men.");
+    Galilee.LoreText = TEXT("In Bethlehem, the Word became flesh; shepherds and sages rejoiced at his birth.");
     Galilee.NPCs =
     {
         { TEXT("Peter"), TEXT("peter"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Peter"), { { TEXT("Follow me, and I will make you fishers of men."), 4.0f }, { TEXT("The nets are full, Lord."), 4.0f } } },
@@ -153,15 +153,15 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
 
     FNazareneRegionDefinition Decapolis;
     Decapolis.RegionId = FName(TEXT("decapolis"));
-    Decapolis.RegionName = TEXT("Decapolis Ruins");
+    Decapolis.RegionName = TEXT("Jordan River Baptism");
     Decapolis.Chapter = 2;
-    Decapolis.Objective = TEXT("Redeem the Gadarene Warlord among the ruins.");
+    Decapolis.Objective = TEXT("Be baptized and prepare the way for public ministry.");
     Decapolis.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Decapolis/L_DecapolisRuins"));
     Decapolis.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Decapolis.PrayerSiteId = FName(TEXT("decapolis_site_01"));
-    Decapolis.PrayerSiteName = TEXT("Prayer Site: Decapolis Ruins");
+    Decapolis.PrayerSiteName = TEXT("Prayer Site: Jordan Bank");
     Decapolis.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
-    Decapolis.TravelGatePrompt = TEXT("Press E to travel to Wilderness of Temptation");
+    Decapolis.TravelGatePrompt = TEXT("Press E to travel to the Wilderness of Testing");
     Decapolis.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
     Decapolis.BossSpawnId = FName(TEXT("decapolis_named_boss_01"));
     Decapolis.RewardMiracle = FName(TEXT("radiance"));
@@ -179,7 +179,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("decapolis_demon_02")), TEXT("Unclean Spirit"), ENazareneEnemyArchetype::Demon, FVector(-350.0f, -1450.0f, 100.0f) },
         { FName(TEXT("decapolis_named_boss_01")), TEXT("Gadarene Warlord"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2300.0f, 100.0f) }
     };
-    Decapolis.LoreText = TEXT("Among the ruins of Gentile cities, mercy crossed every boundary.");
+    Decapolis.LoreText = TEXT("At the Jordan, the heavens opened and the Father affirmed the Son.");
     Decapolis.NPCs =
     {
         { TEXT("Andrew"), TEXT("andrew"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Andrew"), { { TEXT("We have found the Messiah."), 4.0f } } },
@@ -190,7 +190,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     Wilderness.RegionId = FName(TEXT("wilderness"));
     Wilderness.RegionName = TEXT("Wilderness of Temptation");
     Wilderness.Chapter = 3;
-    Wilderness.Objective = TEXT("Resist the Adversary of the Desert.");
+    Wilderness.Objective = TEXT("Resist temptation through fasting, prayer, and obedience.");
     Wilderness.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Wilderness/L_WildernessTemptation"));
     Wilderness.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Wilderness.PrayerSiteId = FName(TEXT("wilderness_site_01"));
@@ -225,13 +225,13 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
 
     FNazareneRegionDefinition Jerusalem;
     Jerusalem.RegionId = FName(TEXT("jerusalem"));
-    Jerusalem.RegionName = TEXT("Jerusalem Approach");
+    Jerusalem.RegionName = TEXT("Galilean Ministry");
     Jerusalem.Chapter = 4;
-    Jerusalem.Objective = TEXT("Face the Temple Warden at the city's gate.");
+    Jerusalem.Objective = TEXT("Teach, heal, and call disciples to follow the kingdom way.");
     Jerusalem.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Jerusalem/L_JerusalemApproach"));
     Jerusalem.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Jerusalem.PrayerSiteId = FName(TEXT("jerusalem_site_01"));
-    Jerusalem.PrayerSiteName = TEXT("Prayer Site: Jerusalem Approach");
+    Jerusalem.PrayerSiteName = TEXT("Prayer Site: Capernaum Shore");
     Jerusalem.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
     Jerusalem.TravelGatePrompt = TEXT("Press E to conclude the pilgrimage");
     Jerusalem.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
@@ -248,7 +248,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
         { FName(TEXT("jerusalem_demon_02")), TEXT("Unclean Spirit"), ENazareneEnemyArchetype::Demon, FVector(-350.0f, -1650.0f, 100.0f) },
         { FName(TEXT("jerusalem_named_boss_01")), TEXT("Temple Warden"), ENazareneEnemyArchetype::Boss, FVector(0.0f, -2450.0f, 100.0f) }
     };
-    Jerusalem.LoreText = TEXT("The city on the hill, where prophets are received and rejected alike.");
+    Jerusalem.LoreText = TEXT("Crowds gathered in Galilee as parables and miracles revealed the kingdom.");
     Jerusalem.NPCs =
     {
         { TEXT("Isaiah"), TEXT("isaiah"), FVector(-350.0f, 250.0f, 100.0f), TEXT("Press E to speak with Isaiah"), { { TEXT("Though your sins are like scarlet, they shall be white as snow."), 4.0f } } },
@@ -260,24 +260,24 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     };
 
     // Update Jerusalem travel gate prompt for new chapter progression
-    Jerusalem.TravelGatePrompt = TEXT("Press E to travel to Gethsemane");
+    Jerusalem.TravelGatePrompt = TEXT("Press E to begin the journey to Jerusalem");
 
     FNazareneRegionDefinition Gethsemane;
     Gethsemane.RegionId = FName(TEXT("gethsemane"));
-    Gethsemane.RegionName = TEXT("Garden of Gethsemane");
+    Gethsemane.RegionName = TEXT("Journey to Jerusalem");
     Gethsemane.Chapter = 5;
-    Gethsemane.Objective = TEXT("Endure the hour of anguish in the garden.");
+    Gethsemane.Objective = TEXT("Set your face toward Jerusalem and prepare for Passion Week.");
     Gethsemane.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/Gethsemane/L_GardenGethsemane"));
     Gethsemane.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     Gethsemane.PrayerSiteId = FName(TEXT("gethsemane_site_01"));
-    Gethsemane.PrayerSiteName = TEXT("Prayer Site: Garden of Gethsemane");
+    Gethsemane.PrayerSiteName = TEXT("Prayer Site: Jericho Road");
     Gethsemane.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
-    Gethsemane.TravelGatePrompt = TEXT("Press E to travel to Via Dolorosa");
+    Gethsemane.TravelGatePrompt = TEXT("Press E to enter Jerusalem");
     Gethsemane.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
     Gethsemane.BossSpawnId = FName(TEXT("gethsemane_named_boss_01"));
     Gethsemane.RewardHealthBonus = 14.0f;
     Gethsemane.RewardStaminaBonus = 10.0f;
-    Gethsemane.LoreText = TEXT("Not my will, but yours be done.");
+    Gethsemane.LoreText = TEXT("On the road to Jerusalem, Jesus taught humility, mercy, and repentance.");
     Gethsemane.Enemies =
     {
         { FName(TEXT("gethsemane_shield_01")), TEXT("Temple Guard I"), ENazareneEnemyArchetype::MeleeShield, FVector(900.0f, 400.0f, 100.0f) },
@@ -312,7 +312,7 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
     ViaDolorosa.PrayerSiteId = FName(TEXT("via_dolorosa_site_01"));
     ViaDolorosa.PrayerSiteName = TEXT("Prayer Site: Via Dolorosa");
     ViaDolorosa.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
-    ViaDolorosa.TravelGatePrompt = TEXT("Press E to travel to the Empty Tomb");
+    ViaDolorosa.TravelGatePrompt = TEXT("Press E to travel to Golgotha");
     ViaDolorosa.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
     ViaDolorosa.BossSpawnId = FName(TEXT("via_dolorosa_named_boss_01"));
     ViaDolorosa.RewardHealthBonus = 16.0f;
@@ -344,18 +344,18 @@ void ANazareneCampaignGameMode::BuildDefaultRegions()
 
     FNazareneRegionDefinition EmptyTomb;
     EmptyTomb.RegionId = FName(TEXT("empty_tomb"));
-    EmptyTomb.RegionName = TEXT("The Empty Tomb");
+    EmptyTomb.RegionName = TEXT("Golgotha Crucifixion");
     EmptyTomb.Chapter = 7;
-    EmptyTomb.Objective = TEXT("Rise and proclaim the commission to the nations.");
+    EmptyTomb.Objective = TEXT("Fulfill the sacrifice on the cross and complete the earthly mission.");
     EmptyTomb.StreamedLevelPackage = FName(TEXT("/Game/Maps/Regions/EmptyTomb/L_EmptyTomb"));
     EmptyTomb.PlayerSpawn = FVector(0.0f, 0.0f, 220.0f);
     EmptyTomb.PrayerSiteId = FName(TEXT("empty_tomb_site_01"));
-    EmptyTomb.PrayerSiteName = TEXT("Prayer Site: The Empty Tomb");
+    EmptyTomb.PrayerSiteName = TEXT("Prayer Site: Hill of Calvary");
     EmptyTomb.PrayerSiteLocation = FVector(0.0f, 0.0f, 20.0f);
-    EmptyTomb.TravelGatePrompt = TEXT("Step into the light to conclude the pilgrimage");
+    EmptyTomb.TravelGatePrompt = TEXT("Remain at the cross to conclude the pilgrimage");
     EmptyTomb.TravelGateLocation = FVector(0.0f, 1900.0f, 20.0f);
     EmptyTomb.BossSpawnId = FName(TEXT("empty_tomb_named_boss_01"));
-    EmptyTomb.LoreText = TEXT("He is not here. He is risen.");
+    EmptyTomb.LoreText = TEXT("At Golgotha, the crucified King gave himself in perfect love.");
     EmptyTomb.Enemies =
     {
         { FName(TEXT("empty_tomb_shield_01")), TEXT("Shadow Guard I"), ENazareneEnemyArchetype::MeleeShield, FVector(900.0f, 400.0f, 100.0f) },

@@ -2,7 +2,7 @@
 
 > **Last updated:** February 13, 2026
 > **Engine:** Unreal Engine 5.7 C++ (`unreal/TheNazareneAAA`)
-> **Target:** Win64 Shipping build â€” 7-chapter campaign, production art/audio, polished UI
+> **Target:** Win64 Shipping build â€” 7-chapter campaign from Nativity to Crucifixion, production art/audio, polished UI
 > **Developer:** Solo
 
 ## Status Summary
@@ -67,7 +67,7 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 > Expand the campaign from 4 to 7 chapters per the Gospel narrative arc in `docs/PLOT.md`.
 
 - [ ] Migrate region definitions from hard-coded `BuildDefaultRegions()` to DataTable/DataAsset for all 7 chapters
-- [ ] Define Chapter 5 "Garden of Gethsemane" (olive grove, moonlit, betrayal/arrest theme), Chapter 6 "Via Dolorosa" (narrow streets, crowds, trial), Chapter 7 "The Empty Tomb" (cave, dawn, resurrection)
+- [ ] Define Chapter 5 "Journey to Jerusalem" (roadside villages, discipleship teachings), Chapter 6 "Passion Week" (upper room, Gethsemane, trial), Chapter 7 "Golgotha Crucifixion" (hilltop, solemn crucifixion and burial)
 - [ ] Author Decapolis Ruins production sublevel (ruined Greco-Roman architecture, overcast lighting)
 - [ ] Author Wilderness of Temptation production sublevel (desert canyons, harsh sun, heat haze)
 - [ ] Author Jerusalem Approach production sublevel (city walls, temple columns, golden hour)
