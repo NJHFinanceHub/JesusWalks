@@ -1,3 +1,5 @@
+Status: Active
+
 # Music Library
 
 **Migration note (February 6, 2026):** This asset catalog is engine-agnostic, but current implementation targets Unreal audio pipelines (SoundCue/MetaSound integration).

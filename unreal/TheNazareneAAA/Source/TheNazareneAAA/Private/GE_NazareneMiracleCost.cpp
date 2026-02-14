@@ -11,6 +11,6 @@ UGE_NazareneMiracleCost::UGE_NazareneMiracleCost()
     FaithCostModifier.ModifierOp = EGameplayModOp::Additive;
 
     FSetByCallerFloat FaithCostMagnitude;
-    FaithCostMagnitude.DataTag = FGameplayTag::RequestGameplayTag(TEXT("Data.Miracle.FaithCost"));
+    FaithCostMagnitude.DataTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Data.Miracle.FaithCost")), false);
     FaithCostModifier.ModifierMagnitude = FGameplayEffectModifierMagnitude(FaithCostMagnitude);
 }

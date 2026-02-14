@@ -13,3 +13,5 @@ unreal/**/.vs/
 unreal/**/*.VC.db
 unreal/**/*.sln
 
+
+unreal/Packaged/

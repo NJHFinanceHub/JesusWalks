@@ -837,6 +837,7 @@ void UNazareneHUDWidget::NativeOnInitialized()
     RefreshResponsiveMenuLayout();
     RefreshSlotSummaries();
     RefreshOptionsSummary();
+    SetStartMenuVisible(true);
 }
 
 void UNazareneHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)

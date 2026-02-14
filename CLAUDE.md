@@ -1,3 +1,5 @@
+Status: Active
+
 # CLAUDE.md — The Nazarene
 
 > AI assistant guide for the **The Nazarene** biblical action RPG built in Unreal Engine 5.7 C++.

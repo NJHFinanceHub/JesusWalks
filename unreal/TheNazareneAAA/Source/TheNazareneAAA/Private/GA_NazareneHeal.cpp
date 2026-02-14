@@ -8,7 +8,7 @@ UGA_NazareneHeal::UGA_NazareneHeal()
 {
     FaithCost = 18.0f;
     CooldownDuration = 6.5f;
-    CooldownTag = FGameplayTag::RequestGameplayTag(TEXT("Cooldown.Miracle.Heal"));
+    CooldownTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Cooldown.Miracle.Heal")), false);
 }
 
 void UGA_NazareneHeal::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)

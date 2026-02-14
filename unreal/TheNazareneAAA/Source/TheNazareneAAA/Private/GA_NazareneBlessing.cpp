@@ -8,7 +8,7 @@ UGA_NazareneBlessing::UGA_NazareneBlessing()
 {
     FaithCost = 22.0f;
     CooldownDuration = 14.0f;
-    CooldownTag = FGameplayTag::RequestGameplayTag(TEXT("Cooldown.Miracle.Blessing"));
+    CooldownTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Cooldown.Miracle.Blessing")), false);
 }
 
 void UGA_NazareneBlessing::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)

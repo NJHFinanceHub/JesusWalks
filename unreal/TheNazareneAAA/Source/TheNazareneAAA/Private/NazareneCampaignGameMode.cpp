@@ -15,6 +15,7 @@
 #include "Engine/PostProcessVolume.h"
 #include "Engine/SkyLight.h"
 #include "Engine/StaticMeshActor.h"
+#include "Engine/Engine.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -857,6 +858,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         TEXT("EnvMeshBlock"),
         TEXT("/Game/Art/Environment/Meshes/SM_BiblicalBlock.SM_BiblicalBlock"),
         {
+            TEXT("/Engine/BasicShapes/Cube.Cube"),
             TEXT("/Game/MiddleEasternTown/Meshes/SM_WallBlock_A.SM_WallBlock_A"),
             TEXT("/Game/MiddleEasternTown/Meshes/SM_BuildingBlock_A.SM_BuildingBlock_A"),
             TEXT("/Game/AncientMiddleEast/Meshes/SM_StoneWall_A.SM_StoneWall_A")
@@ -866,6 +868,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         TEXT("EnvMeshColumn"),
         TEXT("/Game/Art/Environment/Meshes/SM_BiblicalColumn.SM_BiblicalColumn"),
         {
+            TEXT("/Engine/BasicShapes/Cylinder.Cylinder"),
             TEXT("/Game/MiddleEasternTown/Meshes/SM_Column_A.SM_Column_A"),
             TEXT("/Game/AncientMiddleEast/Meshes/SM_Column_01.SM_Column_01")
         });
@@ -874,6 +877,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         TEXT("EnvMeshTent"),
         TEXT("/Game/Art/Environment/Meshes/SM_BiblicalTent.SM_BiblicalTent"),
         {
+            TEXT("/Engine/BasicShapes/Cone.Cone"),
             TEXT("/Game/MiddleEasternTown/Meshes/SM_Awning_A.SM_Awning_A"),
             TEXT("/Game/AncientMiddleEast/Meshes/SM_Tent_01.SM_Tent_01")
         });
@@ -882,6 +886,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         TEXT("EnvMeshCanopy"),
         TEXT("/Game/Art/Environment/Meshes/SM_BiblicalCanopy.SM_BiblicalCanopy"),
         {
+            TEXT("/Engine/BasicShapes/Sphere.Sphere"),
             TEXT("/Game/MiddleEasternTown/Meshes/SM_Tree_Olive_A.SM_Tree_Olive_A"),
             TEXT("/Game/AncientMiddleEast/Meshes/SM_Tree_Olive_01.SM_Tree_Olive_01")
         });
@@ -890,6 +895,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         TEXT("EnvMeshGround"),
         TEXT("/Game/Art/Environment/Meshes/SM_BiblicalFloorPlane.SM_BiblicalFloorPlane"),
         {
+            TEXT("/Engine/BasicShapes/Plane.Plane"),
             TEXT("/Game/MiddleEasternTown/Meshes/SM_GroundTile_A.SM_GroundTile_A"),
             TEXT("/Game/AncientMiddleEast/Meshes/SM_GroundTile_01.SM_GroundTile_01")
         });
@@ -898,6 +904,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         TEXT("EnvMaterialStone"),
         TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone"),
         {
+            TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"),
             TEXT("/Game/MiddleEasternTown/Materials/MI_Stone_A.MI_Stone_A"),
             TEXT("/Game/AncientMiddleEast/Materials/MI_StoneWall.MI_StoneWall"),
             TEXT("/Game/MiddleEasternTown/Materials/MI_WallStone_A.MI_WallStone_A")
@@ -907,6 +914,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         TEXT("EnvMaterialOlive"),
         TEXT("/Game/Art/Materials/MI_Env_OliveLeaf.MI_Env_OliveLeaf"),
         {
+            TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"),
             TEXT("/Game/MiddleEasternTown/Materials/MI_OliveLeaves_A.MI_OliveLeaves_A"),
             TEXT("/Game/AncientMiddleEast/Materials/MI_OliveTreeLeaves.MI_OliveTreeLeaves"),
             TEXT("/Game/MiddleEasternTown/Materials/MI_Foliage_A.MI_Foliage_A")
@@ -916,6 +924,7 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
         TEXT("EnvMaterialSand"),
         TEXT("/Game/Art/Materials/MI_Env_Sand.MI_Env_Sand"),
         {
+            TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"),
             TEXT("/Game/MiddleEasternTown/Materials/MI_Sand_A.MI_Sand_A"),
             TEXT("/Game/AncientMiddleEast/Materials/MI_DesertSand.MI_DesertSand"),
             TEXT("/Game/MiddleEasternTown/Materials/MI_Dirt_A.MI_Dirt_A")
@@ -1313,7 +1322,11 @@ void ANazareneCampaignGameMode::SpawnRegionEnvironment(const FNazareneRegionDefi
 
         // Exposure
         PostProcessVolume->Settings.bOverride_AutoExposureMethod = true;
-        PostProcessVolume->Settings.AutoExposureMethod = EAutoExposureMethod::AEM_Manual;
+        PostProcessVolume->Settings.AutoExposureMethod = EAutoExposureMethod::AEM_Histogram;
+        PostProcessVolume->Settings.bOverride_AutoExposureMinBrightness = true;
+        PostProcessVolume->Settings.AutoExposureMinBrightness = 0.65f;
+        PostProcessVolume->Settings.bOverride_AutoExposureMaxBrightness = true;
+        PostProcessVolume->Settings.AutoExposureMaxBrightness = 2.8f;
         PostProcessVolume->Settings.bOverride_AutoExposureBias = true;
         PostProcessVolume->Settings.AutoExposureBias = PPAutoExposureBias;
 
@@ -2574,7 +2587,24 @@ USoundBase* ANazareneCampaignGameMode::ResolveRegionMusic(const FNazareneRegionD
         Candidate = EmptyTombMusic;
     }
 
-    return Candidate.ToSoftObjectPath().IsValid() ? Candidate.LoadSynchronous() : nullptr;
+    if (!Candidate.ToSoftObjectPath().IsValid())
+    {
+        return nullptr;
+    }
+
+    const FString ObjectPath = Candidate.ToSoftObjectPath().ToString();
+    FString PackagePath = ObjectPath;
+    if (PackagePath.Contains(TEXT(".")))
+    {
+        PackagePath = FPackageName::ObjectPathToPackageName(PackagePath);
+    }
+
+    if (!FPackageName::DoesPackageExist(PackagePath))
+    {
+        return nullptr;
+    }
+
+    return Candidate.LoadSynchronous();
 }
 
 void ANazareneCampaignGameMode::CrossfadeToMusic(USoundBase* NewMusic)
@@ -2903,9 +2933,10 @@ void ANazareneCampaignGameMode::SpawnMenuCamera()
         CameraCenter = Regions[RegionIndex].PrayerSiteLocation;
     }
 
-    SpawnMenuSetpiece(CameraCenter);
-    const FVector TombFocusCenter = CameraCenter + FVector(430.0f, 0.0f, 96.0f);
-    const FVector PanStartOffset(-90.0f, 0.0f, 34.0f);
+    const FVector MenuStageCenter = CameraCenter + FVector(0.0f, 0.0f, 2400.0f);
+    SpawnMenuSetpiece(MenuStageCenter);
+    const FVector TombFocusCenter = MenuStageCenter + FVector(430.0f, 0.0f, 112.0f);
+    const FVector PanStartOffset(-180.0f, 0.0f, 96.0f);
 
     MenuCamera = GetWorld()->SpawnActor<ANazareneMenuCameraActor>(
         ANazareneMenuCameraActor::StaticClass(),
@@ -2918,15 +2949,20 @@ void ANazareneCampaignGameMode::SpawnMenuCamera()
         MenuCamera->OrbitCenter = TombFocusCenter;
         MenuCamera->CameraMode = ENazareneMenuCameraMode::PanOut;
         MenuCamera->PanStartOffset = PanStartOffset;
-        MenuCamera->PanEndOffset = FVector(-940.0f, 240.0f, 224.0f);
-        MenuCamera->PanLookAtOffset = FVector(25.0f, 0.0f, 28.0f);
-        MenuCamera->PanDuration = 28.0f;
+        MenuCamera->PanEndOffset = FVector(-1160.0f, 280.0f, 260.0f);
+        MenuCamera->PanLookAtOffset = FVector(120.0f, 0.0f, 88.0f);
+        MenuCamera->PanDuration = 22.0f;
         MenuCamera->bLoopPan = false;
 
         APlayerController* PC = GetWorld()->GetFirstPlayerController();
         if (PC != nullptr)
         {
             PC->SetViewTarget(MenuCamera);
+        }
+
+        if (GEngine != nullptr)
+        {
+            GEngine->Exec(GetWorld(), TEXT("DisableAllScreenMessages"));
         }
     }
 }
@@ -2951,6 +2987,11 @@ void ANazareneCampaignGameMode::DestroyMenuCamera()
 
 void ANazareneCampaignGameMode::OnMenuDismissed()
 {
+    if (GEngine != nullptr)
+    {
+        GEngine->Exec(GetWorld(), TEXT("EnableAllScreenMessages"));
+    }
+
     DestroyMenuCamera();
 
     if (bIntroSequencePendingStart)
@@ -2969,13 +3010,43 @@ void ANazareneCampaignGameMode::SpawnMenuSetpiece(const FVector& CameraCenter)
         return;
     }
 
-    UStaticMesh* BlockMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/Art/Environment/Meshes/SM_BiblicalBlock.SM_BiblicalBlock"));
-    UStaticMesh* ColumnMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Game/Art/Environment/Meshes/SM_BiblicalColumn.SM_BiblicalColumn"));
-    UMaterialInterface* StoneMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone"));
+    const FString ResolvedBlockMeshPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnvMeshBlock"),
+        TEXT("/Game/Art/Environment/Meshes/SM_BiblicalBlock.SM_BiblicalBlock"),
+        {
+            TEXT("/Engine/BasicShapes/Cube.Cube")
+        });
 
-    if (BlockMesh == nullptr || ColumnMesh == nullptr)
+    const FString ResolvedColumnMeshPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnvMeshColumn"),
+        TEXT("/Game/Art/Environment/Meshes/SM_BiblicalColumn.SM_BiblicalColumn"),
+        {
+            TEXT("/Engine/BasicShapes/Cylinder.Cylinder")
+        });
+
+    const FString ResolvedStoneMaterialPath = NazareneAssetResolver::ResolveObjectPath(
+        TEXT("EnvMaterialStone"),
+        TEXT("/Game/Art/Materials/MI_Env_Stone.MI_Env_Stone"),
+        {
+            TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial")
+        });
+
+    UStaticMesh* BlockMesh = LoadObject<UStaticMesh>(nullptr, *ResolvedBlockMeshPath);
+    if (BlockMesh == nullptr)
     {
-        return;
+        BlockMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+    }
+
+    UStaticMesh* ColumnMesh = LoadObject<UStaticMesh>(nullptr, *ResolvedColumnMeshPath);
+    if (ColumnMesh == nullptr)
+    {
+        ColumnMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+    }
+
+    UMaterialInterface* StoneMaterial = LoadObject<UMaterialInterface>(nullptr, *ResolvedStoneMaterialPath);
+    if (StoneMaterial == nullptr)
+    {
+        StoneMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
     }
 
     auto SpawnPiece = [this, World, StoneMaterial](UStaticMesh* Mesh, const FVector& Location, const FVector& Scale, const FRotator& Rotation) -> void
@@ -2994,7 +3065,19 @@ void ANazareneCampaignGameMode::SpawnMenuSetpiece(const FVector& CameraCenter)
             return;
         }
 
+        if (Mesh == nullptr)
+        {
+            Mesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+        }
+        if (Mesh == nullptr)
+        {
+            MeshActor->Destroy();
+            return;
+        }
         MeshComponent->SetStaticMesh(Mesh);
+        MeshComponent->SetMobility(EComponentMobility::Movable);
+        MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        MeshComponent->SetCastShadow(true);
         MeshActor->SetActorScale3D(Scale);
         if (StoneMaterial != nullptr)
         {
@@ -3033,6 +3116,7 @@ void ANazareneCampaignGameMode::SpawnMenuSetpiece(const FVector& CameraCenter)
 
         if (UPointLightComponent* Component = Cast<UPointLightComponent>(PointLight->GetLightComponent()))
         {
+            Component->SetMobility(EComponentMobility::Movable);
             Component->SetIntensity(Intensity);
             Component->SetLightColor(Color.ToFColor(true));
             Component->SetAttenuationRadius(Radius);
@@ -3044,8 +3128,52 @@ void ANazareneCampaignGameMode::SpawnMenuSetpiece(const FVector& CameraCenter)
     };
 
     // Key and rim lighting to make the tomb intro readable from frame one.
-    SpawnPointLightForMenu(TombBase + FVector(330.0f, -35.0f, 160.0f), FLinearColor(1.0f, 0.92f, 0.75f), 4800.0f, 1600.0f);
-    SpawnPointLightForMenu(TombBase + FVector(-250.0f, 180.0f, 210.0f), FLinearColor(0.82f, 0.90f, 1.0f), 2600.0f, 1300.0f);
+    SpawnPointLightForMenu(TombBase + FVector(330.0f, -35.0f, 160.0f), FLinearColor(1.0f, 0.92f, 0.75f), 6800.0f, 2200.0f);
+    SpawnPointLightForMenu(TombBase + FVector(-250.0f, 180.0f, 210.0f), FLinearColor(0.82f, 0.90f, 1.0f), 3600.0f, 2000.0f);
+
+    ADirectionalLight* MenuSun = World->SpawnActor<ADirectionalLight>(
+        ADirectionalLight::StaticClass(),
+        TombBase + FVector(0.0f, 0.0f, 1400.0f),
+        FRotator(-30.0f, -20.0f, 0.0f));
+    if (MenuSun != nullptr && MenuSun->GetLightComponent() != nullptr)
+    {
+        MenuSun->GetLightComponent()->SetMobility(EComponentMobility::Movable);
+        MenuSun->GetLightComponent()->SetIntensity(18000.0f);
+        MenuSun->GetLightComponent()->SetTemperature(5700.0f);
+        MenuSun->GetLightComponent()->SetLightColor(FLinearColor(1.0f, 0.93f, 0.80f));
+        MenuSetpieceActors.Add(MenuSun);
+    }
+
+    ASkyLight* MenuSky = World->SpawnActor<ASkyLight>(ASkyLight::StaticClass(), TombBase, FRotator::ZeroRotator);
+    if (MenuSky != nullptr && MenuSky->GetLightComponent() != nullptr)
+    {
+        MenuSky->GetLightComponent()->SetMobility(EComponentMobility::Movable);
+        MenuSky->GetLightComponent()->SetIntensity(1.2f);
+        MenuSky->GetLightComponent()->SetLightColor(FLinearColor(0.88f, 0.92f, 1.0f));
+        MenuSky->GetLightComponent()->SetRealTimeCapture(true);
+        MenuSky->GetLightComponent()->RecaptureSky();
+        MenuSetpieceActors.Add(MenuSky);
+    }
+
+    APostProcessVolume* MenuPostProcess = World->SpawnActor<APostProcessVolume>(APostProcessVolume::StaticClass(), TombBase, FRotator::ZeroRotator);
+    if (MenuPostProcess != nullptr)
+    {
+        MenuPostProcess->bUnbound = true;
+        MenuPostProcess->BlendWeight = 1.0f;
+        MenuPostProcess->Settings.bOverride_AutoExposureMethod = true;
+        MenuPostProcess->Settings.AutoExposureMethod = EAutoExposureMethod::AEM_Histogram;
+        MenuPostProcess->Settings.bOverride_AutoExposureMinBrightness = true;
+        MenuPostProcess->Settings.AutoExposureMinBrightness = 0.35f;
+        MenuPostProcess->Settings.bOverride_AutoExposureMaxBrightness = true;
+        MenuPostProcess->Settings.AutoExposureMaxBrightness = 1.8f;
+        MenuPostProcess->Settings.bOverride_AutoExposureBias = true;
+        MenuPostProcess->Settings.AutoExposureBias = -0.2f;
+        MenuPostProcess->Settings.bOverride_VignetteIntensity = true;
+        MenuPostProcess->Settings.VignetteIntensity = 0.35f;
+        MenuPostProcess->Settings.bOverride_ColorContrast = true;
+        MenuPostProcess->Settings.ColorContrast = FVector4(1.03f, 1.03f, 1.03f, 1.0f);
+        MenuSetpieceActors.Add(MenuPostProcess);
+    }
 }
 
 void ANazareneCampaignGameMode::DestroyMenuSetpiece()

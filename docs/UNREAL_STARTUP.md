@@ -1,3 +1,5 @@
+Status: Active
+
 # Unreal Engine Transition: Startup Plan
 
 This document defines the immediate, concrete next steps to begin transitioning the current pre-UE5 prototype into an Unreal Engine production pipeline. It focuses on the *minimum upfront foundation* needed to safely scale into full AAA production, co-op abilities, host migration, and Steam launch readiness.

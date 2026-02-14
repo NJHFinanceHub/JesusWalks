@@ -1,3 +1,5 @@
+Status: Active
+
 # Networking Scope Definition
 
 ## Decision (February 6, 2026)

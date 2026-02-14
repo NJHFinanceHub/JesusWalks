@@ -1,3 +1,5 @@
+Status: Active
+
 # Jesus Walks implementation plan
 
 ## Systems modules

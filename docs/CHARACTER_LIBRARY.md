@@ -1,3 +1,5 @@
+Status: Active
+
 # Character Library
 
 **Migration note (February 6, 2026):** This roster is engine-agnostic. Gameplay and content integration should now be planned against the Unreal Engine 5 project.

@@ -1,3 +1,5 @@
+Status: Active
+
 # Phase 2 (UE5 Gameplay Systems)
 
 ## Focus

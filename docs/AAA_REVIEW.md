@@ -1,3 +1,5 @@
+Status: Active
+
 # AAA Review (UE5 Baseline)
 
 This review now tracks Unreal Engine 5 implementation quality only.

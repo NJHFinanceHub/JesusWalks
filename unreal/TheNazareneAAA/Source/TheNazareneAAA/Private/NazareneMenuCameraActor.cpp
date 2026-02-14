@@ -9,7 +9,18 @@ ANazareneMenuCameraActor::ANazareneMenuCameraActor()
 
     MenuCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("MenuCamera"));
     RootComponent = MenuCamera;
-    MenuCamera->SetFieldOfView(58.0f);
+    MenuCamera->SetFieldOfView(52.0f);
+    MenuCamera->PostProcessSettings.bOverride_AutoExposureMethod = true;
+    MenuCamera->PostProcessSettings.AutoExposureMethod = EAutoExposureMethod::AEM_Histogram;
+    MenuCamera->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
+    MenuCamera->PostProcessSettings.AutoExposureMinBrightness = 0.35f;
+    MenuCamera->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
+    MenuCamera->PostProcessSettings.AutoExposureMaxBrightness = 1.8f;
+    MenuCamera->PostProcessSettings.bOverride_AutoExposureBias = true;
+    MenuCamera->PostProcessSettings.AutoExposureBias = -0.2f;
+    MenuCamera->PostProcessSettings.bOverride_VignetteIntensity = true;
+    MenuCamera->PostProcessSettings.VignetteIntensity = 0.35f;
+    MenuCamera->PostProcessBlendWeight = 1.0f;
 }
 
 void ANazareneMenuCameraActor::Tick(float DeltaSeconds)

@@ -1,3 +1,5 @@
+Status: Active
+
 # AAA Architecture Framework Review (Birth-to-Cross Campaign)
 
 _Date: 2026-02-13_

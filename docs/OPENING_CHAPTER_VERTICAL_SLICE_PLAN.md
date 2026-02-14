@@ -1,3 +1,5 @@
+Status: Active
+
 # Opening Chapter Vertical Slice Plan (AAA Pass)
 
 ## Objective

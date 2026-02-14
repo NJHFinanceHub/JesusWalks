@@ -1,3 +1,5 @@
+Status: Active
+
 # Weeks 1–4 TODO Completion Report
 
 Date: 2026-02-14

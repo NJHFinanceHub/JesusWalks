@@ -57,6 +57,7 @@ public:
     bool ToggleSkillTree();
 
 private:
+    void ApplyInitialMenuState();
     void ApplyMenuInputMode(bool bMenuVisible);
 
 private:

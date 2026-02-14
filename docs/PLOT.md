@@ -1,3 +1,5 @@
+Status: Active
+
 # Plot: The Nazarene
 
 **Migration note (February 6, 2026):** This narrative spec is engine-agnostic. Production implementation should assume Unreal Engine 5 as the active runtime target.

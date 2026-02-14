@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NazareneCursorWidget.h"
 #include "NazareneHUDWidget.h"
+#include "TimerManager.h"
 
 void ANazareneHUD::BeginPlay()
 {
@@ -31,7 +32,15 @@ void ANazareneHUD::BeginPlay()
 
     RuntimeWidget->SetRegionName(RegionName);
     RuntimeWidget->SetObjective(Objective);
-    SetStartMenuVisible(true);
+
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().SetTimerForNextTick(this, &ANazareneHUD::ApplyInitialMenuState);
+    }
+    else
+    {
+        ApplyInitialMenuState();
+    }
 }
 
 void ANazareneHUD::DrawHUD()
@@ -163,6 +172,11 @@ bool ANazareneHUD::ToggleSkillTree()
     const bool bNextVisible = !RuntimeWidget->IsSkillTreeVisible();
     SetSkillTreeVisible(bNextVisible);
     return bNextVisible;
+}
+
+void ANazareneHUD::ApplyInitialMenuState()
+{
+    SetStartMenuVisible(true);
 }
 
 void ANazareneHUD::ApplyMenuInputMode(bool bMenuVisible)

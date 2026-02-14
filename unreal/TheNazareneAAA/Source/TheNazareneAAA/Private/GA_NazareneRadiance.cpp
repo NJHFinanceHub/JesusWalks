@@ -10,7 +10,7 @@ UGA_NazareneRadiance::UGA_NazareneRadiance()
 {
     FaithCost = 30.0f;
     CooldownDuration = 12.0f;
-    CooldownTag = FGameplayTag::RequestGameplayTag(TEXT("Cooldown.Miracle.Radiance"));
+    CooldownTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Cooldown.Miracle.Radiance")), false);
 }
 
 void UGA_NazareneRadiance::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)

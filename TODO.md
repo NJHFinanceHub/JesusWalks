@@ -1,32 +1,32 @@
-# The Nazarene â€” Storefront-Ready Production Roadmap
+Status: Active
+
+# The Nazarene - Storefront-Ready Production Roadmap
 
 > **Last updated:** February 14, 2026
 > **Engine:** Unreal Engine 5.7 C++ (`unreal/TheNazareneAAA`)
-> **Target:** Win64 Shipping build â€” 7-chapter campaign from Nativity to Crucifixion, production art/audio, polished UI
+> **Target:** Win64 Shipping build - 7-chapter campaign from Nativity to Crucifixion, production art/audio, polished UI
 > **Developer:** Solo
+> **Checklist policy:** check off items only with code + runtime proof; keep historical checklist lines intact
 
 ## Status Summary
 
-The Unreal C++ codebase is **functionally complete** for core gameplay (combat, miracles, AI, campaign, save/load, HUD, settings) but runs entirely on placeholder geometry. The `Content/` directory is nearly empty â€” no skeletal meshes, no AnimBlueprints, no Behavior Tree assets, no Niagara VFX, no audio assets, and no authored environments. All former non-UE gameplay logic has been migrated into UE5-compatible systems.
+This roadmap remains the source-of-truth queue. As of February 14, 2026:
+- Checklist totals: `31` checked, `25` open
+- Core runtime systems are implemented in UE5 C++ (combat, miracles, AI, campaign, save/load, HUD, settings)
+- Content is no longer empty: region maps, behavior trees, character meshes, materials, and baseline audio assets exist in `Content/`
+- Critical blockers still confirmed: no `Content/Art/VFX`, only 4 regional music assets currently imported, no `NazareneLoreItem` class yet
 
 ### Completed Baseline
-- Unreal C++ scaffold mirrors all major prior gameplay systems
-- `ANazareneCampaignGameMode`, `ANazarenePlayerCharacter`, `ANazareneEnemyCharacter`
-- `ANazarenePrayerSite`, `ANazareneTravelGate`, `UNazareneSaveSubsystem`
-- `ANazareneHUD` with UMG pause/menu stack and save/load slot summaries
-- AI Perception + Behavior Tree controller hooks (`ANazareneEnemyAIController`)
-- Animation runtime state classes and retarget-ready skeletal mesh hooks
-- Enhanced Input with mapping contexts
-- Persistent player settings subsystem (controls/video/audio)
-- Chapter objective progression, stage state machine, retry tracking
-- Asset integration pipeline standards + Python validator
-- Packaging/profile pipeline docs (`docs/PACKAGING_PROFILE_PIPELINE.md`)
-- GAS evaluation completed (`docs/GAS_ADOPTION_EVALUATION.md`)
-- Networking scope defined (single-player only)
-- Pre-UE5 prototype audit completed and issues addressed (Feb 13, 2026)
+- Unreal gameplay scaffold and migration to UE5-native systems
+- Campaign/play loop classes (`ANazareneCampaignGameMode`, `ANazarenePlayerCharacter`, `ANazareneEnemyCharacter`)
+- Interaction/save infrastructure (`ANazarenePrayerSite`, `ANazareneTravelGate`, `UNazareneSaveSubsystem`)
+- UMG HUD/menu stack with slot summaries and options (`ANazareneHUD`, `UNazareneHUDWidget`)
+- AI controller and behavior tree routing (`ANazareneEnemyAIController` + BT assets)
+- Skill tree and progression runtime (`UNazareneSkillTree`, XP/leveling, unlock persistence)
+- Accessibility/settings subsystem (`FNazarenePlayerSettings`, `UNazareneSettingsSubsystem`)
+- Tooling/docs for asset validation, packaging, and migration guidance
 
 ---
-
 ## Week 1 â€” Asset Pipeline Bootstrap + Character Meshes
 
 > Highest-risk items first: marketplace skeleton retargeting determines whether animation work can proceed.
@@ -93,7 +93,7 @@ The Unreal C++ codebase is **functionally complete** for core gameplay (combat, 
 
 - [ ] Full gamepad navigation audit: all menus navigable with analog stick + face buttons via CommonUI focus chain
 - [ ] Implement `UNazareneSkillTreeWidget` (4-branch visual display, unlock interaction, accessible from pause menu and prayer sites)
-- [ ] Main menu cinematic backdrop (slow camera pan over Galilee environment with atmospheric lighting)
+- [x] Main menu cinematic backdrop (slow camera pan away from an empty tomb setpiece with atmospheric lighting; menu anchored right and gameplay HUD hidden until Start/Continue) _(Evidence 2026-02-14: `unreal/TheNazareneAAA/Source/TheNazareneAAA/Private/NazareneCampaignGameMode.cpp`, `unreal/TheNazareneAAA/Source/TheNazareneAAA/Private/NazareneMenuCameraActor.cpp`, `unreal/TheNazareneAAA/Source/TheNazareneAAA/Private/NazareneHUDWidget.cpp`; validated in packaged Win64 runtime launch with menu/HUD gating behavior and no region-map boot warning.)_
 - [ ] Complete SFX: UI sounds (navigate, confirm, cancel, save), footsteps (surface-aware), ambient soundscapes per region
 - [ ] Author/import music for all 7 regions (ambient + combat track each); implement crossfade on enemy detection
 - [ ] Add accessibility settings to `FNazarenePlayerSettings`: subtitle size, colorblind mode, high-contrast HUD
