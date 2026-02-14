@@ -10,11 +10,31 @@ void UNazareneVFXSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     // Attempt to load Niagara systems from expected content paths.
     // If the assets do not exist yet the pointers remain null and
     // SpawnEffectAtLocation / SpawnEffectAttached will log a warning.
-    HealBurstSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_HealBurst.NS_HealBurst"));
-    BlessingAuraSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_BlessingAura.NS_BlessingAura"));
-    RadiancePulseSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_RadiancePulse.NS_RadiancePulse"));
-    LightSlashSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_LightSlash.NS_LightSlash"));
-    HeavySlashSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_HeavySlash.NS_HeavySlash"));
+    HealBurstSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_Heal.NS_Heal"));
+    if (HealBurstSystem == nullptr)
+    {
+        HealBurstSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_HealBurst.NS_HealBurst"));
+    }
+    BlessingAuraSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_Blessing.NS_Blessing"));
+    if (BlessingAuraSystem == nullptr)
+    {
+        BlessingAuraSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_BlessingAura.NS_BlessingAura"));
+    }
+    RadiancePulseSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_Radiance.NS_Radiance"));
+    if (RadiancePulseSystem == nullptr)
+    {
+        RadiancePulseSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_RadiancePulse.NS_RadiancePulse"));
+    }
+    LightSlashSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_LightAttackHit.NS_LightAttackHit"));
+    if (LightSlashSystem == nullptr)
+    {
+        LightSlashSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_LightSlash.NS_LightSlash"));
+    }
+    HeavySlashSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_HeavyAttackHit.NS_HeavyAttackHit"));
+    if (HeavySlashSystem == nullptr)
+    {
+        HeavySlashSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_HeavySlash.NS_HeavySlash"));
+    }
     EnemyHitReactSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_EnemyHitReact.NS_EnemyHitReact"));
     EnemyRedeemedSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_EnemyRedeemed.NS_EnemyRedeemed"));
     BossArenaHazardSystem = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Art/VFX/NS_BossArenaHazard.NS_BossArenaHazard"));

@@ -4,11 +4,13 @@
 #include "NazareneAttributeSet.h"
 #include "NazareneEnemyCharacter.h"
 #include "NazarenePlayerCharacter.h"
+#include "GameplayTagsManager.h"
 
 UGA_NazareneRadiance::UGA_NazareneRadiance()
 {
     FaithCost = 30.0f;
     CooldownDuration = 12.0f;
+    CooldownTag = FGameplayTag::RequestGameplayTag(TEXT("Cooldown.Miracle.Radiance"));
 }
 
 void UGA_NazareneRadiance::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -44,8 +46,11 @@ void UGA_NazareneRadiance::ActivateAbility(const FGameplayAbilitySpecHandle Hand
         return;
     }
 
-    // Deduct faith
-    Player->AddFaith(-RadianceFaithCost);
+    if (!CommitMiracle(ActorInfo))
+    {
+        CancelAbility(Handle, ActorInfo, ActivationInfo, true);
+        return;
+    }
 
     // AOE damage to nearby enemies
     const float Radius = Player->RadianceRadius;

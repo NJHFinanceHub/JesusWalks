@@ -42,6 +42,7 @@ void ANazarenePrayerSite::BeginPlay()
     Super::BeginPlay();
 
     InteractionSphere->SetSphereRadius(InteractionRadius);
+    ApplyVisualTheme();
     InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &ANazarenePrayerSite::HandleOverlapBegin);
     InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &ANazarenePrayerSite::HandleOverlapEnd);
 }
@@ -53,7 +54,8 @@ FVector ANazarenePrayerSite::GetRespawnLocation() const
 
 FString ANazarenePrayerSite::GetPromptMessage() const
 {
-    return FString::Printf(TEXT("%s: %s | Save F1-F3 | Load F5-F7"), *SiteName, *PromptText);
+    const FString LoreHint = LoreText.IsEmpty() ? TEXT("") : TEXT(" | Lore available");
+    return FString::Printf(TEXT("%s: %s | Save F1-F3 | Load F5-F7 | Skill Tree [T]%s"), *SiteName, *PromptText, *LoreHint);
 }
 
 void ANazarenePrayerSite::HandleOverlapBegin(
@@ -86,4 +88,48 @@ void ANazarenePrayerSite::HandleOverlapEnd(
         return;
     }
     Player->ClearActivePrayerSite(this);
+}
+
+
+void ANazarenePrayerSite::ApplyVisualTheme()
+{
+    if (AltarMesh == nullptr || PrayerLight == nullptr)
+    {
+        return;
+    }
+
+    const FString Theme = VisualTheme.ToLower();
+
+    FLinearColor MeshTint(0.78f, 0.70f, 0.56f, 1.0f);
+    FColor LightColor(255, 229, 189);
+    float LightIntensity = 3500.0f;
+
+    if (Theme.Contains(TEXT("desert")) || Theme.Contains(TEXT("wilderness")))
+    {
+        MeshTint = FLinearColor(0.86f, 0.72f, 0.46f, 1.0f);
+        LightColor = FColor(255, 215, 140);
+        LightIntensity = 3200.0f;
+    }
+    else if (Theme.Contains(TEXT("jerusalem")) || Theme.Contains(TEXT("temple")))
+    {
+        MeshTint = FLinearColor(0.84f, 0.80f, 0.68f, 1.0f);
+        LightColor = FColor(255, 236, 198);
+        LightIntensity = 3800.0f;
+    }
+    else if (Theme.Contains(TEXT("night")) || Theme.Contains(TEXT("gethsemane")))
+    {
+        MeshTint = FLinearColor(0.46f, 0.52f, 0.62f, 1.0f);
+        LightColor = FColor(180, 210, 255);
+        LightIntensity = 3000.0f;
+    }
+    else if (Theme.Contains(TEXT("tomb")) || Theme.Contains(TEXT("dawn")))
+    {
+        MeshTint = FLinearColor(0.74f, 0.72f, 0.76f, 1.0f);
+        LightColor = FColor(220, 225, 255);
+        LightIntensity = 3400.0f;
+    }
+
+    AltarMesh->SetVectorParameterValueOnMaterials(TEXT("Color"), FVector(MeshTint.R, MeshTint.G, MeshTint.B));
+    PrayerLight->SetLightColor(LightColor);
+    PrayerLight->SetIntensity(LightIntensity);
 }
