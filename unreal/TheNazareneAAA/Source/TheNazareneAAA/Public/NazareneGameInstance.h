@@ -26,6 +26,12 @@ public:
     bool EnsureMiracleUnlocked(FName MiracleId);
 
     UFUNCTION(BlueprintCallable)
+    bool AddInventoryItem(const FNazareneInventoryItem& Item);
+
+    UFUNCTION(BlueprintCallable)
+    bool HasInventoryItem(FName ItemId) const;
+
+    UFUNCTION(BlueprintCallable)
     void MarkFlag(FName FlagId);
 
     UFUNCTION(BlueprintCallable)

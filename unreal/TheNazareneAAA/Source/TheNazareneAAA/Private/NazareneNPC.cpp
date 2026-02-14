@@ -50,21 +50,41 @@ void ANazareneNPC::BeginPlay()
 	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &ANazareneNPC::HandleOverlapBegin);
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &ANazareneNPC::HandleOverlapEnd);
 
-	// Tint NPC body blue-green to distinguish from enemies
+	// Lightweight model variety using CharacterSlug-driven tint and silhouette.
+	FLinearColor BodyColor(0.28f, 0.45f, 0.62f, 1.0f);
+	FLinearColor HeadColor(0.72f, 0.58f, 0.44f, 1.0f);
+	float BodyHeightScale = 1.1f;
+	if (!CharacterSlug.IsEmpty())
+	{
+		const uint32 Seed = GetTypeHash(CharacterSlug);
+		BodyColor = FLinearColor(
+			0.20f + float((Seed >> 0) & 0x1F) / 100.0f,
+			0.32f + float((Seed >> 5) & 0x1F) / 100.0f,
+			0.40f + float((Seed >> 10) & 0x1F) / 100.0f,
+			1.0f);
+		HeadColor = FLinearColor(
+			0.55f + float((Seed >> 15) & 0x0F) / 100.0f,
+			0.45f + float((Seed >> 19) & 0x0F) / 100.0f,
+			0.34f + float((Seed >> 23) & 0x0F) / 100.0f,
+			1.0f);
+		BodyHeightScale = 0.95f + float((Seed >> 27) & 0x07) / 20.0f;
+	}
+	BodyMesh->SetRelativeScale3D(FVector(0.45f, 0.45f, BodyHeightScale));
+
 	UMaterialInterface* BaseMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
 	if (BaseMaterial != nullptr)
 	{
 		UMaterialInstanceDynamic* BodyDynMat = UMaterialInstanceDynamic::Create(BaseMaterial, this);
 		if (BodyDynMat != nullptr)
 		{
-			BodyDynMat->SetVectorParameterValue(TEXT("Color"), FVector(0.28f, 0.45f, 0.62f));
+			BodyDynMat->SetVectorParameterValue(TEXT("Color"), FVector(BodyColor.R, BodyColor.G, BodyColor.B));
 			BodyMesh->SetMaterial(0, BodyDynMat);
 		}
 
 		UMaterialInstanceDynamic* HeadDynMat = UMaterialInstanceDynamic::Create(BaseMaterial, this);
 		if (HeadDynMat != nullptr)
 		{
-			HeadDynMat->SetVectorParameterValue(TEXT("Color"), FVector(0.72f, 0.58f, 0.44f));
+			HeadDynMat->SetVectorParameterValue(TEXT("Color"), FVector(HeadColor.R, HeadColor.G, HeadColor.B));
 			HeadMesh->SetMaterial(0, HeadDynMat);
 		}
 	}
